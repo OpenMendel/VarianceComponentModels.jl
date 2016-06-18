@@ -1,6 +1,6 @@
 module MultivariateCalculusTest
 
-using MultivariateCalculus
+using VarianceComponentModels
 using BaseTestNext
 
 srand(123)

@@ -1,7 +1,11 @@
-module MultivariateCalculus
+# module MultivariateCalculus
 
 import Base.LowerTriangular
-export duplicate!, chol_gradient, chol_gradient!, kron_gradient, vech, trilind
+export vech, trilind, triuind,
+  commutation, spcommutation,
+  duplication, spduplication,
+  chol_gradient, chol_gradient!,
+  kron_gradient, kron_gradient!
 
 """
 Vectorize the lower triangular part of a matrix.
@@ -27,8 +31,8 @@ end
 """
     commutation(type, m[, n])
 
-Create the `mn`-by-`mn` commutation matrix `K`, defined by
-`K * vec(A) = vec(A')` for any `m`-by-`n` matrix A.
+Create the `mn x mn` commutation matrix `K`, defined by
+`K * vec(A) = vec(A')` for any `m x n` matrix A.
 """
 function commutation(t::Type, m::Integer, n::Integer)
   ((m < 0) || (n < 0)) && throw(ArgumentError("invalid Array dimensions"))
@@ -44,7 +48,7 @@ commutation(M::AbstractMatrix) = commutation(eltype(M), size(M, 1), size(M, 2))
     spcommutation(type, m[, n])
 
 Create the sparse `mn`-by-`mn` commutation matrix `K`, defined by
-`K * vec(A) = vec(A')` for any `m`-by-`n` matrix A.
+`K * vec(A) = vec(A')` for any `m x n` matrix A.
 """
 function spcommutation(t::Type, m::Integer, n::Integer)
   ((m < 0) || (n < 0)) && throw(ArgumentError("invalid Array dimensions"))
@@ -59,7 +63,7 @@ spcommutation(M::AbstractMatrix) = spcommutation(eltype(M), size(M, 1), size(M, 
 """
     trilind(m, n,[ k])
 
-Linear indices of the lower triangular part of an `m`-by-'n' array.
+Linear indices of the lower triangular part of an `m x n` array.
 """
 function trilind(m::Integer, n::Integer, k::Integer)
   find(tril(trues(m, n), k))
@@ -76,7 +80,7 @@ trilind(M::AbstractArray, k::Integer) = trilind(size(M, 1), size(M, 2), k)
 """
     triuind(m, n,[ k])
 
-Linear indices of the upper triangular part of an `m`-by-'n' array.
+Linear indices of the upper triangular part of an `m x n` array.
 """
 function triuind(m::Integer, n::Integer, k::Integer)
   find(triu(trues(m, n), k))
@@ -153,36 +157,36 @@ function chol_gradient{T <: Real}(dM::AbstractVecOrMat{T}, L::AbstractMatrix{T})
   chol_gradient!(g, dM, L)
 end
 
-"""
-Construct an `n x n` lower triangular matrix from data `l`.
-"""
-function Base.LowerTriangular(l::AbstractVecOrMat, n::Integer)
-  data = zeros(eltype(l), n, n)
-  idx = 1
-  @inbounds for j in 1:n
-    @simd for i in j:n
-      data[i, j] = l[idx]
-      idx += 1
-    end
-  end
-  LowerTriangular(data)
-end # function Base.LowerTriangular
+# """
+# Construct an `n x n` lower triangular matrix from data `l`.
+# """
+# function Base.LowerTriangular(l::AbstractVecOrMat, n::Integer)
+#   data = zeros(eltype(l), n, n)
+#   idx = 1
+#   @inbounds for j in 1:n
+#     @simd for i in j:n
+#       data[i, j] = l[idx]
+#       idx += 1
+#     end
+#   end
+#   LowerTriangular(data)
+# end # function Base.LowerTriangular
 
-"""
-Copy lower triangular part of `A + A' - diag(A)` into `data`.
-"""
-function duplicate!(data::AbstractVecOrMat, A::AbstractMatrix)
-  n = size(A, 1)
-  @assert n == size(A, 2) "A has to be a square matrix"
-  idx = 1
-  @inbounds for j in 1:n
-    data[idx] = A[j, j]
-    idx += 1
-    @simd for i in (j + 1):n
-      data[idx] = A[i, j] + A[j, i]
-      idx += 1
-    end
-  end
-end # function Base.LowerTriangular
+# """
+# Copy lower triangular part of `A + A' - diag(A)` into `data`.
+# """
+# function duplicate!(data::AbstractVecOrMat, A::AbstractMatrix)
+#   n = size(A, 1)
+#   @assert n == size(A, 2) "A has to be a square matrix"
+#   idx = 1
+#   @inbounds for j in 1:n
+#     data[idx] = A[j, j]
+#     idx += 1
+#     @simd for i in (j + 1):n
+#       data[idx] = A[i, j] + A[j, i]
+#       idx += 1
+#     end
+#   end
+# end # function Base.LowerTriangular
 
-end # module MultivariateCalculus
+#end # module MultivariateCalculus

@@ -1,12 +1,14 @@
-module TwoVarianceComponent
+#module TwoVarianceComponent
 
-using MathProgBase
-using Ipopt
-#using Mosek
-using KNITRO
+# using MathProgBase
+# using Ipopt
+# #using Mosek
+# using KNITRO
 
-export reml_objval, reml_grad, reml_grad!, reml_fisher, reml_fisher!, reml_eig,
-  reml_fs, reml_mm
+export reml_objval,
+  reml_grad, reml_grad!,
+  reml_fisher, reml_fisher!,
+  reml_eig, reml_fs, reml_mm
 
 type TwoVarComp <: MathProgBase.AbstractNLPEvaluator
 end
@@ -539,4 +541,4 @@ function reml_mm{T <: AbstractFloat}(
   logl, Σ, Σse
 end # function reml_mm
 
-end # module TwoVarianceComponent
+# end # module TwoVarianceComponent
