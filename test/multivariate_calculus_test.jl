@@ -1,47 +1,91 @@
 module MultivariateCalculusTest
 
 using MultivariateCalculus
-using Base.Test
-
-# test vech
-a = reshape(1:15, 5, 3)
-@show a
-@show vech(a)
-
-# test commutation
-@show commutation(3, 2)
-@show spcommutation(3, 2)
-@show duplication(3)
-@show spduplication(3)
-
-# test chol_gradient
-d = 3
-A = randn(d, d); A = 0.5(A + A')
-L = tril(randn(d, d))
-@show 2.0vech((A * L) + L' * A' - diagm(diag(A * L)))
-@show chol_gradient(vec(A), L)
+using BaseTestNext
 
 srand(123)
-n = 4; d = 3; nd = n * d;
-A = randn(nd, nd); A = 0.5(A + A');
-B = randn(nd, nd); B = 0.5(B + B');
-#copy!(B, A) # make B same as A
-V1 = randn(n, n); V1 = 0.5(V1 + V1');
-V2 = randn(n, n); V2 = 0.5(V2 + V2');
-result1 =
-  MultivariateCalculus.kron_gradient(
-  MultivariateCalculus.kron_gradient(kron(A, B), V1, d, d)', V1, d, d)'
-result2 =
-  kron(speye(d^2), vec(V1)') *
-  kron(speye(d), MultivariateCalculus.spcommutation(d, n), speye(n)) *
-  kron(A, B) *
-  kron(speye(d), MultivariateCalculus.spcommutation(n, d), speye(n)) *
-  kron(speye(d^2), vec(V1))
-@show result1
-@show result2
-# (2, 1) block
-for k2 in 1:d, j2 in 1:d, k1 in 1:d, j1 in 1:d
-  println(trace(V1 * A[(k1-1)*n+1:k1*n, (k2-1)*n+1:k2*n] * V1 * B[(j2-1)*n+1:j2*n, (j1-1)*n+1:j1*n]))
+
+# test vech
+@testset "vech" begin
+  a = reshape(1:9, 3, 3)
+  vecha = vech(a)
+  @test vecha[1] == a[1, 1]
+  @test vecha[2] == a[2, 1]
+  @test vecha[3] == a[3, 1]
+  @test vecha[4] == a[2, 2]
+  @test vecha[5] == a[3, 2]
+  @test vecha[6] == a[3, 3]
 end
+
+# test trilind
+@testset "trilind" begin
+  n = 3
+  A = randn(n, n)
+  @test vecnorm(vech(A) - A[trilind(A)]) ≈ 0.0
+end
+
+# test triuind
+@testset "triuind" begin
+  n = 2
+  idx = triuind(n, n)
+  @test length(idx) == binomial(n + 1, 2)
+  @test idx[1] == 1
+  @test idx[2] == 3
+  @test idx[3] == 4
+end
+
+# test commutation
+@testset "commutation" begin
+  m, n = 3, 2
+  A = randn(m, n)
+  @test vecnorm(commutation(m, n) * vec(A) - vec(A')) ≈ 0.0
+  @test vecnorm(commutation(A) * vec(A) - vec(A')) ≈ 0.0
+  @test vecnorm(spcommutation(m, n) * vec(A) - vec(A')) ≈ 0.0
+  @test vecnorm(spcommutation(A) * vec(A) - vec(A')) ≈ 0.0
+end
+
+# test duplication
+@testset "duplication" begin
+  n = 3
+  A = randn(n, n)
+  A = 0.5(A + A') # symmetrize
+  @test vecnorm(duplication(n) * vech(A) - vec(A)) ≈ 0.0
+  @test vecnorm(duplication(A) * vech(A) - vec(A)) ≈ 0.0
+  @test vecnorm(spduplication(n) * vech(A) - vec(A)) ≈ 0.0
+  @test vecnorm(spduplication(n) * vech(A) - vec(A)) ≈ 0.0
+end
+
+# test chol_gradient
+@testset "chol_gradient" begin
+  n = 3
+  A = randn(n, n)
+  A = 0.5(A + A') # symmetrize
+  L = tril(randn(n, n))
+  # calculate gradient wrt L using chol_gradient
+  dL1 = chol_gradient(vec(A), L)
+  # alternative way to calculate gradient wrt L
+  dL2 = 2.0vech((A * L) + L' * A' - diagm(diag(A * L)))
+  @test vecnorm(dL1 - dL2) ≈ 0.0
+end
+
+# test kron_gradient
+@testset "kron_gradient" begin
+  n, q, p, r = 2, 3, 4, 5
+  X = randn(n, q)
+  Y = randn(p, r)
+  M = kron(X, Y)
+  # calculate gradient wrt X using kron_gradient
+  dX1 = kron_gradient(vec(M), Y, n, q)
+  # alternative way to calculate gradient wrt X
+  dX2 = zeros(X)
+  for j = 1:q
+    for i = 1:n
+      dX2[i, j] = vecdot(Y, M[(i-1)*p+1:i*p, (j-1)*r+1:j*r])
+    end
+  end
+  @test_approx_eq_eps vecnorm(dX1 - vec(dX2)) 0.0 1.0e-8
+end
+
+
 
 end # module MultivariateCalculusTest
