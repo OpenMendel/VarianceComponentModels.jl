@@ -1,3 +1,10 @@
+module TwoVarianceComponent
+
+using MathProgBase
+using Ipopt
+#using Mosek
+using KNITRO
+
 export reml_objval, reml_grad, reml_grad!, reml_fisher, reml_fisher!, reml_eig,
   reml_fs, reml_mm
 
@@ -531,3 +538,5 @@ function reml_mm{T <: AbstractFloat}(
   # output
   logl, Σ, Σse
 end # function reml_mm
+
+end # module TwoVarianceComponent

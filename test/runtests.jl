@@ -1,5 +1,4 @@
-using VarianceComponentModels
-using Base.Test
-
-# write your own tests here
-@test 1 == 1
+module VarianceComponentModelsTest
+  include("multivariate_calculus_test.jl")
+  #include("two_variance_component_test.jl")
+end

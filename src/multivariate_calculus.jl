@@ -1,3 +1,5 @@
+module MultivariateCalculus
+
 import Base.LowerTriangular
 export duplicate!, chol_gradient, chol_gradient!, kron_gradient, vech, trilind
 
@@ -182,3 +184,5 @@ function duplicate!(data::AbstractVecOrMat, A::AbstractMatrix)
     end
   end
 end # function Base.LowerTriangular
+
+end # module MultivariateCalculus
