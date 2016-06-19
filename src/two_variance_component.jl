@@ -265,6 +265,7 @@ is assumed to be normal with mean zero and covariance `Σ[1]⊗V[1] + Σ[2]⊗V[
 - log-likelihood at `Σ = (Σ[1], Σ[2])`.
 - `Σ=(Σ[1], Σ[2])`: variance component estimates.
 - `Σse=(Σse[1], Σse[2])`: standard errors of variance component estimates.
+- `Σcov`: `2d^2 x 2d^2` covariance matrix of variance component estimates.
 """
 function reml_fs{T <: AbstractFloat}(
   Yrot::VecOrMat{T},
@@ -409,13 +410,17 @@ function reml_fs{T <: AbstractFloat}(
   L[2][Ltrilind] = x[nparamhalf+1:end]
   A_mul_Bt!(Σ[1], L[1], L[1])
   A_mul_Bt!(Σ[2], L[2], L[2])
+
   # standard errors
-  reml_fisher!(HΣ, Σ, ev)
+  Σcov = zeros(T, 2d^2, 2d^2)
+  reml_fisher!(Σcov, Σ, ev)
+  Σcov = inv(Σcov)
   Σse = deepcopy(Σ)
-  copy!(Σse[1], sqrt(diag(sub(HΣ, 1:d^2, 1:d^2))))
-  copy!(Σse[2], sqrt(diag(sub(HΣ, d^2+1:2d^2, d^2+1:2d^2))))
+  copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
+  copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+
   # output
-  return maxlogl, Σ, Σse
+  maxlogl, Σ, Σse, Σcov
 end # function reml_fs
 
 """
@@ -439,6 +444,7 @@ Fit variance component model using minorization-maximization algorithm. Data
 - log-likelihood at `Σ=(Σ[1],Σ[2])`.
 - `Σ=(Σ[1],Σ[2])`: variance component estimates.
 - `Σse=(Σse[1],Σse[2])`: standard errors of variance component estimates.
+- `Σcov`: `2d^2 x 2d^2` covariance matrix of variance component estimates.
 
 # Reference
 - H. Zhou, L. Hu, J. Zhou, and K. Lange (2015)
@@ -531,14 +537,15 @@ function reml_mm{T <: AbstractFloat}(
   if verbose; println(); end
 
   # standard errors
-  HΣ = zeros(T, 2d^2, 2d^2)
-  reml_fisher!(HΣ, Σ, ev)
+  Σcov = zeros(T, 2d^2, 2d^2)
+  reml_fisher!(Σcov, Σ, ev)
+  Σcov = inv(Σcov)
   Σse = deepcopy(Σ)
-  copy!(Σse[1], sqrt(diag(sub(HΣ, 1:d^2, 1:d^2))))
-  copy!(Σse[2], sqrt(diag(sub(HΣ, d^2+1:2d^2, d^2+1:2d^2))))
+  copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
+  copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
-  logl, Σ, Σse
+  logl, Σ, Σse, Σcov
 end # function reml_mm
 
 # end # module TwoVarianceComponent
