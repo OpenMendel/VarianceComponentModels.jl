@@ -207,7 +207,7 @@ Extract eigen-decomposition of `V = (V[1], V[2])`.
 """
 function reml_eig{T <: AbstractFloat}(
   Y::AbstractVecOrMat{T},
-  V::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}})
+  V::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}}
   )
 
   n, d = size(Y, 1), size(Y, 2)
@@ -236,7 +236,7 @@ end # function reml_eig
 # Set up MathProgBase interface
 
 type TwoVarComp{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
-  Yrot::VecOrMat{T}
+  Yrot::AbstractVecOrMat{T}
   ev::Vector{T}
   loglconst::T
   L::Vector{Matrix{T}}
