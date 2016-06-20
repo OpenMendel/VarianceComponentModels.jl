@@ -31,23 +31,28 @@ end
 Y = reshape(Ωchol[:L] * randn(n*d), n, d)
 
 @testset "fit vc and estimate heritability" begin
-info("Pre-compute (generalized) eigen-decomposition")
-# pre-compute the (generalized) eigen-decomposition
-Yrot, deval, loglconst = reml_eig(Y, V)
-info("Fit variance component model using Fisher scoring algorithm")
-# fit variance component model using Fisher scoring
-logl_fs, Σhat_fs, Σse_fs, Σcov_fs = reml_fs(Yrot, deval, loglconst; solver = :Ipopt)
-@test vecnorm(reml_grad(Σhat_fs, Yrot, deval)) < 1.0e-3
-info("Fit variance component model using MM algorithm")
-# fit variance component model using MM algorithm
-logl_mm, Σhat_mm, Σse_mm, Σcov_mm = reml_mm(Yrot, deval, loglconst)
-#@test vecnorm(reml_grad(Σhat_mm, Yrot, deval)) < 1.0e-2
-@test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-3
-info("Heritability estimation")
-# heritability estimation
-h, h_se = heritability(Σhat_fs, Σcov_fs)
-@show h, h_se
-@test all(0.0 .≤ h .≤ 1.0)
+  info("Pre-compute (generalized) eigen-decomposition")
+  Yrot, deval, loglconst = reml_eig(Y, V)
+  info("Fit first two univariate traits using Fisher Scoring")
+  logl_fs1, = reml_fs(Yrot[:, 1], deval, loglconst; solver = :Ipopt)
+  logl_fs2, = reml_fs(Yrot[:, 2], deval, loglconst; solver = :Ipopt)
+  @test logl_fs1 ≠ logl_fs2
+  info("Fit first two univariate traits (views) using Fisher Scoring")
+  logl_fs1v, = reml_fs(Yrot[:, 1], deval, loglconst; solver = :Ipopt)
+  logl_fs2v, = reml_fs(Yrot[:, 2], deval, loglconst; solver = :Ipopt)
+  @test logl_fs1 == logl_fs1v
+  info("Fit multivariate traits using Fisher Scoring")
+  logl_fs, Σhat_fs, Σse_fs = reml_fs(Yrot, deval, loglconst; solver = :Ipopt)
+  @test vecnorm(reml_grad(Σhat_fs, Yrot, deval)) < 1.0e-3
+  info("Fit multivariate traits using MM algorithm")
+  logl_mm, Σhat_mm, Σse_mm = reml_mm(Yrot, deval, loglconst)
+  #@test vecnorm(reml_grad(Σhat_mm, Yrot, deval)) < 1.0e-2
+  @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-3
+  info("Heritability estimation")
+  # heritability estimation
+  h, h_se = heritability(Σhat_fs, Σcov_fs)
+  @show h, h_se
+  @test all(0.0 .≤ h .≤ 1.0)
 end
 
 end # module MultivariateCalculusTest

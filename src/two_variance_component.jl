@@ -11,23 +11,6 @@ export reml_objval,
   reml_eig, reml_fs, reml_mm,
   heritability
 
-type TwoVarComp <: MathProgBase.AbstractNLPEvaluator
-end
-
-function MathProgBase.initialize(dd::TwoVarComp,
-  requested_features::Vector{Symbol})
-  for feat in requested_features
-    if !(feat in [:Grad, :Jac, :Hess])
-      error("Unsupported feature $feat")
-    end
-  end
-end # function MathProgBase.initialize
-
-MathProgBase.features_available(dd::TwoVarComp) = [:Grad, :Jac, :Hess]
-MathProgBase.eval_g(dd::TwoVarComp, g, x) = nothing
-MathProgBase.jac_structure(dd::TwoVarComp) = Int[], Int[]
-MathProgBase.eval_jac_g(dd::TwoVarComp, J, x) = nothing
-
 """
 
     reml_objval(Σ, Yrot, ev, loglconst)
@@ -47,8 +30,9 @@ normal with mean zero and covariance `Σ[1]⊗V[1] + Σ[2]⊗V[2]`.
 function reml_objval{T <: AbstractFloat}(
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
   Yrot::AbstractVecOrMat{T},
-  ev::AbstractVector{T},
-  loglconst::T)
+  ev::Vector{T},
+  loglconst::T
+  )
 
   n, d = size(Yrot, 1), size(Yrot, 2)
   zeroT, oneT = zero(T), one(T)
@@ -88,10 +72,11 @@ Evaluate gradient at `Σ = (Σ[1], Σ[2])` and overwrite `∇`, under the model
 - `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
 """
 function reml_grad!{T <: AbstractFloat}(
-  ∇::AbstractVector{T},
+  ∇::Vector{T},
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
   Yrot::AbstractVecOrMat{T},
-  ev::AbstractVector{T})
+  ev::Vector{T}
+  )
 
   n, d = size(Yrot, 1), size(Yrot, 2)
   zeroT, oneT = zero(T), one(T)
@@ -129,8 +114,9 @@ end # function reml_grad!
 
 function reml_grad{T <: AbstractFloat}(
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
-  Yrot::VecOrMat{T},
-  ev::Vector{T})
+  Yrot::AbstractVecOrMat{T},
+  ev::Vector{T}
+  )
 
   d = size(Σ[1], 1)
   ∇ = zeros(T, 2d^2)
@@ -155,9 +141,10 @@ under the model `vec(Y)` is normal with mean zero and covariance
 - `H`: Fisher information matrix at `Σ = (Σ[1], Σ[2])`.
 """
 function reml_fisher!{T <: AbstractFloat}(
-  H::AbstractMatrix{T},
+  H::Matrix{T},
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
-  ev::AbstractVector{T})
+  ev::Vector{T}
+  )
 
   d = size(Σ[1], 1)
   zeroT, oneT = zero(T), one(T)
@@ -194,7 +181,8 @@ end # function reml_fisher
 
 function reml_fisher!{T <: AbstractFloat}(
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
-  ev::AbstractVector{T})
+  ev::Vector{T}
+  )
 
   d = size(Σ[1], 1)
   H = zeros(T, 2d^2, 2d^2)
@@ -220,6 +208,7 @@ Extract eigen-decomposition of `V = (V[1], V[2])`.
 function reml_eig{T <: AbstractFloat}(
   Y::AbstractVecOrMat{T},
   V::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}})
+  )
 
   n, d = size(Y, 1), size(Y, 2)
   nd = n * d
@@ -243,6 +232,93 @@ function reml_eig{T <: AbstractFloat}(
   # output
   Yrot, deval, loglconst
 end # function reml_eig
+
+# Set up MathProgBase interface
+
+type TwoVarComp{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
+  Yrot::VecOrMat{T}
+  ev::Vector{T}
+  loglconst::T
+  L::Vector{Matrix{T}}
+  Σ::Vector{Matrix{T}}
+  ∇Σ::Vector{T} # graident wrt Σs
+  HΣ::Matrix{T} # Hessian wrt Σs
+  HL::Matrix{T} # Hessian wrt Ls
+end
+
+function MathProgBase.initialize(dd::TwoVarComp,
+  requested_features::Vector{Symbol})
+  for feat in requested_features
+    if !(feat in [:Grad, :Jac, :Hess])
+      error("Unsupported feature $feat")
+    end
+  end
+end # function MathProgBase.initialize
+
+MathProgBase.features_available(dd::TwoVarComp) = [:Grad, :Jac, :Hess]
+MathProgBase.eval_g(dd::TwoVarComp, g, x) = nothing
+MathProgBase.jac_structure(dd::TwoVarComp) = Int[], Int[]
+MathProgBase.eval_jac_g(dd::TwoVarComp, J, x) = nothing
+
+function MathProgBase.eval_f{T}(dd::TwoVarComp, x::Vector{T})
+  d = size(dd.L[1], 1)
+  nparam = d * (d + 1)
+  nparamhalf = div(nparam, 2)
+  dd.L[1][trilind(dd.L[1])] = x[1:nparamhalf]
+  dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
+  A_mul_Bt!(dd.Σ[1], dd.L[1], dd.L[1])
+  A_mul_Bt!(dd.Σ[2], dd.L[2], dd.L[2])
+  reml_objval(dd.Σ, dd.Yrot, dd.ev, dd.loglconst)
+end # function MathProgBase.eval_f
+
+function MathProgBase.eval_grad_f{T}(dd::TwoVarComp,
+  grad_f::Vector{T}, x::Vector{T})
+  d = size(dd.L[1], 1)
+  nparam = d * (d + 1)
+  nparamhalf = div(nparam, 2)
+  dd.L[1][trilind(dd.L[1])] = x[1:nparamhalf]
+  dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
+  A_mul_Bt!(dd.Σ[1], dd.L[1], dd.L[1])
+  A_mul_Bt!(dd.Σ[2], dd.L[2], dd.L[2])
+  reml_grad!(dd.∇Σ, dd.Σ, dd.Yrot, dd.ev)
+  # chain rule for gradient wrt Cholesky factor
+  chol_gradient!(sub(grad_f, 1:nparamhalf),
+    dd.∇Σ[1:d^2], dd.L[1])
+  chol_gradient!(sub(grad_f, nparamhalf+1:nparam),
+    dd.∇Σ[d^2+1:end], dd.L[2])
+end # function MathProgBase.eval_grad_f{
+
+function MathProgBase.hesslag_structure(dd::TwoVarComp)
+  d = size(dd.L[1], 1)
+  nparam = d * (d + 1)
+  ind2sub((nparam, nparam), trilind(nparam))
+end # function MathProgBase.hesslag_structure
+
+function MathProgBase.eval_hesslag{T}(dd::TwoVarComp, H::Vector{T},
+  x::Vector{T}, σ::T, μ::Vector{T})
+  d = size(dd.L[1], 1)
+  nparam = d * (d + 1)
+  nparamhalf = div(nparam, 2)
+  dd.L[1][trilind(dd.L[1])] = x[1:nparamhalf]
+  dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
+  A_mul_Bt!(dd.Σ[1], dd.L[1], dd.L[1])
+  A_mul_Bt!(dd.Σ[2], dd.L[2], dd.L[2])
+  reml_fisher!(dd.HΣ, dd.Σ, dd.ev)
+  # chain rule for Hessian wrt Cholesky factor
+  # only the lower left triangle
+  # (1, 1) block
+  chol_gradient!(sub(dd.HL, 1:nparamhalf, 1:nparamhalf),
+    chol_gradient(dd.HΣ[1:d^2, 1:d^2], dd.L[1])', dd.L[1])
+  # (2, 1) block
+  chol_gradient!(sub(dd.HL, nparamhalf+1:nparam, 1:nparamhalf),
+    chol_gradient(dd.HΣ[d^2+1:2d^2, 1:d^2], dd.L[1])', dd.L[2])
+  # (2, 2) block
+  chol_gradient!(sub(dd.HL, nparamhalf+1:nparam, nparamhalf+1:nparam),
+    chol_gradient(dd.HΣ[d^2+1:2d^2, d^2+1:2d^2], dd.L[2])', dd.L[2])
+  # output
+  scale!(dd.HL, -σ)
+  copy!(H, vech(dd.HL))
+end
 
 """
     reml_fs(Yrot, ev, loglconst; Σ0, maxiter, solver)
@@ -270,13 +346,14 @@ is assumed to be normal with mean zero and covariance `Σ[1]⊗V[1] + Σ[2]⊗V[
 """
 function reml_fs{T <: AbstractFloat}(
   Yrot::AbstractVecOrMat{T},
-  ev::AbstractVector{T},
+  ev::Vector{T},
   loglconst::T;
   Σ0::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}} =
     [eye(T, size(Yrot, 2)) for i = 1:2],
   maxiter::Integer = 1000,
   solver::Symbol = :Ipopt,
-  verbose::Bool = true)
+  verbose::Bool = true
+  )
 
   n, d = size(Yrot, 1), size(Yrot, 2)
   nd = n * d
@@ -296,6 +373,8 @@ function reml_fs{T <: AbstractFloat}(
   ∇Σ = zeros(T, 2d^2) # graident wrt Σs
   HΣ = zeros(T, 2d^2, 2d^2) # Hessian wrt Σs
   HL = zeros(T, nparam, nparam) # Hessian wrt Ls
+  # data for the optimization problem
+  dd = TwoVarComp(Yrot, ev, loglconst, L, Σ, ∇Σ, HΣ, HL)
 
   # set up MathProgBase interface
   if solver == :Ipopt
@@ -336,51 +415,6 @@ function reml_fs{T <: AbstractFloat}(
       )
   end
   m = MathProgBase.NonlinearModel(solver)
-  # function/gradient/Hessian evaluation
-  function MathProgBase.eval_f{T}(dd::TwoVarComp, x::Vector{T})
-    L[1][Ltrilind] = x[1:nparamhalf]
-    L[2][Ltrilind] = x[nparamhalf+1:end]
-    A_mul_Bt!(Σ[1], L[1], L[1])
-    A_mul_Bt!(Σ[2], L[2], L[2])
-    reml_objval(Σ, Yrot, ev, loglconst)
-  end
-  function MathProgBase.eval_grad_f{T}(dd::TwoVarComp,
-    grad_f::Vector{T}, x::Vector{T})
-    L[1][Ltrilind] = x[1:nparamhalf]
-    L[2][Ltrilind] = x[nparamhalf+1:end]
-    A_mul_Bt!(Σ[1], L[1], L[1])
-    A_mul_Bt!(Σ[2], L[2], L[2])
-    reml_grad!(∇Σ, Σ, Yrot, ev)
-    # chain rule for gradient wrt Cholesky factor
-    chol_gradient!(sub(grad_f, 1:nparamhalf), ∇Σ[1:d^2], L[1])
-    chol_gradient!(sub(grad_f, nparamhalf+1:nparam), ∇Σ[d^2+1:end], L[2])
-    #@show vecnorm(grad_f)
-  end
-  function MathProgBase.hesslag_structure(dd::TwoVarComp)
-    ind2sub((nparam, nparam), trilind(nparam))
-  end
-  function MathProgBase.eval_hesslag{T}(dd::TwoVarComp, H::Vector{T},
-    x::Vector{T}, σ::T, μ::Vector{T})
-    L[1][Ltrilind] = x[1:nparamhalf]
-    L[2][Ltrilind] = x[nparamhalf+1:end]
-    A_mul_Bt!(Σ[1], L[1], L[1])
-    A_mul_Bt!(Σ[2], L[2], L[2])
-    reml_fisher!(HΣ, Σ, ev)
-    # chain rule for Hessian wrt Cholesky factor
-    # only the lower left triangle
-    # (1, 1) block
-    chol_gradient!(sub(HL, 1:nparamhalf, 1:nparamhalf),
-      chol_gradient(HΣ[1:d^2, 1:d^2], L[1])', L[1])
-    # (2, 1) block
-    chol_gradient!(sub(HL, nparamhalf+1:nparam, 1:nparamhalf),
-      chol_gradient(HΣ[d^2+1:2d^2, 1:d^2], L[1])', L[2])
-    # (2, 2) block
-    chol_gradient!(sub(HL, nparamhalf+1:nparam, nparamhalf+1:nparam),
-      chol_gradient(HΣ[d^2+1:2d^2, d^2+1:2d^2], L[2])', L[2])
-    # output
-    scale!(HL, -σ)
-    copy!(H, vech(HL))
-  end
   # lower and upper bounds
   lb = zeros(T, nparam)
   fill!(lb, convert(T, -Inf))
@@ -392,8 +426,7 @@ function reml_fs{T <: AbstractFloat}(
   end
   ub = similar(lb)
   fill!(ub, convert(T, Inf))
-  MathProgBase.loadproblem!(m, nparam, 0, lb, ub, T[], T[], :Max,
-    TwoVarComp())
+  MathProgBase.loadproblem!(m, nparam, 0, lb, ub, T[], T[], :Max, dd)
   # start point
   x0 = [vech(chol(Σ0[1], Val{:L}).data); vech(chol(Σ0[2], Val{:L}).data)]
   MathProgBase.setwarmstart!(m, x0)
@@ -454,7 +487,7 @@ Fit variance component model using minorization-maximization algorithm. Data
 """
 function reml_mm{T <: AbstractFloat}(
   Yrot::AbstractVecOrMat{T},
-  ev::AbstractVector{T},
+  ev::Vector{T},
   loglconst::T;
   Σ0::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}} =
     [eye(T, size(Yrot, 2)) for i = 1:2],
@@ -479,6 +512,7 @@ function reml_mm{T <: AbstractFloat}(
   logl = halfT * (loglconst - n * logdet(Σ[2]) - sumabs2(res)) + sum(log, Wt)
   if verbose
     println()
+    println("     MM Algorithm")
     println("  Iter      Objective  ")
     println("--------  -------------")
     @printf("%8.d  %13.e\n", 0, logl)
