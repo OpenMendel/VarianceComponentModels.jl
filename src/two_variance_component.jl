@@ -46,8 +46,8 @@ normal with mean zero and covariance `Σ[1]⊗V[1] + Σ[2]⊗V[2]`.
 """
 function reml_objval{T <: AbstractFloat}(
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
-  Yrot::VecOrMat{T},
-  ev::Vector{T},
+  Yrot::AbstractVecOrMat{T},
+  ev::AbstractVector{T},
   loglconst::T)
 
   n, d = size(Yrot, 1), size(Yrot, 2)
@@ -88,10 +88,10 @@ Evaluate gradient at `Σ = (Σ[1], Σ[2])` and overwrite `∇`, under the model
 - `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
 """
 function reml_grad!{T <: AbstractFloat}(
-  ∇::Vector{T},
+  ∇::AbstractVector{T},
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
-  Yrot::VecOrMat{T},
-  ev::Vector{T})
+  Yrot::AbstractVecOrMat{T},
+  ev::AbstractVector{T})
 
   n, d = size(Yrot, 1), size(Yrot, 2)
   zeroT, oneT = zero(T), one(T)
@@ -155,9 +155,9 @@ under the model `vec(Y)` is normal with mean zero and covariance
 - `H`: Fisher information matrix at `Σ = (Σ[1], Σ[2])`.
 """
 function reml_fisher!{T <: AbstractFloat}(
-  H::Matrix{T},
+  H::AbstractMatrix{T},
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
-  ev::Vector{T})
+  ev::AbstractVector{T})
 
   d = size(Σ[1], 1)
   zeroT, oneT = zero(T), one(T)
@@ -194,7 +194,7 @@ end # function reml_fisher
 
 function reml_fisher!{T <: AbstractFloat}(
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
-  ev::Vector{T})
+  ev::AbstractVector{T})
 
   d = size(Σ[1], 1)
   H = zeros(T, 2d^2, 2d^2)
@@ -218,7 +218,7 @@ Extract eigen-decomposition of `V = (V[1], V[2])`.
 - `loglconst`: constant `n*d*log(2π) + d*logdet(V2)` in 2.0log-likelihood.
 """
 function reml_eig{T <: AbstractFloat}(
-  Y::VecOrMat{T},
+  Y::AbstractVecOrMat{T},
   V::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}})
 
   n, d = size(Y, 1), size(Y, 2)
@@ -269,8 +269,8 @@ is assumed to be normal with mean zero and covariance `Σ[1]⊗V[1] + Σ[2]⊗V[
 - `Σcov`: `2d^2 x 2d^2` covariance matrix of variance component estimates.
 """
 function reml_fs{T <: AbstractFloat}(
-  Yrot::VecOrMat{T},
-  ev::Vector{T},
+  Yrot::AbstractVecOrMat{T},
+  ev::AbstractVector{T},
   loglconst::T;
   Σ0::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}} =
     [eye(T, size(Yrot, 2)) for i = 1:2],
@@ -453,8 +453,8 @@ Fit variance component model using minorization-maximization algorithm. Data
   [http://arxiv.org/abs/1509.07426](http://arxiv.org/abs/1509.07426)
 """
 function reml_mm{T <: AbstractFloat}(
-  Yrot::VecOrMat{T},
-  ev::Vector{T},
+  Yrot::AbstractVecOrMat{T},
+  ev::AbstractVector{T},
   loglconst::T;
   Σ0::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}} =
     [eye(T, size(Yrot, 2)) for i = 1:2],
@@ -566,7 +566,7 @@ component estimates and their covariance.
 """
 function heritability{T <: AbstractFloat}(
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}}},
-  Σcov::Matrix{T},
+  Σcov::AbstractMatrix{T},
   which::Integer = 1
   )
 
