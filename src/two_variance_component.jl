@@ -45,6 +45,7 @@ function reml_objval{T <: AbstractFloat}(
   Ynew = Yrot * Φ
   # evaluate 2.0(log-likehood)
   objval = loglconst - n * logdet(Σ[2])
+  tmp = zeroT
   @inbounds for j in 1:d
     λj = λ[j]
     @simd for i in 1:n
@@ -90,6 +91,7 @@ function reml_grad!{T <: AbstractFloat}(
   # evaluate gradient
   m1diag = zeros(T, d)
   m2diag = zeros(T, d)
+  tmp = zeroT
   @inbounds for j in 1:d
     @simd for i in 1:n
       tmp = oneT / (ev[i] * λ[j] + oneT)
