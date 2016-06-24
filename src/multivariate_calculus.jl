@@ -5,7 +5,8 @@ export vech, trilind, triuind,
   commutation, spcommutation,
   duplication, spduplication,
   chol_gradient, chol_gradient!,
-  kron_gradient, kron_gradient!
+  kron_gradient, kron_gradient!,
+  kronaxpy!
 
 """
 Vectorize the lower triangular part of a matrix.
@@ -155,6 +156,32 @@ function chol_gradient{T <: Real}(dM::AbstractVecOrMat{T}, L::AbstractMatrix{T})
     g = zeros(T, binomial(n + 1, 2), size(dM, 2))
   end
   chol_gradient!(g, dM, L)
+end
+
+"""
+    kronaxpy!(A, X, Y)
+
+Overwrites `Y` with `A ⊗ X + Y`. Same as `Y += kron(A, X)` but more efficient.
+"""
+function kronaxpy!{T <: Real}(
+  A::AbstractMatrix{T},
+  X::AbstractMatrix{T},
+  Y::AbstractMatrix{T})
+
+  # retrieve matrix sizes
+  m, n = size(A, 1), size(A, 2)
+  p, q = size(X, 1), size(X, 2)
+  # loop over (i,j) blocks of Y
+  irange, jrange = 1:p, 1:q
+  @inbounds for j in 1:n, i in 1:m
+    a = A[i, j]
+    irange = ((i - 1) * p + 1):(i * p)
+    jrange = ((j - 1) * q + 1):(j * q)
+    Yij = sub(Y, irange, jrange)  # view of (i, j)-block
+    @simd for k in eachindex(Yij)
+      Yij[k] += a * X[k]
+    end
+  end
 end
 
 # """

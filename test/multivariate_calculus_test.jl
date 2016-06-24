@@ -86,6 +86,14 @@ end
   @test_approx_eq_eps vecnorm(dX1 - vec(dX2)) 0.0 1.0e-8
 end
 
-
+# test duplication
+@testset "kronaxpy" begin
+  m, n, p, q = 3, 4, 5, 6
+  A = randn(m, n)
+  X = randn(p, q)
+  Y = zeros(m * p, n * q)
+  @time kronaxpy!(A, X, Y)
+  @test vecnorm(Y - kron(A, X)) ≈ 0.0
+end
 
 end # module MultivariateCalculusTest
