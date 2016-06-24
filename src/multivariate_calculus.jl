@@ -163,10 +163,7 @@ end
 
 Overwrites `Y` with `A ⊗ X + Y`. Same as `Y += kron(A, X)` but more efficient.
 """
-function kronaxpy!{T <: Real}(
-  A::AbstractMatrix{T},
-  X::AbstractMatrix{T},
-  Y::AbstractMatrix{T})
+function kronaxpy!(A::AbstractMatrix, X::AbstractMatrix, Y::AbstractMatrix)
 
   # retrieve matrix sizes
   m, n = size(A, 1), size(A, 2)
