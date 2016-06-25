@@ -1,15 +1,9 @@
-#module TwoVarianceComponent
-
-# using MathProgBase
-# using Ipopt
-# #using Mosek
-# using KNITRO
-
 export reml_objval,
   reml_grad, reml_grad!,
   reml_fisher, reml_fisher!,
   reml_eig, reml_fs, reml_mm,
-  heritability
+  heritability,
+  logpdf
 
 """
 
@@ -632,4 +626,72 @@ function heritability{T <: AbstractFloat}(
   h, hse
 end # function heritability
 
-# end # module TwoVarianceComponent
+#---------------------------------------------------------------------------#
+# Evaluate log-pdf
+#---------------------------------------------------------------------------#
+
+"""
+Calculate log-pdf of a *rotated* two variance component instance under a
+*rotated* two variance component model.
+"""
+function logpdf(
+  vcmrot::TwoVarCompModelRotate,
+  vcobsrot::TwoVarCompVariateRotate)
+
+  n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
+  nd = n * d
+  T = eltype(vcmrot)
+  zeroT, oneT = zero(T), one(T)
+  res = residual(vcmrot, vcobsrot)
+  # evaluate 2(log-likehood)
+  objval::T = - nd * log(2π) - d * vcobsrot.logdetV2 - n * vcmrot.logdetΣ2
+  tmp = zeroT
+  @inbounds for j in 1:d
+    λj = vcmrot.eigval[j]
+    @simd for i in 1:n
+      tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
+      objval += log(tmp) - tmp * res[i, j]^2
+    end
+  end
+  objval /= 2
+end
+
+"""
+Calculate log-pdf of a *rotated* two variance component instance under an
+*unrotated* two variance component model.
+"""
+function logpdf{T}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::TwoVarCompVariateRotate
+  )
+
+  logpdf(TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+"""
+Calculate log-pdf of an *unrotated* two variance component instance under an
+*unrotated* two variance component model.
+"""
+function logpdf{T}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::VarianceComponentVariate{T, 2}
+  )
+
+  logpdf(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
+end
+
+"""
+Calculate log-pdf of an array of two variance component instances
+under a two variance component model.
+"""
+function logpdf{T}(
+  vcm::Union{TwoVarCompModelRotate{T}, VarianceComponentModel{T, 2}},
+  vcobs::Union{Array{TwoVarCompVariateRotate{T}}, Array{VarianceComponentVariate{T, 2}}}
+  )
+
+  map(x -> logpdf(vcm, x), vcobs)
+end
+
+#---------------------------------------------------------------------------#
+# Evaluate gradient
+#---------------------------------------------------------------------------#
