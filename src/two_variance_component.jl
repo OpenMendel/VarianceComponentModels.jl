@@ -1,9 +1,11 @@
+import Base.gradient
+
 export reml_objval,
   reml_grad, reml_grad!,
   reml_fisher, reml_fisher!,
   reml_eig, reml_fs, reml_mm,
   heritability,
-  logpdf
+  logpdf, gradient
 
 """
 
@@ -694,4 +696,120 @@ end
 
 #---------------------------------------------------------------------------#
 # Evaluate gradient
+#---------------------------------------------------------------------------#
+
+"""
+
+    gradient!(∇, vcmrot, vcobsrot)
+
+Evaluate gradient at `Σ = (Σ[1], Σ[2])` and overwrite `∇`.
+
+# Input
+- `∇`: gradient vector.
+- `vcmrot`: *rotated* two variance component model.
+- `vcobsrot`: *rotated* two variance component data instance.
+
+# Output
+- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
+"""
+function gradient!{T <: AbstractFloat}(
+  ∇::AbstractVector{T},
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
+  zeroT, oneT = zero(T), one(T)
+  res = residual(vcmrot, vcobsrot)
+  # evaluate gradient
+  m1diag = zeros(T, d)
+  m2diag = zeros(T, d)
+  tmp, λj = zeroT, zeroT
+  @inbounds for j in 1:d
+    λj = vcmrot.eigval[j]
+    @simd for i in 1:n
+      tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
+      res[i, j] *= tmp
+      m1diag[j] += vcobsrot.eigval[i] * tmp
+      m2diag[j] += tmp
+    end
+  end
+  N2 = At_mul_B(res, res)
+  scale!(sqrt(vcobsrot.eigval), res)
+  N1 = At_mul_B(res, res)
+  @inbounds for j in 1:d
+    N1[j, j] -= m1diag[j]
+    N2[j, j] -= m2diag[j]
+  end
+  N1 = vcmrot.eigvec * N1 * vcmrot.eigvec'
+  N2 = vcmrot.eigvec * N2 * vcmrot.eigvec'
+  ∇[1:d^2] = N1[:]
+  ∇[d^2+1:2d^2] = N2[:]
+  scale!(∇, convert(T, 0.5))
+end # function gradient!
+
+function gradient{T <: AbstractFloat}(
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  d = length(vcmrot.eigval)
+  ∇ = zeros(T, 2d^2)
+  gradient!(∇, vcmrot, vcobsrot)
+end
+
+function gradient{T <: AbstractFloat}(
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::Array{TwoVarCompVariateRotate{T}}
+  )
+
+  map(x -> gradient(vcmrot, x), vcobsrot)
+end
+
+function gradient!{T <: AbstractFloat}(
+  ∇::AbstractVector{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  gradient!(∇, TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+function gradient!{T <: AbstractFloat}(
+  ∇::AbstractVector{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2}
+  )
+
+  gradient!(∇, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
+end
+
+
+function gradient{T <: AbstractFloat}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  gradient(TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+function gradient{T <: AbstractFloat}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2}
+  )
+
+  gradient(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
+end
+
+function gradient{T <: AbstractFloat}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::Array{TwoVarCompVariateRotate{T}}
+  )
+
+  vcmrot = TwoVarCompModelRotate(vcm)
+  map(x -> gradient(vcmrot, x), vcobsrot)
+end
+
+#---------------------------------------------------------------------------#
+# Evaluate Fisher information matrix
 #---------------------------------------------------------------------------#
