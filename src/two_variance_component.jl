@@ -580,53 +580,6 @@ function reml_mm{T <: AbstractFloat}(
   logl, Σ, Σse, Σcov
 end # function reml_mm
 
-"""
-    heritability(Σ, Σcov, which=1)
-
-Calcualte the heritability of each trait and its standard error from variance
-component estimates and their covariance.
-
-# Input
-- `Σ=(Σ[1], ..., Σ[m])`: estimate of `m` `d x d` variance components.
-- `Σcov`: `md^2 x md^2` covariance matrix of the variance component estiamte.
-- `which`: indicator which is the additive genetic variance component.
-
-# Output
-- `h`: estimated heritability of `d` traits.
-- `hse`: standard errors of the estiamted heritability.
-"""
-function heritability{T <: AbstractFloat}(
-  Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}}},
-  Σcov::AbstractMatrix{T},
-  which::Integer = 1
-  )
-
-  d = size(Σ[1], 1) # number of traits
-  m = length(Σ)     # number of variance components
-  @assert size(Σcov, 1) == m * d^2 "Dimensions don't match"
-  h, hse = zeros(T, d), zeros(T, d)
-  hgrad = zeros(T, m)
-  for trait in 1:d
-    σ2trait = [Σ[i][trait, trait] for i = 1:m]
-    totalσ2trait = sum(σ2trait)
-    # heritability
-    h[trait] = σ2trait[which] / totalσ2trait
-    # standard error of heritability by Delta method
-    for i in 1:m
-      if i == which
-        hgrad[i] = (totalσ2trait - σ2trait[i]) / totalσ2trait^2
-      else
-        hgrad[i] = - σ2trait[i] / totalσ2trait^2
-      end
-    end
-    dgidx = diagind(Σ[1])[trait]
-    traitidx = dgidx:d^2:((m - 1) * d^2 + dgidx)
-    hse[trait] = sqrt(dot(hgrad, sub(Σcov, traitidx, traitidx) * hgrad))
-  end
-  # output
-  h, hse
-end # function heritability
-
 #---------------------------------------------------------------------------#
 # Evaluate log-pdf
 #---------------------------------------------------------------------------#
@@ -1104,7 +1057,7 @@ function mle_fs!{T <: AbstractFloat}(
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
-  maxlogl, vcmodel, Σse, Σcov
+  maxlogl, Σse, Σcov
 end # function mle_fs
 
 #---------------------------------------------------------------------------#
@@ -1225,5 +1178,57 @@ function mle_mm!{T <: AbstractFloat}(
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
-  logl, vcm, Σse, Σcov
+  logl, Σse, Σcov
 end # function mle_mm
+
+
+#---------------------------------------------------------------------------#
+# Heritability estimation
+#---------------------------------------------------------------------------#
+
+"""
+    heritability(Σ, Σcov, which=1)
+
+Calcualte the heritability of each trait and its standard error from variance
+component estimates and their covariance.
+
+# Input
+- `Σ=(Σ[1], ..., Σ[m])`: estimate of `m` `d x d` variance components.
+- `Σcov`: `md^2 x md^2` covariance matrix of the variance component estiamte.
+- `which`: indicator which is the additive genetic variance component.
+
+# Output
+- `h`: estimated heritability of `d` traits.
+- `hse`: standard errors of the estiamted heritability.
+"""
+function heritability{T, N}(
+  Σ::NTuple{N, AbstractMatrix{T}},
+  Σcov::AbstractMatrix{T},
+  which::Integer = 1
+  )
+
+  d = size(Σ[1], 1) # number of traits
+  m = length(Σ)     # number of variance components
+  @assert size(Σcov, 1) == m * d^2 "Dimensions don't match"
+  h, hse = zeros(T, d), zeros(T, d)
+  hgrad = zeros(T, m)
+  for trait in 1:d
+    σ2trait = [Σ[i][trait, trait] for i = 1:m]
+    totalσ2trait = sum(σ2trait)
+    # heritability
+    h[trait] = σ2trait[which] / totalσ2trait
+    # standard error of heritability by Delta method
+    for i in 1:m
+      if i == which
+        hgrad[i] = (totalσ2trait - σ2trait[i]) / totalσ2trait^2
+      else
+        hgrad[i] = - σ2trait[i] / totalσ2trait^2
+      end
+    end
+    dgidx = diagind(Σ[1])[trait]
+    traitidx = dgidx:d^2:((m - 1) * d^2 + dgidx)
+    hse[trait] = sqrt(dot(hgrad, sub(Σcov, traitidx, traitidx) * hgrad))
+  end
+  # output
+  h, hse
+end # function heritability
