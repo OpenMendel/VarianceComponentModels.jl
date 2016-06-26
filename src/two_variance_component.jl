@@ -6,7 +6,7 @@ export reml_objval,
   reml_eig, reml_fs, reml_mm,
   heritability,
   logpdf, gradient!, gradient, fisher!, fisher,
-  mle_fs!
+  mle_fs!, mle_mm!
 
 """
 
@@ -506,8 +506,6 @@ function reml_mm{T <: AbstractFloat}(
   # scale!(Φ, 1.0 ./ sqrt(diag(Φ' * Σ[2] * Φ)))
   Wt = oneT ./ sqrt(ev * λ' + oneT)
   res = (Yrot * Φ) .* Wt
-  Wt = oneT ./ sqrt(ev * λ' + oneT)
-  res = (Yrot * Φ) .* Wt
   logl = halfT * (loglconst - n * logdet(Σ[2]) - sumabs2(res)) + sum(log, Wt)
   if verbose
     println()
@@ -916,7 +914,7 @@ end
 
 
 #---------------------------------------------------------------------------#
-# Set up MathProgBase interface
+# Fisher scoring algorithm
 #---------------------------------------------------------------------------#
 
 type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
@@ -1108,3 +1106,124 @@ function mle_fs!{T <: AbstractFloat}(
   # output
   maxlogl, vcmodel, Σse, Σcov
 end # function mle_fs
+
+#---------------------------------------------------------------------------#
+# MM algorithm
+#---------------------------------------------------------------------------#
+
+"""
+  reml_mm(Yrot, ev, loglconst; Σ0, maxiter, verbose)
+
+Fit variance component model using minorization-maximization algorithm. Data
+`vec(Y)` is assumed to be normal with mean zero and covariance
+`Σ[1]⊗V[1] + Σ[2]⊗V[2]`.
+
+# Input
+- `Yrot`: rotated responses `U'*Y`, where `(ev,U) = eig(V[1],V[2])`.
+- `ev`: eigenvalues from `(ev,U) = eig(V[1],V[2])`.
+- `loglconst`: constant `n*d*log(2π)+d*logdet(V2)` in 2.0log-likelihood.
+
+# Keyword arguments
+- `Σ0=(Σ0[1], Σ0[2])`: starting value for variance component parameters.
+- `maxiter`: maximum number of iterations for nonlinear programming solver.
+- `verbose`: logging information.
+
+# Output
+- `logl`: log-likelihood at `Σ=(Σ[1],Σ[2])`.
+- `Σ=(Σ[1],Σ[2])`: variance component estimates.
+- `Σse=(Σse[1],Σse[2])`: standard errors of variance component estimates.
+- `Σcov`: `2d^2 x 2d^2` covariance matrix of variance component estimates.
+
+# Reference
+- H. Zhou, L. Hu, J. Zhou, and K. Lange (2015)
+  MM algorithms for variance components models.
+  [http://arxiv.org/abs/1509.07426](http://arxiv.org/abs/1509.07426)
+"""
+function mle_mm!{T <: AbstractFloat}(
+  vcm::VarianceComponentModel{T, 2},
+  vcdatarot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}};
+  maxiter::Integer = 10000,
+  funtol::T = convert(T, 1e-8),
+  verbose::Bool = true)
+
+  # initialize algorithm
+  # n = no. observations, d = no. categories
+  n, d = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2)
+  nd = n * d
+  zeroT, oneT, halfT = zero(T), one(T), convert(T, 0.5)
+  # update generalized eigen-decomposition
+  vcmrot = TwoVarCompModelRotate(vcm)
+  Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
+  res = (vcdatarot.Yrot * vcmrot.eigvec) .* Wt
+  logl = sum(logpdf(vcmrot, vcdatarot))
+  if verbose
+    println()
+    println("     MM Algorithm")
+    println("  Iter      Objective  ")
+    println("--------  -------------")
+    @printf("%8.d  %13.e\n", 0, logl)
+  end
+
+  # MM loop
+  Whalf = zeros(T, n, d)
+  dg = zeros(T, d)
+  for iter = 1:maxiter
+    # update Σ1
+    for j = 1:d
+      @inbounds dg[j] = sqrt(sum(vcdatarot.eigval ./
+        (vcmrot.eigval[j] * vcdatarot.eigval + oneT)))
+    end
+    Whalf = res .* Wt
+    scale!(sqrt(vcdatarot.eigval), Whalf)
+    scale!(Whalf, vcmrot.eigval .* dg)
+    #W = sqrtm(Whalf' * Whalf) # produces imaginery eigenvalues due to precision
+    #dg = 1.0 ./ dg
+    #Σ[1] = scale(dg, inv(Φ))' * W * scale(dg, inv(Φ))
+    # this approach is more numerical stable
+    Whalfsvd = svdfact(Whalf)
+    copy!(vcm.Σ[1], scale(sqrt(Whalfsvd[:S]), Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
+    At_mul_B!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
+    # update Σ2
+    @inbounds for j = 1:d
+      dg[j] = sqrt(sum(oneT ./ (vcmrot.eigval[j] * vcdatarot.eigval + oneT)))
+    end
+    Whalf = res .* Wt
+    scale!(Whalf, dg)
+    # W = sqrtm(Whalf' * Whalf)
+    # dg = 1.0 ./ dg
+    # Σ[2] = scale(dg, inv(Φ))' * W * scale(dg, inv(Φ))
+    # this approach is more numerical stable
+    Whalfsvd = svdfact(Whalf)
+    copy!(vcm.Σ[2], scale(sqrt(Whalfsvd[:S]), Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
+    At_mul_B!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
+
+    # update generalized eigen-decomposition
+    vcmrot = TwoVarCompModelRotate(vcm)
+    Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
+    res = (vcdatarot.Yrot * vcmrot.eigvec) .* Wt
+
+    # check convergence
+    loglold = logl
+    logl = sum(logpdf(vcmrot, vcdatarot))
+    if verbose
+      if (iter <= 10) || (iter > 10 && iter % 10 == 0)
+        @printf("%8.d  %13.e\n", iter, logl)
+      end
+    end
+    if abs(logl - loglold) < funtol * (abs(logl) + oneT)
+      break
+    end
+  end
+  if verbose; println(); end
+
+  # standard errors
+  Σcov = zeros(T, 2d^2, 2d^2)
+  fisher!(Σcov, vcm, vcdatarot)
+  Σcov = inv(Σcov)
+  Σse = deepcopy(vcm.Σ)
+  copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
+  copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+
+  # output
+  logl, vcm, Σse, Σcov
+end # function mle_mm
