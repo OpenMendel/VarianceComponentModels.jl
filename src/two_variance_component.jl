@@ -5,7 +5,7 @@ export reml_objval,
   reml_fisher, reml_fisher!,
   reml_eig, reml_fs, reml_mm,
   heritability,
-  logpdf, gradient
+  logpdf, gradient!, gradient, fisher!, fisher
 
 """
 
@@ -177,7 +177,7 @@ function reml_fisher!{T <: AbstractFloat}(
   scale!(H, convert(T, 0.5))
 end # function reml_fisher
 
-function reml_fisher!{T <: AbstractFloat}(
+function reml_fisher{T <: AbstractFloat}(
   Σ::Union{Vector{Matrix{T}}, Tuple{Matrix{T}, Matrix{T}}},
   ev::Vector{T}
   )
@@ -813,3 +813,102 @@ end
 #---------------------------------------------------------------------------#
 # Evaluate Fisher information matrix
 #---------------------------------------------------------------------------#
+
+"""
+
+    fisher!(H, Σ, ev)
+
+Calculate Fisher information matrix at `Σ = (Σ[1], Σ[2])` and overwrite `H`,
+under the model `vec(Y)` is normal with mean zero and covariance
+`Σ[1]⊗V[1] + Σ[2]⊗V[2]`.
+
+# Input
+- `H`: Hessian matrix.
+- `Σ = (Σ[1], Σ[2])`: variance component parameters.
+- `ev`: eigenvalues from `(λ, U) = eig(V1, V2)`.
+
+# Output
+- `H`: Fisher information matrix at `Σ = (Σ[1], Σ[2])`.
+"""
+function fisher!{T <: AbstractFloat}(
+  H::AbstractMatrix{T},
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  d = length(vcmrot.eigval)
+  zeroT, oneT = zero(T), one(T)
+  # evaluate Hessian
+  C = zeros(T, d, d)
+  Φ2 = kron(vcmrot.eigvec, vcmrot.eigvec)
+  # (1, 1) block
+  for l2 in 1:d, l1 in l2:d# only the lower triangular part
+    C[l1, l2] = sum(vcobsrot.eigval .* vcobsrot.eigval ./
+      (vcmrot.eigval[l1] * vcobsrot.eigval + oneT) ./
+      (vcmrot.eigval[l2] * vcobsrot.eigval + oneT))
+  end
+  LinAlg.copytri!(C, 'L') # copy to upper triangular part
+  A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
+  # (2, 1) block
+  for l2 in 1:d, l1 in l2:d
+    C[l1, l2] = sum(vcobsrot.eigval ./
+      (vcmrot.eigval[l1] * vcobsrot.eigval + oneT) ./
+      (vcmrot.eigval[l2] * vcobsrot.eigval + oneT))
+  end
+  LinAlg.copytri!(C, 'L') # copy to upper triangular part
+  A_mul_Bt!(sub(H, d^2+1:2d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
+  # d-by-d (2, 2) block
+  for l2 in 1:d, l1 in l2:d
+    C[l1, l2] = sum(oneT ./ (vcmrot.eigval[l1] * vcobsrot.eigval + oneT) ./
+      (vcmrot.eigval[l2] * vcobsrot.eigval + oneT))
+  end
+  LinAlg.copytri!(C, 'L') # copy to upper triangular part
+  A_mul_Bt!(sub(H, d^2+1:2d^2, d^2+1:2d^2), scale(Φ2, vec(C)), Φ2)
+  # make sure it's Hessian of the *negative* log-likehood
+  LinAlg.copytri!(H, 'L') # copy to upper triangular part
+  scale!(H, convert(T, 0.5))
+end # function fisher!
+
+function fisher{T <: AbstractFloat}(
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  d = length(vcmrot.eigval)
+  H = zeros(T, 2d^2, 2d^2)
+  fisher!(H, vcmrot, vcobsrot)
+end
+
+function fisher!{T <: AbstractFloat}(
+  H::AbstractMatrix{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  fisher!(TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+function fisher{T <: AbstractFloat}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  fisher(TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+function fisher!{T <: AbstractFloat}(
+  H::AbstractMatrix{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2}
+  )
+
+  fisher!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
+end
+
+function fisher{T <: AbstractFloat}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2}
+  )
+
+  fisher(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
+end
