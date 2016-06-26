@@ -5,7 +5,8 @@ export reml_objval,
   reml_fisher, reml_fisher!,
   reml_eig, reml_fs, reml_mm,
   heritability,
-  logpdf, gradient!, gradient, fisher!, fisher
+  logpdf, gradient!, gradient, fisher!, fisher,
+  mle_fs!
 
 """
 
@@ -885,7 +886,7 @@ function fisher!{T <: AbstractFloat}(
   vcobsrot::TwoVarCompVariateRotate{T}
   )
 
-  fisher!(TwoVarCompModelRotate(vcm), vcobsrot)
+  fisher!(H, TwoVarCompModelRotate(vcm), vcobsrot)
 end
 
 function fisher{T <: AbstractFloat}(
@@ -912,3 +913,198 @@ function fisher{T <: AbstractFloat}(
 
   fisher(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
+
+
+#---------------------------------------------------------------------------#
+# Set up MathProgBase interface
+#---------------------------------------------------------------------------#
+
+type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
+  vcmodel::VarianceComponentModel{T, 2}
+  vcdatarot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}}
+  L::NTuple{2, Matrix{T}}
+  ∇Σ::Vector{T} # graident wrt Σs
+  HΣ::Matrix{T} # Hessian wrt Σs
+  HL::Matrix{T} # Hessian wrt Ls
+end
+
+function MathProgBase.initialize(dd::TwoVarCompOptProb,
+  requested_features::Vector{Symbol})
+  for feat in requested_features
+    if !(feat in [:Grad, :Jac, :Hess])
+      error("Unsupported feature $feat")
+    end
+  end
+end # function MathProgBase.initialize
+
+MathProgBase.features_available(dd::TwoVarCompOptProb) = [:Grad, :Jac, :Hess]
+MathProgBase.eval_g(dd::TwoVarCompOptProb, g, x) = nothing
+MathProgBase.jac_structure(dd::TwoVarCompOptProb) = Int[], Int[]
+MathProgBase.eval_jac_g(dd::TwoVarCompOptProb, J, x) = nothing
+
+function MathProgBase.eval_f{T}(dd::TwoVarCompOptProb, x::Vector{T})
+  d = size(dd.L[1], 1)
+  nparam = d * (d + 1)
+  nparamhalf = div(nparam, 2)
+  dd.L[1][trilind(dd.L[1])] = x[1:nparamhalf]
+  dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
+  A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
+  A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+
+  sum(logpdf(dd.vcmodel, dd.vcdatarot))
+end # function MathProgBase.eval_f
+
+function MathProgBase.eval_grad_f{T}(dd::TwoVarCompOptProb,
+  grad_f::Vector{T}, x::Vector{T})
+  d = size(dd.L[1], 1)
+  nparam = d * (d + 1)
+  nparamhalf = div(nparam, 2)
+  dd.L[1][trilind(dd.L[1])] = x[1:nparamhalf]
+  dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
+  A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
+  A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  gradient!(dd.∇Σ, dd.vcmodel, dd.vcdatarot)
+  # chain rule for gradient wrt Cholesky factor
+  chol_gradient!(sub(grad_f, 1:nparamhalf),
+    dd.∇Σ[1:d^2], dd.L[1])
+  chol_gradient!(sub(grad_f, nparamhalf+1:nparam),
+    dd.∇Σ[d^2+1:end], dd.L[2])
+end # function MathProgBase.eval_grad_f
+
+function MathProgBase.hesslag_structure(dd::TwoVarCompOptProb)
+  d = size(dd.L[1], 1)
+  nparam = d * (d + 1)
+  ind2sub((nparam, nparam), trilind(nparam))
+end # function MathProgBase.hesslag_structure
+
+function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
+  x::Vector{T}, σ::T, μ::Vector{T})
+  d = size(dd.L[1], 1)
+  nparam = d * (d + 1)
+  nparamhalf = div(nparam, 2)
+  dd.L[1][trilind(dd.L[1])] = x[1:nparamhalf]
+  dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
+  A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
+  A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  fisher!(dd.HΣ, dd.vcmodel, dd.vcdatarot)
+  # chain rule for Hessian wrt Cholesky factor
+  # only the lower left triangle
+  # (1, 1) block
+  chol_gradient!(sub(dd.HL, 1:nparamhalf, 1:nparamhalf),
+    chol_gradient(dd.HΣ[1:d^2, 1:d^2], dd.L[1])', dd.L[1])
+  # (2, 1) block
+  chol_gradient!(sub(dd.HL, nparamhalf+1:nparam, 1:nparamhalf),
+    chol_gradient(dd.HΣ[d^2+1:2d^2, 1:d^2], dd.L[1])', dd.L[2])
+  # (2, 2) block
+  chol_gradient!(sub(dd.HL, nparamhalf+1:nparam, nparamhalf+1:nparam),
+    chol_gradient(dd.HΣ[d^2+1:2d^2, d^2+1:2d^2], dd.L[2])', dd.L[2])
+  # output
+  scale!(dd.HL, -σ)
+  copy!(H, vech(dd.HL))
+end
+
+function mle_fs!{T <: AbstractFloat}(
+  vcmodel::VarianceComponentModel{T, 2},
+  vcdatarot::TwoVarCompVariateRotate{T};
+  maxiter::Integer = 1000,
+  solver::Symbol = :Ipopt,
+  verbose::Bool = true
+  )
+
+  n, d = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2)
+  nd = n * d
+  Ltrilind = trilind(d, d)
+  # number of optimization parameters in Cholesky factors
+  nparam = d * (d + 1)
+  nparamhalf = div(nparam, 2)
+
+  # pre-allocate variables for optimization
+  zeroT = convert(T, 0)
+  L = (zeros(T, d, d), zeros(T, d, d))
+  ∇Σ = zeros(T, 2d^2) # graident wrt Σs
+  HΣ = zeros(T, 2d^2, 2d^2) # Hessian wrt Σs
+  HL = zeros(T, nparam, nparam) # Hessian wrt Ls
+  # data for the optimization problem
+  dd = TwoVarCompOptProb(vcmodel, vcdatarot, L, ∇Σ, HΣ, HL)
+
+  # set up MathProgBase interface
+  if solver == :Ipopt
+    # see http://www.coin-or.org/Ipopt/documentation/documentation.html for IPOPT
+    solver = IpoptSolver(
+      hessian_approximation = "exact",
+      tol = 1.0e-8, # default is 1.0e-8
+      acceptable_tol = 1.0e-5, # default is 1.0e-6
+      max_iter = maxiter, # default is 3000
+      print_frequency_iter = 5, # default is 1
+      print_level = verbose? 5 : 0,
+      print_info_string = "yes",
+      #derivative_test = "second-order",
+      #linear_solver = "mumps",
+      #linear_solver = "pardiso",
+      )
+  elseif solver == :Mosek
+    # see http://docs.mosek.com/7.0/capi/Parameters.html for Mosek options
+    solver = MosekSolver(
+      MSK_IPAR_INTPNT_MAX_ITERATIONS = maxiter,
+      MSK_DPAR_INTPNT_NL_TOL_REL_GAP = 1.0e-8,
+      MSK_IPAR_LOG = verbose? 10 : 0, # deafult value is 10
+      #MSK_IPAR_OPTIMIZER = MSK_OPTIMIZER_NONCONVEX,
+      #MSK_IPAR_LOG_NONCONVEX = 20,
+      #MSK_IPAR_NONCONVEX_MAX_ITERATIONS = 100,
+      #MSK_DPAR_INTPNT_NL_TOL_NEAR_REL = 1e8,
+      #MSK_IPAR_LOG_CHECK_CONVEXITY = 1,
+      #MSK_IPAR_INFEAS_PREFER_PRIMAL = MSK_OFF
+      )
+  elseif solver == :Knitro
+    # see https://www.artelys.com/tools/knitro_doc/3_referenceManual/userOptions.html for Mosek options
+    solver = KnitroSolver(
+      KTR_PARAM_ALG = 1,
+      KTR_PARAM_OUTLEV = verbose? 2 : 0,
+      #KTR_PARAM_GRADOPT = 1,
+      #KTR_PARAM_HESSOPT = 1,
+      #KTR_PARAM_DERIVCHECK = 2
+      )
+  end
+  m = MathProgBase.NonlinearModel(solver)
+  # lower and upper bounds
+  lb = zeros(T, nparam)
+  fill!(lb, convert(T, -Inf))
+  for j in 1:d
+    idx = 1 + (j - 1) * d - div((j - 1) * (j - 2), 2)
+    lb[idx] = zeroT
+    idx += div(d * (d + 1), 2)
+    lb[idx] = convert(T, 1e-4) # make sure last variance component is pos. def.
+  end
+  ub = similar(lb)
+  fill!(ub, convert(T, Inf))
+  MathProgBase.loadproblem!(m, nparam, 0, lb, ub, T[], T[], :Max, dd)
+  # start point
+  x0 = [vech(chol(vcmodel.Σ[1], Val{:L}).data);
+        vech(chol(vcmodel.Σ[2], Val{:L}).data)]
+  MathProgBase.setwarmstart!(m, x0)
+  # convergence criteria
+  #xtol_rel!(opt, 1e-8)
+  #ftol_rel!(opt, 1e-8)
+  #maxtime!(opt, 60)
+  # optimize
+  MathProgBase.optimize!(m)
+  stat = MathProgBase.status(m)
+  x = MathProgBase.getsolution(m)
+  maxlogl = MathProgBase.getobjval(m)
+  # retrieve result
+  L[1][Ltrilind] = x[1:nparamhalf]
+  L[2][Ltrilind] = x[nparamhalf+1:end]
+  A_mul_Bt!(vcmodel.Σ[1], L[1], L[1])
+  A_mul_Bt!(vcmodel.Σ[2], L[2], L[2])
+
+  # standard errors
+  Σcov = zeros(T, 2d^2, 2d^2)
+  fisher!(Σcov, vcmodel, vcdatarot)
+  Σcov = inv(Σcov)
+  Σse = deepcopy(vcmodel.Σ)
+  copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
+  copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+
+  # output
+  maxlogl, vcmodel, Σse, Σcov
+end # function mle_fs
