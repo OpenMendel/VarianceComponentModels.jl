@@ -67,7 +67,7 @@ function logpdf{T}(
   vcobs::Union{Array{TwoVarCompVariateRotate{T}}, Array{VarianceComponentVariate{T, 2}}}
   )
 
-  map(x -> logpdf(vcm, x), vcobs)
+  mapreduce(x -> logpdf(vcm, x), +, vcobs)
 end
 
 #---------------------------------------------------------------------------#
@@ -134,12 +134,19 @@ function gradient{T <: AbstractFloat}(
   gradient!(∇, vcmrot, vcobsrot)
 end
 
-function gradient{T <: AbstractFloat}(
+function gradient!{T <: AbstractFloat}(
+  ∇::AbstractVector{T},
   vcmrot::TwoVarCompModelRotate{T},
   vcobsrot::Array{TwoVarCompVariateRotate{T}}
   )
 
-  map(x -> gradient(vcmrot, x), vcobsrot)
+  fill!(∇, zero(T))
+  tmp = copy(∇)
+  @inbounds for i in eachindex(vcobsrot)
+    gradient!(tmp, vcmrot, vcobsrot[i])
+    ∇ += tmp
+  end
+  ∇
 end
 
 function gradient!{T <: AbstractFloat}(
@@ -182,8 +189,9 @@ function gradient{T <: AbstractFloat}(
   vcobsrot::Array{TwoVarCompVariateRotate{T}}
   )
 
-  vcmrot = TwoVarCompModelRotate(vcm)
-  map(x -> gradient(vcmrot, x), vcobsrot)
+  d = length(vcmrot.eigval)
+  ∇ = zeros(T, 2d^2)
+  gradient!(∇, vcmrot, vcobsrot)
 end
 
 #---------------------------------------------------------------------------#
@@ -289,6 +297,30 @@ function fisher{T <: AbstractFloat}(
   fisher(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
+function fisher!{T <: AbstractFloat}(
+  H::AbstractMatrix{T},
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::Array{TwoVarCompVariateRotate{T}}
+  )
+
+  fill!(H, zero(T))
+  tmp = copy(H)
+  for i in eachindex(vcobsrot)
+    fisher!(tmp, vcmrot, vcobsrot)
+    H += tmp
+  end
+  H
+end
+
+function fisher{T <: AbstractFloat}(
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::Array{TwoVarCompVariateRotate{T}}
+  )
+
+  d = length(vcmrot.eigval)
+  H = zeros(T, 2d^2, 2d^2)
+  fisher!(H, vcmrot, vcobsrot)
+end
 
 #---------------------------------------------------------------------------#
 # Fisher scoring algorithm
@@ -296,6 +328,7 @@ end
 
 type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
   vcmodel::VarianceComponentModel{T, 2}
+  vcmodelrot::TwoVarCompModelRotate{T}
   vcdatarot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}}
   L::NTuple{2, Matrix{T}}
   ∇Σ::Vector{T} # graident wrt Σs
@@ -325,12 +358,16 @@ function MathProgBase.eval_f{T}(dd::TwoVarCompOptProb, x::Vector{T})
   dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
-
-  sum(logpdf(dd.vcmodel, dd.vcdatarot))
+  dd.vcmodelrot = TwoVarCompModelRotate(dd.vcmodel)
+  logpdf(dd.vcmodelrot, dd.vcdatarot)
 end # function MathProgBase.eval_f
 
-function MathProgBase.eval_grad_f{T}(dd::TwoVarCompOptProb,
-  grad_f::Vector{T}, x::Vector{T})
+function MathProgBase.eval_grad_f{T}(
+  dd::TwoVarCompOptProb,
+  grad_f::Vector{T},
+  x::Vector{T}
+  )
+
   d = size(dd.L[1], 1)
   nparam = d * (d + 1)
   nparamhalf = div(nparam, 2)
@@ -338,6 +375,8 @@ function MathProgBase.eval_grad_f{T}(dd::TwoVarCompOptProb,
   dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  # gradient wrt Σ
+  dd.vcmodelrot = TwoVarCompModelRotate(dd.vcmodel)
   gradient!(dd.∇Σ, dd.vcmodel, dd.vcdatarot)
   # chain rule for gradient wrt Cholesky factor
   chol_gradient!(sub(grad_f, 1:nparamhalf),
@@ -361,7 +400,8 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   dd.L[2][trilind(dd.L[2])] = x[nparamhalf+1:end]
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
-  fisher!(dd.HΣ, dd.vcmodel, dd.vcdatarot)
+  dd.vcmodelrot = TwoVarCompModelRotate(dd.vcmodel)
+  fisher!(dd.HΣ, dd.vcmodelrot, dd.vcdatarot)
   # chain rule for Hessian wrt Cholesky factor
   # only the lower left triangle
   # (1, 1) block
@@ -400,7 +440,7 @@ function mle_fs!{T <: AbstractFloat}(
   HΣ = zeros(T, 2d^2, 2d^2) # Hessian wrt Σs
   HL = zeros(T, nparam, nparam) # Hessian wrt Ls
   # data for the optimization problem
-  dd = TwoVarCompOptProb(vcmodel, vcdatarot, L, ∇Σ, HΣ, HL)
+  dd = TwoVarCompOptProb(vcmodel, TwoVarCompModelRotate(vcmodel), vcdatarot, L, ∇Σ, HΣ, HL)
 
   # set up MathProgBase interface
   if solver == :Ipopt
