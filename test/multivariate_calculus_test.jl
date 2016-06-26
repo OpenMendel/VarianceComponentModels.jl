@@ -92,7 +92,7 @@ end
   A = randn(m, n)
   X = randn(p, q)
   Y = zeros(m * p, n * q)
-  @time kronaxpy!(A, X, Y)
+  kronaxpy!(A, X, Y)
   @test vecnorm(Y - kron(A, X)) ≈ 0.0
 end
 
