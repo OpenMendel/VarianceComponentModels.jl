@@ -440,7 +440,8 @@ function mle_fs!{T <: AbstractFloat}(
   HΣ = zeros(T, 2d^2, 2d^2) # Hessian wrt Σs
   HL = zeros(T, nparam, nparam) # Hessian wrt Ls
   # data for the optimization problem
-  dd = TwoVarCompOptProb(vcmodel, TwoVarCompModelRotate(vcmodel), vcdatarot, L, ∇Σ, HΣ, HL)
+  dd = TwoVarCompOptProb(vcmodel, TwoVarCompModelRotate(vcmodel),
+    vcdatarot, L, ∇Σ, HΣ, HL)
 
   # set up MathProgBase interface
   if solver == :Ipopt
@@ -598,7 +599,8 @@ function mle_mm!{T <: AbstractFloat}(
     #Σ[1] = scale(dg, inv(Φ))' * W * scale(dg, inv(Φ))
     # this approach is more numerical stable
     Whalfsvd = svdfact(Whalf)
-    copy!(vcm.Σ[1], scale(sqrt(Whalfsvd[:S]), Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
+    copy!(vcm.Σ[1], scale(sqrt(Whalfsvd[:S]),
+      Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
     At_mul_B!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
     # update Σ2
     @inbounds for j = 1:d
@@ -611,7 +613,8 @@ function mle_mm!{T <: AbstractFloat}(
     # Σ[2] = scale(dg, inv(Φ))' * W * scale(dg, inv(Φ))
     # this approach is more numerical stable
     Whalfsvd = svdfact(Whalf)
-    copy!(vcm.Σ[2], scale(sqrt(Whalfsvd[:S]), Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
+    copy!(vcm.Σ[2], scale(sqrt(Whalfsvd[:S]),
+      Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
     At_mul_B!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
 
     # update generalized eigen-decomposition
@@ -644,7 +647,6 @@ function mle_mm!{T <: AbstractFloat}(
   # output
   logl, Σse, Σcov
 end # function mle_mm
-
 
 #---------------------------------------------------------------------------#
 # Heritability estimation

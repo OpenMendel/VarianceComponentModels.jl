@@ -7,7 +7,7 @@ srand(123)
 
 # generate data from a d-variate response variane component model
 n = 100   # no. observations
-d = 3     # no. categories
+d = 2     # no. categories
 m = 2     # no. variance components
 Σ = ntuple(x -> zeros(d, d), m)
 for i in 1:m
