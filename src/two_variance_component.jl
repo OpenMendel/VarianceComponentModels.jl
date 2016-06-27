@@ -14,7 +14,8 @@ Calculate log-pdf of a *rotated* two variance component instance under a
 """
 function logpdf(
   vcmrot::TwoVarCompModelRotate,
-  vcobsrot::TwoVarCompVariateRotate)
+  vcobsrot::TwoVarCompVariateRotate
+  )
 
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
   nd = n * d
@@ -129,7 +130,7 @@ function gradient{T <: AbstractFloat}(
   vcobsrot::TwoVarCompVariateRotate{T}
   )
 
-  d = length(vcmrot.eigval)
+  d = length(vcmrot)
   ∇ = zeros(T, 2d^2)
   gradient!(∇, vcmrot, vcobsrot)
 end
@@ -225,31 +226,23 @@ function fisher!{T <: AbstractFloat}(
   # evaluate Hessian
   C = zeros(T, d, d)
   Φ2 = kron(vcmrot.eigvec, vcmrot.eigvec)
-  # (1, 1) block
-  for l2 in 1:d, l1 in l2:d# only the lower triangular part
-    C[l1, l2] = sum(vcobsrot.eigval .* vcobsrot.eigval ./
-      (vcmrot.eigval[l1] * vcobsrot.eigval + oneT) ./
-      (vcmrot.eigval[l2] * vcobsrot.eigval + oneT))
-  end
-  LinAlg.copytri!(C, 'L') # copy to upper triangular part
+  λi, λj = zeroT, zeroT
+  C[:] = [mapreduce(
+  x -> x^2 / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
+    vcobsrot.eigval) for i=1:d, j=1:d]
   A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
   # (2, 1) block
-  for l2 in 1:d, l1 in l2:d
-    C[l1, l2] = sum(vcobsrot.eigval ./
-      (vcmrot.eigval[l1] * vcobsrot.eigval + oneT) ./
-      (vcmrot.eigval[l2] * vcobsrot.eigval + oneT))
-  end
-  LinAlg.copytri!(C, 'L') # copy to upper triangular part
+  C[:] = [mapreduce(
+  x -> x / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
+    vcobsrot.eigval) for i=1:d, j=1:d]
   A_mul_Bt!(sub(H, d^2+1:2d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
   # d-by-d (2, 2) block
-  for l2 in 1:d, l1 in l2:d
-    C[l1, l2] = sum(oneT ./ (vcmrot.eigval[l1] * vcobsrot.eigval + oneT) ./
-      (vcmrot.eigval[l2] * vcobsrot.eigval + oneT))
-  end
-  LinAlg.copytri!(C, 'L') # copy to upper triangular part
+  C[:] = [mapreduce(
+  x -> oneT / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
+    vcobsrot.eigval) for i=1:d, j=1:d]
   A_mul_Bt!(sub(H, d^2+1:2d^2, d^2+1:2d^2), scale(Φ2, vec(C)), Φ2)
-  # make sure it's Hessian of the *negative* log-likehood
-  LinAlg.copytri!(H, 'L') # copy to upper triangular part
+  # copy to upper triangular part
+  LinAlg.copytri!(H, 'L')
   scale!(H, convert(T, 0.5))
 end # function fisher!
 

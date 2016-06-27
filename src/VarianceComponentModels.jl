@@ -1,7 +1,7 @@
 module VarianceComponentModels
 
 using MathProgBase, Ipopt, KNITRO#, Mosek
-import Base.eltype
+import Base: eltype, length, size
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate
 
@@ -12,6 +12,9 @@ type VarianceComponentModel{T <: AbstractFloat, M}
   Σ::NTuple{M, AbstractMatrix{T}}
 end
 
+"""
+`eigval, eigvec = eig(Σ[1], Σ[2])` and `Brot = B * eigvec`.
+"""
 type TwoVarCompModelRotate{T}
   Brot::AbstractVecOrMat{T}
   eigval::AbstractVecOrMat{T}
@@ -19,6 +22,10 @@ type TwoVarCompModelRotate{T}
   logdetΣ2::T
 end
 
+"""
+Constructor of a `TwoVarCompModelRotate` instance from a
+`VarianceComponentModel` instance.
+"""
 function TwoVarCompModelRotate{T}(vcm::VarianceComponentModel{T, 2})
   # generalized eigenvalue decomposition of (Σ1, Σ2)
   λ, Φ = eig(vcm.Σ[1], vcm.Σ[2])
@@ -36,6 +43,9 @@ immutable VarianceComponentVariate{T <: AbstractFloat, M}
   V::NTuple{M, AbstractMatrix{T}}
 end
 
+"""
+`eigval, eigvec = eig(Σ[1], Σ[2])`, `Yrot = eigvec * Y`, and 'Xrot = eigvec * X'.
+"""
 immutable TwoVarCompVariateRotate{T}
   Yrot::AbstractVecOrMat{T}
   Xrot::AbstractVecOrMat{T}
@@ -44,8 +54,8 @@ immutable TwoVarCompVariateRotate{T}
 end
 
 """
-Constructor of `TwoVarCompVariateRotate` instance from a `VarianceComponentVariate`
-instance.
+Constructor of a `TwoVarCompVariateRotate` instance from a
+`VarianceComponentVariate` instance.
 """
 function TwoVarCompVariateRotate{T <: Real}(
   vcobs::VarianceComponentVariate{T, 2}
@@ -71,12 +81,31 @@ end
 
 Base.eltype(vcm::VarianceComponentModel) = Base.eltype(vcm.B)
 Base.eltype(vcobs::VarianceComponentVariate) = Base.eltype(vcobs.Y)
-Base.eltype(vcm::TwoVarCompModelRotate) = Base.eltype(vcm.Brot)
-Base.eltype(vcobs::TwoVarCompVariateRotate) = Base.eltype(vcobs.Yrot)
+Base.eltype(vcmrot::TwoVarCompModelRotate) = Base.eltype(vcmrot.Brot)
+Base.eltype(vcobsrot::TwoVarCompVariateRotate) = Base.eltype(vcobsrot.Yrot)
+# Dimension of response, d
+length(vcm::VarianceComponentModel) = size(vcm.Σ[1], 1)
+length(vcobs::VarianceComponentVariate) = size(vcobs.Y, 2)
+length(vcmrot::TwoVarCompModelRotate) = size(vcmrot.eigval, 1)
+length(vcobs::TwoVarCompVariateRotate) = size(vcobs.Yrot, 2)
+# Size of response, (n, d)
+size(vcobs::VarianceComponentVariate) = size(vcobs.Y)
+size(vcobsrot::TwoVarCompVariateRotate) = size(vcobsrot.Yrot)
+# Number of variance components, m
 nvarcomps(vcm::VarianceComponentModel) = length(vcm.Σ)
-nvarcomps(vcobs::VarianceComponentModel) = length(vcm.V)
-nvarcomps(vcm::TwoVarCompModelRotate) = 2
-nvarcomps(vcobs::TwoVarCompVariateRotate) = 2
+nvarcomps(vcobs::VarianceComponentVariate) = length(vcm.V)
+nvarcomps(vcmrot::TwoVarCompModelRotate) = 2
+nvarcomps(vcobsrot::TwoVarCompVariateRotate) = 2
+# Number of mean parameters, p * d
+nmeanparams(vcm::VarianceComponentModel) = length(vcm.B)
+nmeanparams(vcmrot::TwoVarCompModelRotate) = length(vcmrot.Brot)
+# Number of free parameters in Cholesky factors, m * d * (d + 1) / 2
+nvarparams(vcm::Union{VarianceComponentModel, TwoVarCompModelRotate}) =
+  nvarcomps(vcm) * binomial(length(vcm) + 1, 2)
+# Number of model parameters, p * d + m * d * (d + 1) / 2
+nparams(vcm::Union{VarianceComponentModel, TwoVarCompModelRotate}) =
+  nmeanparams(vcm) + nvarparams(vcm)
+
 
 """
     cov!(C, vcm, vcobs)
@@ -107,7 +136,7 @@ function cov(
   vcobs::VarianceComponentVariate
   )
 
-  n, d = size(vcobs.V[1], 1), size(vcm.Σ[1], 1)
+  n, d = size(vcobs)
   C = zeros(eltype(vcm), n * d, n * d)
   cov!(C, vcm, vcobs)
 end
@@ -133,19 +162,19 @@ end
 Calculate the `n x d` mean matrix of a variance component model at an observation.
 """
 function mean(vcm::VarianceComponentModel, vcobs::VarianceComponentVariate)
-  μ = zeros(eltype(vcm), size(vcm.Y))
-  mean!(μ, vcm)
+  μ = zeros(eltype(vcm), size(vcm.B))
+  mean!(μ, vcm, vcobs)
 end
 
 function residual(vcm::VarianceComponentModel, vcobs::VarianceComponentVariate)
   resid = isempty(vcobs.X)? vcobs.Y : vcobs.Y - vcobs.X * vcm.B
 end
 
-function residual(vcm::TwoVarCompModelRotate, vcobs::TwoVarCompVariateRotate)
-  if isempty(vcobs.Xrot)
-    resid = vcobs.Yrot * vcm.eigvec
+function residual(vcmrot::TwoVarCompModelRotate, vcobsrot::TwoVarCompVariateRotate)
+  if isempty(vcobsrot.Xrot)
+    resid = vcobsrot.Yrot * vcmrot.eigvec
   else
-    resid = (vcobs.Yrot - vcobs.Xrot * vcm.Brot) * vcm.eigvec
+    resid = vcobsrot.Yrot * vcmrot.eigvec - vcobsrot.Xrot * vcmrot.Brot
   end
   resid
 end
