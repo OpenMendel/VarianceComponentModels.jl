@@ -7,7 +7,7 @@ srand(123)
 
 # generate data from a d-variate response variane component model
 n = 100   # no. observations
-d = 2     # no. categories
+d = 1     # no. categories
 m = 2     # no. variance components
 Σ = ntuple(x -> zeros(d, d), m)
 for i in 1:m
@@ -31,31 +31,39 @@ end
 Y = reshape(Ωchol[:L] * randn(n*d), n, d)
 
 info("Forming variance component model and data")
-vcdata = VarianceComponentVariate(Y, Float64[], V)
-vcmodel = VarianceComponentModel(Float64[], Σ)
+vcdata = VarianceComponentVariate(Y, V)
+vcmodel = VarianceComponentModel(vcdata)
 
 info("Pre-compute (generalized) eigen-decomposition and rotate data")
 vcdatarot = TwoVarCompVariateRotate(vcdata)
 vcmodelrot = TwoVarCompModelRotate(vcmodel)
 
 info("Evaluate log-pdf")
+#@code_warntype logpdf(vcmodelrot, vcdatarot)
+@inferred logpdf(vcmodelrot, vcdatarot)
 @test logpdf(vcmodel, vcdata) == logpdf(vcmodelrot, vcdatarot)
-@test vecnorm(logpdf(vcmodel, [vcdata vcdata; vcdata vcdata]) -
-  logpdf(vcmodelrot, [vcdatarot vcdatarot; vcdatarot vcdatarot])) < 1.0e-8
+# @test (logpdf(vcmodelrot, [vcdatarot vcdatarot; vcdatarot vcdatarot]) -
+#   logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
 
 info("Evaluate gradient")
+∇ = zeros(nmeanparams(vcmodel) + 2d^2)
+#@code_warntype gradient!(∇, vcmodelrot, vcdatarot)
+@inferred gradient!(∇, vcmodelrot, vcdatarot)
 @test vecnorm(gradient(vcmodel, vcdata) - gradient(vcmodelrot, vcdatarot)) ≈ 0.0
 
 info("Evaluate Fisher information matrix")
+H = zeros(nmeanparams(vcmodel) + 2d^2, nmeanparams(vcmodel) + 2d^2)
+#@code_warntype fisher!(H, vcmodelrot, vcdatarot)
+@inferred fisher!(H, vcmodelrot, vcdatarot)
 @test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodelrot, vcdatarot)) ≈ 0.0
 
 info("Find MLE using Fisher scoring")
 vcmfs = deepcopy(vcmodel)
-logl_fs, _, Σcov_fs = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
+logl_fs, _, _, Σcov_fs = mle_fs!(vcmfs, vcdatarot; solver = :Knitro)
 
 info("Find MLE using MM algorithm")
-vcmmm = deepcopy(vcmodel)
-logl_mm, _, Σcov_mm = mle_mm!(vcmmm, vcdatarot)
+vcmm = deepcopy(vcmodel)
+logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot)
 @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
 
 info("Heritability estimation")
