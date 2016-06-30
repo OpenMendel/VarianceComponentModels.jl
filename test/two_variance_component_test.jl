@@ -9,6 +9,9 @@ srand(123)
 n = 100   # no. observations
 d = 2     # no. categories
 m = 2     # no. variance components
+p = 2     # no. covariates
+X = randn(n, p)
+B = ones(p, d)
 Σ = ntuple(x -> zeros(d, d), m)
 for i in 1:m
   Σi = randn(d, d)
@@ -28,10 +31,10 @@ for i = 1:m
   Ω += kron(Σ[i], V[i])
 end
 Ωchol = cholfact(Ω)
-Y = reshape(Ωchol[:L] * randn(n*d), n, d)
+Y = X * B + reshape(Ωchol[:L] * randn(n*d), n, d)
 
 info("Forming variance component model and data")
-vcdata = VarianceComponentVariate(Y, V)
+vcdata = VarianceComponentVariate(Y, X, V)
 vcmodel = VarianceComponentModel(vcdata)
 
 info("Pre-compute (generalized) eigen-decomposition and rotate data")
@@ -59,7 +62,8 @@ H = zeros(nmeanparams(vcmodel) + 2d^2, nmeanparams(vcmodel) + 2d^2)
 
 info("Find MLE using Fisher scoring")
 vcmfs = deepcopy(vcmodel)
-logl_fs, _, _, Σcov_fs = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
+logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Knitro)
+@show vcmfs.B, Bse_fs, B
 
 info("Find MLE using MM algorithm")
 vcmm = deepcopy(vcmodel)
