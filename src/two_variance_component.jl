@@ -664,7 +664,8 @@ function mle_mm!{T <: AbstractFloat}(
     Whalfsvd = svdfact(Whalf)
     copy!(vcm.Σ[1], scale(sqrt(Whalfsvd[:S]),
       Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
-    At_mul_B!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
+    #At_mul_B!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
+    copy!(vcm.Σ[1], At_mul_B(vcm.Σ[1], vcm.Σ[1]))
     # update Σ2
     @inbounds for j = 1:d
       λj = vcmrot.eigval[j]
@@ -681,7 +682,8 @@ function mle_mm!{T <: AbstractFloat}(
     Whalfsvd = svdfact(Whalf)
     copy!(vcm.Σ[2], scale(sqrt(Whalfsvd[:S]),
       Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
-    At_mul_B!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
+    #At_mul_B!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
+    copy!(vcm.Σ[2], At_mul_B(vcm.Σ[2], vcm.Σ[2]))
 
     # update generalized eigen-decomposition
     vcmrot = TwoVarCompModelRotate(vcm)
