@@ -626,13 +626,20 @@ function mle_mm!{T <: AbstractFloat}(
 
   # initialize algorithm
   # n = no. observations, d = no. categories
-  n, d, p = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2), size(vcdatarot.Xrot, 1)
+  n, d = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2)
   zeroT, oneT, halfT = zero(T), one(T), convert(T, 0.5)
+  if !isempty(vcm.B)
+    Xnew = kron(eye(T, d), vcdatarot.Xrot)
+    Ynew = vec(vcdatarot.Yrot)
+    copy!(vcm.B, Xnew \ Ynew)
+  end
   # update generalized eigen-decomposition
   vcmrot = TwoVarCompModelRotate(vcm)
   logl::T = logpdf(vcmrot, vcdatarot)
   Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
-  res = (vcdatarot.Yrot * vcmrot.eigvec) .* Wt
+  #res = (vcdatarot.Yrot * vcmrot.eigvec) .* Wt
+  res = residual(vcmrot, vcdatarot)
+  res = res .* Wt
   if verbose
     println()
     println("     MM Algorithm")
@@ -683,9 +690,21 @@ function mle_mm!{T <: AbstractFloat}(
 
     # update generalized eigen-decomposition
     vcmrot = TwoVarCompModelRotate(vcm)
+    #res = (vcdatarot.Yrot * vcmrot.eigvec) .* Wt
+
+    # update mean parameters
     Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
-    #Wt = [oneT / sqrt(vcdatarot.eigval[i] * vcmrot.eigval[j] + oneT) for i=1:n, j=1:d]
-    res = (vcdatarot.Yrot * vcmrot.eigvec) .* Wt
+    if !isempty(vcm.B)
+      wt = vec(Wt)
+      fill!(Xnew, 0.0)
+      kronaxpy!(Φ', Xrot, Xnew)
+      copy!(Ynew, Yrot * Φ)
+      scale!(wt, Xnew)
+      Ynew = wt .* Ynew
+      copy!(vcm.B, Xnew \ Ynew)
+    end
+    res = residual(vcmrot, vcdatarot)
+    res = res .* Wt
 
     # check convergence
     loglold = logl

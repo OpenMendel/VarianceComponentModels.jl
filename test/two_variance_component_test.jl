@@ -59,7 +59,7 @@ H = zeros(nmeanparams(vcmodel) + 2d^2, nmeanparams(vcmodel) + 2d^2)
 
 info("Find MLE using Fisher scoring")
 vcmfs = deepcopy(vcmodel)
-logl_fs, _, _, Σcov_fs = mle_fs!(vcmfs, vcdatarot; solver = :Knitro)
+logl_fs, _, _, Σcov_fs = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 
 info("Find MLE using MM algorithm")
 vcmm = deepcopy(vcmodel)
