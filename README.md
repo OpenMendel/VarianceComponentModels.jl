@@ -7,14 +7,6 @@
 
 VarianceComponentModels provides computational routines for fitting and testing variance component models.
 
-The response matrix `Y` is assumed to be multivariate normal with mean `X B` and covariance matrix `Σ1 ⊗ V1 + ⋯ + Σm ⊗ Vm`. Here **data** is  
-* `Y`: `n x d` response matrix  
-* `X`: `n x p` covariate matrix  
-* `V1, ..., Vm`: `m` `n x n` covariance matrices
-**Parameters** are  
-* `B`: `p x d` parameter matrix  
-* `Σ1, ..., Σm`: `m` `d x d` variance components
-
 ## Installation
 
 Use the Julia package manager to install VarianceComponentModels.jl:
@@ -24,6 +16,8 @@ Use the Julia package manager to install VarianceComponentModels.jl:
 ## Documentation
 
 View the [tutorial]().
+
+For an application to heritability estimation in genetics, view the [tutorial]().
 
 ## OpenMendel
 
