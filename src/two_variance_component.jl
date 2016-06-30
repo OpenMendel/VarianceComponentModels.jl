@@ -12,14 +12,14 @@ export heritability,
 Calculate log-pdf of a *rotated* two variance component instance under a
 *rotated* two variance component model.
 """
-function logpdf(
-  vcmrot::TwoVarCompModelRotate,
-  vcobsrot::TwoVarCompVariateRotate
+function logpdf{T <: AbstractFloat}(
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::TwoVarCompVariateRotate{T}
   )
 
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
   nd = n * d
-  T = eltype(vcobsrot)
+  #T = eltype(vcobsrot)
   zeroT, oneT = zero(T), one(T)
   res = residual(vcmrot, vcobsrot)
   # evaluate 2(log-likehood)
@@ -590,7 +590,7 @@ end # function mle_fs
 #---------------------------------------------------------------------------#
 
 """
-  reml_mm(Yrot, ev, loglconst; Σ0, maxiter, verbose)
+  mle_mm!(Yrot, ev, loglconst; Σ0, maxiter, verbose)
 
 Fit variance component model using minorization-maximization algorithm. Data
 `vec(Y)` is assumed to be normal with mean zero and covariance
@@ -619,21 +619,19 @@ Fit variance component model using minorization-maximization algorithm. Data
 """
 function mle_mm!{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
-  vcdatarot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}};
+  vcdatarot::TwoVarCompVariateRotate{T};
   maxiter::Integer = 10000,
   funtol::T = convert(T, 1e-8),
   verbose::Bool = true)
 
   # initialize algorithm
   # n = no. observations, d = no. categories
-  n, d = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2)
-  nd = n * d
+  n, d, p = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2), size(vcdatarot.Xrot, 1)
   zeroT, oneT, halfT = zero(T), one(T), convert(T, 0.5)
   # update generalized eigen-decomposition
   vcmrot = TwoVarCompModelRotate(vcm)
-  logl = sum(logpdf(vcmrot, vcdatarot))
+  logl::T = logpdf(vcmrot, vcdatarot)
   Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
-  #Wt = [oneT / sqrt(vcdatarot.eigval[i] * vcmrot.eigval[j] + oneT) for i=1:n, j=1:d]
   res = (vcdatarot.Yrot * vcmrot.eigvec) .* Wt
   if verbose
     println()
@@ -664,7 +662,6 @@ function mle_mm!{T <: AbstractFloat}(
     Whalfsvd = svdfact(Whalf)
     copy!(vcm.Σ[1], scale(sqrt(Whalfsvd[:S]),
       Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
-    #At_mul_B!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
     copy!(vcm.Σ[1], At_mul_B(vcm.Σ[1], vcm.Σ[1]))
     # update Σ2
     @inbounds for j = 1:d
@@ -682,7 +679,6 @@ function mle_mm!{T <: AbstractFloat}(
     Whalfsvd = svdfact(Whalf)
     copy!(vcm.Σ[2], scale(sqrt(Whalfsvd[:S]),
       Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
-    #At_mul_B!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
     copy!(vcm.Σ[2], At_mul_B(vcm.Σ[2], vcm.Σ[2]))
 
     # update generalized eigen-decomposition
@@ -693,7 +689,7 @@ function mle_mm!{T <: AbstractFloat}(
 
     # check convergence
     loglold = logl
-    logl = sum(logpdf(vcmrot, vcdatarot))
+    logl = logpdf(vcmrot, vcdatarot)
     if verbose
       if (iter <= 10) || (iter > 10 && iter % 10 == 0)
         @printf("%8.d  %13.e\n", iter, logl)
@@ -709,7 +705,7 @@ function mle_mm!{T <: AbstractFloat}(
   Σcov = zeros(T, 2d^2, 2d^2)
   fisher!(Σcov, vcm, vcdatarot)
   Σcov = inv(Σcov)
-  Σse = deepcopy(vcm.Σ)
+  Σse = (eye(T, d), eye(T, d))
   copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 

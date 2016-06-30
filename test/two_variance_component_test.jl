@@ -7,7 +7,7 @@ srand(123)
 
 # generate data from a d-variate response variane component model
 n = 100   # no. observations
-d = 1     # no. categories
+d = 2     # no. categories
 m = 2     # no. variance components
 Σ = ntuple(x -> zeros(d, d), m)
 for i in 1:m
@@ -63,6 +63,8 @@ logl_fs, _, _, Σcov_fs = mle_fs!(vcmfs, vcdatarot; solver = :Knitro)
 
 info("Find MLE using MM algorithm")
 vcmm = deepcopy(vcmodel)
+#@code_warntype mle_mm!(vcmm, vcdatarot)
+@inferred mle_mm!(vcmm, vcdatarot)
 logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot)
 @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
 
