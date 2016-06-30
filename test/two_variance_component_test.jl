@@ -77,4 +77,14 @@ h, h_se = heritability(vcmfs.Σ, Σcov_fs)
 @show h, h_se
 @test all(0.0 .≤ h .≤ 1.0)
 
+info("test fit_mle")
+vcmmle = deepcopy(vcmodel)
+logl_mle, _, _, Σcov_mle, Bse_mle, = fit_mle!(vcmmle, vcdata; algo = :FS)
+@show vcmfs.B, Bse_fs, B
+
+info("test fit_reml")
+vcmreml = deepcopy(vcmodel)
+logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
+@show vcmreml.B, Bse_reml, B
+
 end # module VarianceComponentTypeTest

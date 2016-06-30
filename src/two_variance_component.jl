@@ -2,7 +2,8 @@ import Base.gradient
 
 export heritability,
   logpdf, gradient!, gradient, fisher!, fisher,
-  mle_fs!, mle_mm!
+  mle_fs!, mle_mm!,
+  fit_mle!, fit_reml!
 
 #---------------------------------------------------------------------------#
 # Evaluate log-pdf
@@ -745,6 +746,66 @@ function mle_mm!{T <: AbstractFloat}(
   # output
   logl, vcm, Σse, Σcov, Bse, Bcov
 end # function mle_mm
+
+#---------------------------------------------------------------------------#
+# Estimation gateway
+#---------------------------------------------------------------------------#
+
+function fit_mle!{T <: AbstractFloat}(
+  vcmodel::VarianceComponentModel{T, 2},
+  vcdata::VarianceComponentVariate{T, 2};
+  algo::Symbol = :FS
+  )
+
+  # generalized-eigendecomposition and rotate data
+  vcdatarot = TwoVarCompVariateRotate(vcdata)
+  if algo == :FS
+    return mle_fs!(vcmodel, vcdatarot)
+  elseif algo == :MM
+    return mle_mm!(vcmodel, vcdatarot)
+  end
+end
+
+function fit_reml!{T <: AbstractFloat}(
+  vcmodel::VarianceComponentModel{T, 2},
+  vcdata::VarianceComponentVariate{T, 2};
+  algo::Symbol = :FS
+  )
+
+  n, d = size(vcdata.Y, 1), size(vcdata.Y, 2)
+  vcdatarot = TwoVarCompVariateRotate(vcdata)
+  resrot = vcdatarot.Yrot - vcdatarot.Xrot * (vcdatarot.Xrot \ vcdatarot.Yrot)
+  # use residuals as responses
+  resdatarot = TwoVarCompVariateRotate(resrot, zeros(T, n, 0),
+    vcdatarot.eigval, vcdatarot.logdetV2)
+  resmodel = VarianceComponentModel(zeros(T, 0, d), vcmodel.Σ)
+  if algo == :FS
+    _, _, Σse, Σcov, = mle_fs!(resmodel, resdatarot)
+  elseif algo == :MM
+    _, _, Σse, Σcov, = mle_mm!(resmodel, resdatarot)
+  end
+
+  # estimate mean parameters from covariance estimate
+  oneT = one(T)
+  resmodelrot = TwoVarCompModelRotate(resmodel)
+  wt = oneT ./ sqrt(kron(resdatarot.eigval, resmodelrot.eigval) + oneT)
+  Xnew = kron(resmodelrot.eigvec', vcdatarot.Xrot)
+  Ynew = vec(vcdatarot.Yrot * resmodelrot.eigvec)
+  scale!(wt, Xnew)
+  Ynew = Ynew .* wt
+  copy!(vcmodel.B, Xnew \ Ynew)
+
+  # standard errors and covariance of mean parameters
+  nmean = nmeanparams(vcmodel)
+  covmatrix = zeros(T, nmean + 2d^2, nmean + 2d^2)
+  fisher!(covmatrix, vcmodel, vcdatarot)
+  Bcov = inv(covmatrix[1:nmean, 1:nmean])
+  Bse = similar(vcmodel.B)
+  copy!(Bse, sqrt(diag(Bcov)))
+
+  # output
+  logpdf(vcmodel, vcdatarot), vcmodel, Σse, Σcov, Bse, Bcov
+end
 
 #---------------------------------------------------------------------------#
 # Heritability estimation
