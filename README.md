@@ -17,7 +17,7 @@ Use the Julia package manager to install VarianceComponentModels.jl:
 
 View the [tutorial](https://github.com/Hua-Zhou/VarianceComponentModels.jl/blob/master/docs/variance_components.ipynb).
 
-For an application to heritability estimation in genetics, view the [tutorial]().
+For an application to heritability estimation in genetics, view the [tutorial](https://github.com/Hua-Zhou/VarianceComponentModels.jl/blob/master/docs/cg10k.html).
 
 ## OpenMendel
 
