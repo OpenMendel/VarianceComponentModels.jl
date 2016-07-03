@@ -20,7 +20,6 @@ function logpdf{T <: AbstractFloat}(
 
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
   nd = n * d
-  #T = eltype(vcobsrot)
   zeroT, oneT = zero(T), one(T)
   res = residual(vcmrot, vcobsrot)
   # evaluate 2(log-likehood)
