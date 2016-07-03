@@ -168,6 +168,18 @@ function VarianceComponentModel(vcobs::VarianceComponentVariate)
   VarianceComponentModel{eltype(B), m, typeof(B), eltype(Σ)}(B, Σ)
 end
 
+"""
+Construct a `VarianceComponentModel` instance from a `TwoVarCompVariateRotate`
+instance.
+"""
+function VarianceComponentModel(vcobsrot::TwoVarCompVariateRotate)
+  p, d, m = size(vcobsrot.Xrot, 2), size(vcobsrot.Yrot, 2), 2
+  B = zeros(eltype(vcobsrot), p, d)
+  Σ = ntuple(x -> eye(eltype(vcobsrot), d), m)
+  VarianceComponentModel{eltype(B), m, typeof(B), eltype(Σ)}(B, Σ)
+end
+
+
 Base.eltype(vcm::VarianceComponentModel) = Base.eltype(vcm.B)
 Base.eltype(vcobs::VarianceComponentVariate) = Base.eltype(vcobs.Y)
 Base.eltype(vcmrot::TwoVarCompModelRotate) = Base.eltype(vcmrot.Brot)
