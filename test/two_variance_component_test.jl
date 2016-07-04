@@ -1,6 +1,6 @@
 module VarianceComponentTypeTest
 
-using VarianceComponentModels
+using VarianceComponentModels, MathProgBase, Ipopt
 using BaseTestNext
 
 srand(123)
@@ -60,6 +60,31 @@ H = zeros(nmeanparams(vcmodel) + 2d^2, nmeanparams(vcmodel) + 2d^2)
 @inferred fisher!(H, vcmodelrot, vcdatarot)
 @test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodelrot, vcdatarot)) ≈ 0.0
 
+info("Update mean parameters from variance component parameters (no constraints)")
+vcmmean = deepcopy(vcmodel)
+#@code_warntype update_meanparam!(vcmmean, vcdatarot)
+#@inferred update_meanparam!(vcmodel, vcdatarot)
+update_meanparam!(vcmmean, vcdatarot)
+@show vcmmean.B
+
+info("Update mean parameters from variance component parameters (linear equality constraints)")
+vcmmean = deepcopy(vcmodel)
+#@code_warntype update_meanparam!(vcmmean, vcdatarot, [1.0 -1.0 0 0], '=', 0.0)
+update_meanparam!(vcmmean, vcdatarot, [1.0 -1.0 zeros(1, p*d-2)], '=', 0.0)
+@show vcmmean.B
+@test vcmmean.B[1] ≈ vcmmean.B[2]
+
+info("Update mean parameters from variance component parameters (box constraints)")
+vcmmean = deepcopy(vcmodel)
+# @code_warntype update_meanparam!(vcmmean, vcdatarot, zeros(0, p * d), Vector{Char}(0),
+#   Vector{Float64}(0), 0.0, 1.0, IpoptSolver(print_level = 0), zeros(n * d, p * d), zeros(n * d),
+#   zeros(p * d, p * d), zeros(p * d))
+update_meanparam!(vcmmean, vcdatarot, Matrix{Float64}(0, p * d), Vector{Char}(0),
+  Vector{Float64}(0), 0.0, 1.0)
+@show vcmmean.B
+@test all(vcmmean.B .≥ 0.0)
+@test all(vcmmean.B .≤ 1.0)
+
 info("Find MLE using Fisher scoring")
 vcmfs = deepcopy(vcmodel)
 logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
@@ -67,9 +92,38 @@ logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 
 info("Find MLE using MM algorithm")
 vcmm = deepcopy(vcmodel)
-#@code_warntype mle_mm!(vcmm, vcdatarot)
-@inferred mle_mm!(vcmm, vcdatarot)
+# @code_warntype mle_mm!(vcmm, vcdatarot;
+#   maxiter = 10000,
+#   funtol = 1e-8,
+#   verbose = true,
+#   A = zeros(0, p * d),
+#   sense = '=',
+#   b = 0.0,
+#   lb = -Inf,
+#   ub = Inf,
+#   qpsolver = IpoptSolver(print_level = 0)
+# )
+#@inferred mle_mm!(vcmm, vcdatarot)
 logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot)
+@test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
+
+info("Find MLE using Fisher scoring (linear equality + box constraints)")
+vcmfs = deepcopy(vcmodel)
+logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt,
+  A = [1.0 -1.0 zeros(1, p*d-2)], sense = '=', b = 0.0, lb = 0.0, ub = 1.0)
+@show vcmfs.B
+@test vcmfs.B[1] ≈ vcmfs.B[2]
+@test all(vcmfs.B .≥ 0.0)
+@test all(vcmfs.B .≤ 1.0)
+
+info("Find MLE using MM algorithm (linear equality + box constraints)")
+vcmm = deepcopy(vcmodel)
+logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot; A = [1.0 -1.0 zeros(1, p*d-2)],
+  sense = '=', b = 0.0, lb = 0.0, ub = 1.0)
+@show vcmm.B
+@test vcmm.B[1] ≈ vcmm.B[2]
+@test all(vcmm.B .≥ 0.0)
+@test all(vcmm.B .≤ 1.0)
 @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
 
 info("Heritability estimation")

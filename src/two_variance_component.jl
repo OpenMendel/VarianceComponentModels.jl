@@ -3,7 +3,8 @@ import Base.gradient
 export heritability,
   logpdf, gradient!, gradient, fisher!, fisher,
   mle_fs!, mle_mm!,
-  fit_mle!, fit_reml!
+  fit_mle!, fit_reml!,
+  update_meanparam!
 
 #---------------------------------------------------------------------------#
 # Evaluate log-pdf
@@ -78,7 +79,6 @@ function logpdf(
   mapreduce(x -> logpdf(vcm, x), +, vcobs)
 end
 
-
 #---------------------------------------------------------------------------#
 # Evaluate gradient
 #---------------------------------------------------------------------------#
@@ -87,15 +87,15 @@ end
 
     gradient!(∇, vcmrot, vcobsrot)
 
-Evaluate gradient at `Σ = (Σ[1], Σ[2])` and overwrite `∇`.
+Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
 
 # Input
-- `∇`: gradient vector.
-- `vcmrot`: *rotated* two variance component model.
-- `vcobsrot`: *rotated* two variance component data instance.
+- `∇::Vector`: gradient vector.
+- `vcmrot::TwoVarCompModelRotate`: *rotated* two variance component model.
+- `vcobsrot::TwoVarCompVariateRotate`: *rotated* two variance component data.
 
 # Output
-- `∇`: gradient vector at `B` and `Σ = (Σ[1], Σ[2])`.
+- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
 
 # TODO: optimize computation
 """
@@ -108,13 +108,6 @@ function gradient!{T <: AbstractFloat}(
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
   zeroT, oneT = zero(T), one(T)
   res = residual(vcmrot, vcobsrot)
-  # evaluate graident with respect to B
-  nmean = nmeanparams(vcmrot)
-  if nmean > 0
-    ∇[1:nmean] = 2vec(At_mul_B(vcobsrot.Xrot,
-      A_mul_Bt(res ./ (vcobsrot.eigval * vcmrot.eigval' + oneT),
-      vcmrot.eigvec)))
-  end
   # evaluate gradient with respect to Σ[1], Σ[2]
   m1diag = zeros(T, d)
   m2diag = zeros(T, d)
@@ -137,8 +130,8 @@ function gradient!{T <: AbstractFloat}(
   end
   N1 = vcmrot.eigvec * N1 * vcmrot.eigvec'
   N2 = vcmrot.eigvec * N2 * vcmrot.eigvec'
-  ∇[(nmean + 1):(nmean + d^2)] = N1[:]
-  ∇[(nmean + d^2 + 1):(nmean + 2d^2)] = N2[:]
+  ∇[1:d^2] = N1[:]
+  ∇[(d^2 + 1):(2d^2)] = N2[:]
   scale!(∇, convert(T, 0.5))
 end # function gradient!
 
@@ -148,7 +141,7 @@ function gradient{T <: AbstractFloat}(
   )
 
   d = length(vcmrot)
-  ∇ = zeros(T, nmeanparams(vcmrot) + 2d^2)
+  ∇ = zeros(T, 2d^2)
   gradient!(∇, vcmrot, vcobsrot)
 end
 
@@ -207,7 +200,7 @@ function gradient{T <: AbstractFloat}(
   )
 
   d = length(vcmrot)
-  ∇ = zeros(T, nmeanparams(vcmrot) + 2d^2)
+  ∇ = zeros(T, 2d^2)
   gradient!(∇, vcmrot, vcobsrot)
 end
 
@@ -240,14 +233,6 @@ function fisher!{T <: AbstractFloat}(
   d = length(vcmrot)
   zeroT, oneT = zero(T), one(T)
   fill!(H, zeroT)
-  # evaluate Hessian with respect to B
-  nmean = nmeanparams(vcmrot)
-  if nmean > 0
-    M = kron(vcmrot.eigvec, vcobsrot.Xrot')
-    A_mul_Bt!(sub(H, 1:nmean, 1:nmean),
-      scale(M, oneT ./ (kron(vcobsrot.eigval, vcmrot.eigval) + oneT)),
-      2M)
-  end
   # evaluate Hessian with respect to Σ[1], Σ[2]
   C = zeros(T, d, d)
   Φ2 = kron(vcmrot.eigvec, vcmrot.eigvec)
@@ -255,20 +240,17 @@ function fisher!{T <: AbstractFloat}(
   C[:] = [mapreduce(
     x -> x^2 / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT),
     +, vcobsrot.eigval) for i=1:d, j=1:d]
-  A_mul_Bt!(sub(H, (nmean+1):(nmean+d^2), (nmean+1):(nmean+d^2)),
-    scale(Φ2, vec(C)), Φ2)
+  A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
   # (2, 1) block
   C[:] = [mapreduce(
     x -> x / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
     vcobsrot.eigval) for i=1:d, j=1:d]
-  A_mul_Bt!(sub(H, (nmean+d^2+1):(nmean+2d^2), (nmean+1):(nmean+d^2)),
-    scale(Φ2, vec(C)), Φ2)
+  A_mul_Bt!(sub(H, (d^2+1):(2d^2), 1:d^2), scale(Φ2, vec(C)), Φ2)
   # d-by-d (2, 2) block
   C[:] = [mapreduce(
     x -> oneT / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
     vcobsrot.eigval) for i=1:d, j=1:d]
-  A_mul_Bt!(sub(H, (nmean+d^2+1):(nmean+2d^2), (nmean+d^2+1):(nmean+2d^2)),
-    scale(Φ2, vec(C)), Φ2)
+  A_mul_Bt!(sub(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), scale(Φ2, vec(C)), Φ2)
   # copy to upper triangular part
   LinAlg.copytri!(H, 'L')
   scale!(H, convert(T, 0.5))
@@ -280,7 +262,7 @@ function fisher{T <: AbstractFloat}(
   )
 
   d = length(vcmrot.eigval)
-  H = zeros(T, nmeanparams(vcmrot) + 2d^2, nmeanparams(vcmrot) + 2d^2)
+  H = zeros(T, 2d^2, 2d^2)
   fisher!(H, vcmrot, vcobsrot)
 end
 
@@ -318,10 +300,10 @@ function fisher{T <: AbstractFloat}(
   fisher(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
-function fisher!{T <: AbstractFloat}(
+function fisher!{T, BT, YT, XT}(
   H::AbstractMatrix{T},
-  vcmrot::TwoVarCompModelRotate{T},
-  vcobsrot::Array{TwoVarCompVariateRotate{T}}
+  vcmrot::TwoVarCompModelRotate{T, BT},
+  vcobsrot::Array{TwoVarCompVariateRotate{T, YT, XT}}
   )
 
   fill!(H, zero(T))
@@ -339,9 +321,30 @@ function fisher{T <: AbstractFloat}(
   )
 
   d = length(vcmrot.eigval)
-  H = zeros(T, nmeanparams(vcmrot) + 2d^2, nmeanparams(vcmrot) + 2d^2)
+  H = zeros(T, 2d^2, 2d^2)
   fisher!(H, vcmrot, vcobsrot)
 end
+
+function fisher_B!{T <: AbstractFloat}(
+  H::AbstractMatrix{T},
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  oneT = one(T)
+  M = kron(vcmrot.eigvec, vcobsrot.Xrot')
+  A_mul_Bt!(H, scale(M, oneT ./ (kron(vcobsrot.eigval, vcmrot.eigval) + oneT)), M)
+end
+
+function fisher_B!{T <: AbstractFloat}(
+  H::AbstractMatrix{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  fisher_B!(H, TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
 
 #---------------------------------------------------------------------------#
 # Fisher scoring algorithm
@@ -350,28 +353,49 @@ end
 type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
   vcmodel::VarianceComponentModel{T, 2}
   vcdatarot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}}
+  A::Matrix{T}
+  sense::Union{Vector{Char}, Char}
+  b::Union{T, AbstractVector{T}}
+  lb::Union{T, AbstractVector{T}}
+  ub::Union{T, AbstractVector{T}}
+  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver
+  # intermediate variables
   L::NTuple{2, Matrix{T}} # Cholesky factors
-  ∇BΣ::Vector{T} # graident wrt (B, Σ1, Σ2)
-  HBΣ::Matrix{T} # Hessian wrt (B, Σ1, Σ2)
+  ∇Σ::Vector{T} # graident wrt (Σ1, Σ2)
+  HΣ::Matrix{T} # Hessian wrt (Σ1, Σ2)
   HL::Matrix{T} # Hessian wrt (L1, L2)
+  Xwork::Matrix{T} # nd-by-pd working matrix
+  ywork::Vector{T} # nd working vector
+  Q::Matrix{T}     # pd-by-pd working matrix
+  c::Vector{T}     # pd working vector
 end
 
 function TwoVarCompOptProb{T}(
   vcm::VarianceComponentModel{T, 2},
-  vcobsrot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}}
+  vcobsrot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}},
+  A::Matrix{T},
+  sense::Union{Vector{Char}, Char},
+  b::Union{T, AbstractVector{T}},
+  lb::Union{T, AbstractVector{T}},
+  ub::Union{T, AbstractVector{T}},
+  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver
   )
 
-  d = size(vcobsrot.Yrot, 2)
-  # number of optimization parameters in mean
-  nmean = nmeanparams(vcm)
+  n, d, p = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2), size(vcobsrot.Xrot, 2)
   # number of optimization parameters in variance
   nvar = nvarparams(vcm)
+  # allocate intermediate variables
   zeroT = convert(T, 0)
   L = (zeros(T, d, d), zeros(T, d, d))
-  ∇BΣ = zeros(T, nmean + 2d^2) # graident wrt (B, Σ1, Σ2)
-  HBΣ = zeros(T, nmean + 2d^2, nmean + 2d^2) # Hessian wrt (B, Σ1, Σ2)
+  ∇Σ = zeros(T, 2d^2) # graident wrt (Σ1, Σ2)
+  HΣ = zeros(T, 2d^2, 2d^2) # Hessian wrt (Σ1, Σ2)
   HL = zeros(T, nvar, nvar) # Hessian wrt Ls
-  TwoVarCompOptProb{T}(vcm, vcobsrot, L, ∇BΣ, HBΣ, HL)
+  Xwork = zeros(T, n * d, p * d)
+  ywork = zeros(T, n * d)
+  Q = zeros(T, p * d, p * d)
+  c = zeros(T, p * d)
+  TwoVarCompOptProb{T}(vcm, vcobsrot, A, sense, b, lb, ub, qpsolver,
+    L, ∇Σ, HΣ, HL, Xwork, ywork, Q, c)
 end
 
 function MathProgBase.initialize(dd::TwoVarCompOptProb,
@@ -390,16 +414,17 @@ MathProgBase.eval_jac_g(dd::TwoVarCompOptProb, J, x) = nothing
 
 function MathProgBase.eval_f{T}(dd::TwoVarCompOptProb, x::Vector{T})
   d = size(dd.L[1], 1)
-  nmean = nmeanparams(dd.vcmodel)
   nvar = nvarparams(dd.vcmodel)
   nvarhalf = div(nvar, 2)
-  # mean parameter
-  copy!(dd.vcmodel.B, sub(x, 1:nmean))
   # variance parameter
-  dd.L[1][trilind(dd.L[1])] = x[(nmean+1):(nmean+nvarhalf)]
-  dd.L[2][trilind(dd.L[2])] = x[(nmean+nvarhalf+1):end]
+  dd.L[1][trilind(dd.L[1])] = x[1:nvarhalf]
+  dd.L[2][trilind(dd.L[2])] = x[(nvarhalf+1):end]
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  # update mean parameters
+  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.A, dd.sense, dd.b, dd.lb, dd.ub,
+    dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
+  # evaluate profile log-pdf
   logpdf(dd.vcmodel, dd.vcdatarot)
 end # function MathProgBase.eval_f
 
@@ -410,76 +435,63 @@ function MathProgBase.eval_grad_f{T}(
   )
 
   d = size(dd.L[1], 1)
-  nmean = nmeanparams(dd.vcmodel)
   nvar = nvarparams(dd.vcmodel)
   nvarhalf = div(nvar, 2)
-  # mean parameter
-  if nmean > 0
-    dd.vcmodel.B[:] = x[1:nmean]
-  end
   # variance parameter
-  dd.L[1][trilind(dd.L[1])] = x[(nmean+1):(nmean+nvarhalf)]
-  dd.L[2][trilind(dd.L[2])] = x[(nmean+nvarhalf+1):end]
+  dd.L[1][trilind(dd.L[1])] = x[1:nvarhalf]
+  dd.L[2][trilind(dd.L[2])] = x[(nvarhalf+1):end]
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
-  # gradient wrt (B, Σ[1], Σ[2])
-  gradient!(dd.∇BΣ, dd.vcmodel, dd.vcdatarot)
-  # gradient wrt B
-  if nmean > 0
-    copy!(sub(grad_f, 1:nmean), sub(dd.∇BΣ, 1:nmean))
-  end
+  # update mean parameters
+  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.A, dd.sense, dd.b, dd.lb, dd.ub,
+    dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
+  # gradient wrt (Σ[1], Σ[2])
+  gradient!(dd.∇Σ, dd.vcmodel, dd.vcdatarot)
   # chain rule for gradient wrt Cholesky factor
-  chol_gradient!(sub(grad_f, (nmean+1):(nmean+nvarhalf)),
-    dd.∇BΣ[(nmean+1):(nmean+d^2)], dd.L[1])
-  chol_gradient!(sub(grad_f, (nmean+nvarhalf+1):(nmean+nvar)),
-    dd.∇BΣ[(nmean+d^2+1):end], dd.L[2])
+  chol_gradient!(sub(grad_f, 1:nvarhalf), dd.∇Σ[1:d^2], dd.L[1])
+  chol_gradient!(sub(grad_f, (nvarhalf+1):nvar),
+    dd.∇Σ[(d^2+1):end], dd.L[2])
 end # function MathProgBase.eval_grad_f
 
 function MathProgBase.hesslag_structure(dd::TwoVarCompOptProb)
   d = size(dd.L[1], 1)
-  nmean = nmeanparams(dd.vcmodel)
   nvar = nvarparams(dd.vcmodel)
-  # linear indices for mean parameters
-  meanidx = ind2sub((nmean, nmean), trilind(nmean))
   # linear indices for variance parameters
-  varidx = ind2sub((nvar, nvar), trilind(nvar))
-  vcat(meanidx[1], varidx[1] + nmean), vcat(meanidx[2], varidx[2] + nmean)
+  ind2sub((nvar, nvar), trilind(nvar))
 end # function MathProgBase.hesslag_structure
 
 function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   x::Vector{T}, σ::T, μ::Vector{T})
+
   d = size(dd.L[1], 1)
-  nmean = nmeanparams(dd.vcmodel)
   nvar = nvarparams(dd.vcmodel)
   nvarhalf = div(nvar, 2)
-  # mean parameter
-  copy!(dd.vcmodel.B, sub(x, 1:nmean))
   # variance parameter
-  dd.L[1][trilind(dd.L[1])] = x[(nmean+1):(nmean+nvarhalf)]
-  dd.L[2][trilind(dd.L[2])] = x[(nmean+nvarhalf+1):end]
+  dd.L[1][trilind(dd.L[1])] = x[1:nvarhalf]
+  dd.L[2][trilind(dd.L[2])] = x[(nvarhalf+1):end]
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
-  fisher!(dd.HBΣ, dd.vcmodel, dd.vcdatarot)
-  # Hessian wrt B
-  if nmean > 0
-    H[1:binomial(nmean + 1, 2)] = vech(dd.HBΣ[1:nmean, 1:nmean])
-  end
+  # update mean parameters
+  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.A, dd.sense, dd.b, dd.lb, dd.ub,
+    dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
+  # Hessian wrt (Σ1, Σ2)
+  fisher!(dd.HΣ, dd.vcmodel, dd.vcdatarot)
   # chain rule for Hessian wrt Cholesky factor
   # only the lower left triangle
   # (1, 1) block
   chol_gradient!(sub(dd.HL, 1:nvarhalf, 1:nvarhalf),
-    chol_gradient(dd.HBΣ[(nmean+1):(nmean+d^2), (nmean+1):(nmean+d^2)], dd.L[1])',
+    chol_gradient(dd.HΣ[1:d^2, 1:d^2], dd.L[1])',
     dd.L[1])
   # (2, 1) block
   chol_gradient!(sub(dd.HL, nvarhalf+1:nvar, 1:nvarhalf),
-    chol_gradient(dd.HBΣ[(nmean+d^2+1):(nmean+2d^2), (nmean+1):(nmean+d^2)], dd.L[1])',
+    chol_gradient(dd.HΣ[(d^2+1):(2d^2), 1:d^2], dd.L[1])',
     dd.L[2])
   # (2, 2) block
   chol_gradient!(sub(dd.HL, nvarhalf+1:nvar, nvarhalf+1:nvar),
-    chol_gradient(dd.HBΣ[(nmean+d^2+1):(nmean+2d^2), (nmean+d^2+1):(nmean+2d^2)], dd.L[2])',
+    chol_gradient(dd.HΣ[(d^2+1):(2d^2), (d^2+1):(2d^2)], dd.L[2])',
     dd.L[2])
   # output
-  H[binomial(nmean + 1, 2)+1:end] = vech(dd.HL)
+  copy!(H, vech(dd.HL))
   scale!(H, -σ)
 end
 
@@ -488,23 +500,27 @@ function mle_fs!{T}(
   vcdatarot::TwoVarCompVariateRotate{T};
   maxiter::Integer = 1000,
   solver::Symbol = :Ipopt,
-  verbose::Bool = true
+  verbose::Bool = true,
+  A::AbstractMatrix = Array{T}(0, nmeanparams(vcmodel)),
+  sense::Union{Vector{Char}, Char} = Vector{Char}(0),
+  b::Union{T, AbstractVector{T}} = zero(T),
+  lb::Union{T, AbstractVector{T}} = convert(T, -Inf),
+  ub::Union{T, AbstractVector{T}} = convert(T, Inf),
+  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(print_level = 0)
   )
 
   n, d = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2)
   nd = n * d
   Ltrilind = trilind(d, d)
-  # number of optimization parameters in mean
+  # number of mean parameters
   nmean = nmeanparams(vcmodel)
   # number of optimization parameters in Cholesky factors
   nvar = nvarparams(vcmodel)
   nvarhalf = div(nvar, 2)
-  # total number of parameters
-  nparam = nparams(vcmodel)
   # pre-allocate variables for optimization
   zeroT = convert(T, 0)
   # data for the optimization problem
-  dd = TwoVarCompOptProb(vcmodel, vcdatarot)
+  dd = TwoVarCompOptProb(vcmodel, vcdatarot, A, sense, b, lb, ub, qpsolver)
 
   # set up MathProgBase interface
   if solver == :Ipopt
@@ -545,13 +561,12 @@ function mle_fs!{T}(
       )
   end
   m = MathProgBase.NonlinearModel(solver)
-  # lower and upper bounds for B
   # lower and upper bounds for variance parameter
-  lb = zeros(T, nparam)
+  lb = zeros(T, nvar)
   fill!(lb, convert(T, -Inf))
   for j in 1:d
     # linear index of diagonal entries of L1
-    idx = nmean + 1 + (j - 1) * d - div((j - 1) * (j - 2), 2)
+    idx = 1 + (j - 1) * d - div((j - 1) * (j - 2), 2)
     lb[idx] = zeroT
     # linear index of diagonal entries of L2
     idx += binomial(d + 1, 2)
@@ -559,35 +574,32 @@ function mle_fs!{T}(
   end
   ub = similar(lb)
   fill!(ub, convert(T, Inf))
-  MathProgBase.loadproblem!(m, nparam, 0, lb, ub, T[], T[], :Max, dd)
+  MathProgBase.loadproblem!(m, nvar, 0, lb, ub, T[], T[], :Max, dd)
   # start point
-  x0 = [vec(vcmodel.B);
-        vech(cholfact(vcmodel.Σ[1], :L, Val{true})[:L].data);
+  x0 = [vech(cholfact(vcmodel.Σ[1], :L, Val{true})[:L].data);
         vech(cholfact(vcmodel.Σ[2], :L, Val{true})[:L].data)]
   MathProgBase.setwarmstart!(m, x0)
-  # convergence criteria
-  #xtol_rel!(opt, 1e-8)
-  #ftol_rel!(opt, 1e-8)
-  #maxtime!(opt, 60)
   # optimize
   MathProgBase.optimize!(m)
   stat = MathProgBase.status(m)
   x = MathProgBase.getsolution(m)
   maxlogl = MathProgBase.getobjval(m)
-  # retrieve result
-  copy!(vcmodel.B, x[1:nmean])
-  dd.L[1][Ltrilind] = x[(nmean+1):(nmean+nvarhalf)]
-  dd.L[2][Ltrilind] = x[(nmean+nvarhalf+1):end]
+  # retrieve variance component parameters
+  dd.L[1][Ltrilind] = x[1:nvarhalf]
+  dd.L[2][Ltrilind] = x[nvarhalf+1:end]
   A_mul_Bt!(vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(vcmodel.Σ[2], dd.L[2], dd.L[2])
+  # update mean parameters
+  update_meanparam!(vcmodel, vcdatarot, dd.A, dd.sense, dd.b, dd.lb, dd.ub, dd.qpsolver,
+    dd.Xwork, dd.ywork, dd.Q, dd.c)
 
   # standard errors
-  covmatrix = zeros(T, nmean + 2d^2, nmean + 2d^2)
-  fisher!(covmatrix, vcmodel, vcdatarot)
-  Bcov = inv(covmatrix[1:nmean, 1:nmean])
+  Bcov = zeros(T, nmean, nmean)
+  fisher_B!(Bcov, vcmodel, vcdatarot)
+  Bcov = inv(Bcov)
   Bse = similar(vcmodel.B)
   copy!(Bse, sqrt(diag(Bcov)))
-  Σcov = inv(covmatrix[nmean+1:end, nmean+1:end])
+  Σcov = zeros(T, 2d^2, 2d^2)
   Σse = deepcopy(vcmodel.Σ)
   copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
@@ -595,6 +607,57 @@ function mle_fs!{T}(
   # output
   maxlogl, vcmodel, Σse, Σcov, Bse, Bcov
 end # function mle_fs
+
+#---------------------------------------------------------------------------#
+# Update mean parameters by quadratic programming
+#---------------------------------------------------------------------------#
+
+"""
+Update mean parameters `vcm.B` by quadratic programming.
+"""
+function update_meanparam!{T <: AbstractFloat}(
+    vcm::VarianceComponentModel{T, 2},
+    vcdatarot::TwoVarCompVariateRotate{T},
+    A::AbstractMatrix = Array{T}(0, nmeanparams(vcm)),
+    sense::Union{Vector{Char}, Char} = Vector{Char}(0),
+    b::Union{T, AbstractVector{T}} = Vector{T}(0),
+    lb::Union{T, AbstractVector{T}} = convert(T, -Inf),
+    ub::Union{T, AbstractVector{T}} = convert(T, Inf),
+    qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(print_level = 0),
+    Xwork::AbstractMatrix{T} = Array{T}(length(vcdatarot.Yrot), nmeanparams(vcm)),
+    ywork::AbstractVector{T} = Array{T}(length(vcdatarot.Yrot)),
+    Q::AbstractMatrix{T} = Array{T}(nmeanparams(vcm), nmeanparams(vcm)),
+    c::AbstractVector{T} = Array{T}(nmeanparams(vcm))
+    )
+
+    # quick return if there is no mean parameters
+    nmean = nmeanparams(vcm)
+    if nmean == 0; return vcm.B; end
+    # fill Xwork, ywork
+    zeroT, oneT, infT = zero(T), one(T), convert(T, Inf)
+    vcmrot = TwoVarCompModelRotate(vcm)
+    wt = oneT ./ √(kron(vcmrot.eigval, vcdatarot.eigval) + oneT)
+    fill!(Xwork, zeroT)
+    kronaxpy!(vcmrot.eigvec', vcdatarot.Xrot, Xwork)
+    copy!(ywork, vcdatarot.Yrot * vcmrot.eigvec)
+    scale!(wt, Xwork)
+    ywork = ywork .* wt
+    # no constraints: quick return
+    if size(A, 1) == 0 && all(lb .== -infT) && all(ub .== infT)
+      copy!(vcm.B, Xwork \ ywork)
+      return vcm.B
+    end
+    # constraints: quadratic programming
+    At_mul_B!(Q, Xwork, Xwork)
+    At_mul_B!(c, Xwork, ywork)
+    scale!(c, -oneT)
+    qpsol = quadprog(c, Q, A, sense, b, lb, ub, qpsolver)
+    if qpsol.status ≠ :Optimal
+      println("Error in quadratic programming $(qpsol.status)")
+    end
+    copy!(vcm.B, qpsol.sol)
+    return vcm.B
+end
 
 #---------------------------------------------------------------------------#
 # MM algorithm
@@ -628,12 +691,19 @@ Fit variance component model using minorization-maximization algorithm. Data
   MM algorithms for variance components models.
   [http://arxiv.org/abs/1509.07426](http://arxiv.org/abs/1509.07426)
 """
-function mle_mm!{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2},
-  vcdatarot::TwoVarCompVariateRotate{T};
+function mle_mm!{T, BT, ΣT, YT, XT}(
+  vcm::VarianceComponentModel{T, 2, BT, ΣT},
+  vcdatarot::TwoVarCompVariateRotate{T, YT, XT};
   maxiter::Integer = 10000,
   funtol::T = convert(T, 1e-8),
-  verbose::Bool = true)
+  verbose::Bool = true,
+  A::AbstractMatrix = Array{T}(0, nmeanparams(vcm)),
+  sense::Union{Vector{Char}, Char} = Vector{Char}(0),
+  b::Union{T, AbstractVector{T}} = zero(T),
+  lb::Union{T, AbstractVector{T}} = convert(T, -Inf),
+  ub::Union{T, AbstractVector{T}} = convert(T, Inf),
+  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(print_level = 0)
+  )
 
   # initialize algorithm
   # n = no. observations, d = no. categories
@@ -650,10 +720,12 @@ function mle_mm!{T <: AbstractFloat}(
     println("--------  -------------")
     @printf("%8.d  %13.e\n", 0, logl)
   end
-  # initialize intermediate variables
+  # allocate intermediate variables
   if nmean > 0
     Xnew = zeros(T, n * d, p * d)
     Ynew = zeros(T, n * d)
+    Q = zeros(T, p * d, p * d)
+    c = zeros(T, p * d)
   end
   Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
   res = residual(vcmrot, vcdatarot) .* Wt
@@ -700,21 +772,13 @@ function mle_mm!{T <: AbstractFloat}(
       Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
     copy!(vcm.Σ[2], At_mul_B(vcm.Σ[2], vcm.Σ[2]))
 
-    # update generalized eigen-decomposition
-    vcmrot = TwoVarCompModelRotate(vcm)
-    Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
-
     # update mean parameters
     if !isempty(vcm.B)
-      wt = vec(Wt)
-      fill!(Xnew, 0.0)
-      kronaxpy!(vcmrot.eigvec', vcdatarot.Xrot, Xnew)
-      copy!(Ynew, vcdatarot.Yrot * vcmrot.eigvec)
-      scale!(wt, Xnew)
-      Ynew = Ynew .* wt
-      copy!(vcm.B, Xnew \ Ynew)
+      update_meanparam!(vcm, vcdatarot, A, sense, b, lb, ub, qpsolver,
+        Xnew, Ynew, Q, c)
     end
     vcmrot = TwoVarCompModelRotate(vcm)
+    Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
     res = residual(vcmrot, vcdatarot) .* Wt
 
     # check convergence
@@ -732,13 +796,13 @@ function mle_mm!{T <: AbstractFloat}(
   if verbose; println(); end
 
   # standard errors
-  covmatrix = zeros(T, nmean + 2d^2, nmean + 2d^2)
-  fisher!(covmatrix, vcm, vcdatarot)
-  Bcov = inv(covmatrix[1:nmean, 1:nmean])
+  Bcov = zeros(T, nmean, nmean)
+  fisher_B!(Bcov, vcm, vcdatarot)
+  Bcov = inv(Bcov)
   Bse = similar(vcm.B)
   copy!(Bse, sqrt(diag(Bcov)))
-  Σcov = inv(covmatrix[nmean+1:end, nmean+1:end])
-  Σse = (eye(T, d), eye(T, d))
+  Σcov = zeros(T, 2d^2, 2d^2)
+  Σse = deepcopy(vcm.Σ)
   copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 

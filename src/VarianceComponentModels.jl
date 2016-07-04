@@ -62,17 +62,17 @@ end
 Constructor of a `TwoVarCompModelRotate` instance from a
 `VarianceComponentModel` instance.
 """
-function TwoVarCompModelRotate{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2}
+function TwoVarCompModelRotate{T, BT, ΣT}(
+  vcm::VarianceComponentModel{T, 2, BT, ΣT}
   )
 
   # generalized eigenvalue decomposition of (Σ1, Σ2)
   λ, Φ = eig(vcm.Σ[1], vcm.Σ[2])
   # correct negative eigenvalues due to roundoff
   map!(x -> max(x, zero(T)), λ)
-  Brot = isempty(vcm.B) ? Array{T}(0, size(vcm.Σ[1], 1)) : vcm.B * Φ
-  logdetΣ2 = logdet(vcm.Σ[2])
-  TwoVarCompModelRotate(Brot, λ, Φ, logdetΣ2)
+  Brot = isempty(vcm.B) ? Array{T}(size(vcm.B)) : vcm.B * Φ
+  logdetΣ2 = logdet(vcm.Σ[2])::T
+  TwoVarCompModelRotate{T, BT}(Brot, λ, Φ, logdetΣ2)
 end
 
 immutable VarianceComponentVariate{T <: AbstractFloat, M,
