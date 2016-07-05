@@ -6,12 +6,17 @@ export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, residual,
   nmeanparams, nvarparams, nparams
 
-# M is number of variance components.
-type VarianceComponentModel{T <: AbstractFloat, M,
+"""
+`VarianceComponentModel` stores the model parameters of a variance component
+model. `B` is `p x d` mean parameters and `Σ` is a tuple of `d x d` variance
+component parameters.
+"""
+immutable VarianceComponentModel{T <: AbstractFloat, M,
   BT <: AbstractVecOrMat, ΣT <: AbstractMatrix}
   # model parameters
   B::BT
   Σ::NTuple{M, ΣT}
+  # inner constructor
   function VarianceComponentModel(B::AbstractVecOrMat{T},
     Σ::NTuple{M, AbstractMatrix{T}})
     new(B, Σ)
@@ -19,7 +24,7 @@ type VarianceComponentModel{T <: AbstractFloat, M,
 end
 
 """
-Constructor for `VarianceComponentModel` instance.
+Default constructor of `VarianceComponentModel` type.
 """
 function VarianceComponentModel{M}(
   B::AbstractVecOrMat,
@@ -29,15 +34,20 @@ function VarianceComponentModel{M}(
   VarianceComponentModel{eltype(B), M, typeof(B), eltype(Σ)}(B, Σ)
 end
 
+"""
+Construct a `VarianceComponentModel` instance from `Σ` alone. `B` is treated empty.
+"""
 function VarianceComponentModel{M}(Σ::NTuple{M, AbstractMatrix})
   B = zeros(eltype(Σ[1]), 0, size(Σ[1], 1))
   VarianceComponentModel{eltype(B), M, typeof(B), eltype(Σ)}(B, Σ)
 end
 
 """
-`eigval, eigvec = eig(Σ[1], Σ[2])` and `Brot = B * eigvec`.
+`TwoVarCompModelRotate` stores the rotated two variance component model. If
+`B, Σ=(Σ1, Σ2)` is a two variane component model, then
+`(eigval, eigvec) = eig(Σ1, Σ2)`, `Brot = B * eigvec`, and `logdetΣ2 = logdet(Σ2)`.
 """
-type TwoVarCompModelRotate{T <: AbstractFloat, BT <: AbstractVecOrMat}
+immutable TwoVarCompModelRotate{T <: AbstractFloat, BT <: AbstractVecOrMat}
   Brot::BT
   eigval::Vector{T}
   eigvec::Matrix{T}
@@ -48,6 +58,9 @@ type TwoVarCompModelRotate{T <: AbstractFloat, BT <: AbstractVecOrMat}
   end
 end
 
+"""
+Default constructor of `TwoVarCompModelRotate` type.
+"""
 function TwoVarCompModelRotate(
   Brot::AbstractVecOrMat,
   eigval::Vector,
@@ -67,26 +80,37 @@ function TwoVarCompModelRotate{T, BT, ΣT}(
   )
 
   # generalized eigenvalue decomposition of (Σ1, Σ2)
-  λ, Φ = eig(vcm.Σ[1], vcm.Σ[2])
+  F = eigfact(Symmetric(vcm.Σ[1]), Symmetric(vcm.Σ[2])) # output is of BlasFloat type
+  λ = convert(Vector{T}, F.values)
+  Φ = convert(Matrix{T}, F.vectors)
   # correct negative eigenvalues due to roundoff
   map!(x -> max(x, zero(T)), λ)
   Brot = isempty(vcm.B) ? Array{T}(size(vcm.B)) : vcm.B * Φ
-  logdetΣ2 = logdet(vcm.Σ[2])::T
+  logdetΣ2 = convert(T, logdet(vcm.Σ[2]))
   TwoVarCompModelRotate{T, BT}(Brot, λ, Φ, logdetΣ2)
 end
 
+"""
+`VarianceComponentVariate` stores the data of a variance component
+model. `Y` is `n x d` responses, `X` is `n x p` predictors, and `V` is a tuple
+of `n x n` covariance matrices.
+"""
 immutable VarianceComponentVariate{T <: AbstractFloat, M,
   YT <: AbstractVecOrMat, XT <: AbstractVecOrMat, VT <: AbstractMatrix}
   # data
   Y::YT
   X::XT
   V::NTuple{M, VT}
+  # inner constructor
   function VarianceComponentVariate(Y::AbstractVecOrMat{T},
     X::AbstractVecOrMat{T}, V::NTuple{M, AbstractMatrix{T}})
     new(Y, X, V)
   end
 end
 
+"""
+Default constructor of `VarianceComponentVariate` type.
+"""
 function VarianceComponentVariate{M}(
   Y::AbstractVecOrMat,
   X::AbstractVecOrMat,
@@ -96,6 +120,10 @@ function VarianceComponentVariate{M}(
   VarianceComponentVariate{eltype(Y), M, typeof(Y), typeof(X), eltype(V)}(Y, X, V)
 end
 
+"""
+Default constructor of a `VarianceComponentVariate` instance from `Y` and `V`
+alone. `X` is created empty.
+"""
 function VarianceComponentVariate{M}(
   Y::AbstractVecOrMat,
   V::NTuple{M, AbstractMatrix}
@@ -106,20 +134,29 @@ function VarianceComponentVariate{M}(
 end
 
 """
-`eigval, eigvec = eig(Σ[1], Σ[2])`, `Yrot = eigvec * Y`, and 'Xrot = eigvec * X'.
+`TwoVarCompVariateRotate` stores the rotated two variance component data. If
+`Y, X, V=(V1, V2)` is the two variane component data, then
+`(eigval, eigvec) = eig(V1, V2)`, `Yrot = eigvec' * Y`, `Xrot = eigvec' * X`,
+and `logdetV2 = logdet(V2)`.
+
 """
 immutable TwoVarCompVariateRotate{T <: AbstractFloat, YT <: AbstractVecOrMat,
   XT <: AbstractVecOrMat}
+  # data
   Yrot::YT
   Xrot::XT
   eigval::Vector{T}
   logdetV2::T
+  # inner constructor
   function TwoVarCompVariateRotate(Yrot::AbstractVecOrMat{T},
     Xrot::AbstractVecOrMat{T}, eigval::Vector{T}, logdetV2::T)
     new(Yrot, Xrot, eigval, logdetV2)
   end
 end
 
+"""
+Default constructor of a `TwoVarCompVariateRotate` instance.
+"""
 function TwoVarCompVariateRotate(
   Yrot::AbstractVecOrMat,
   Xrot::AbstractVecOrMat,
@@ -141,14 +178,18 @@ function TwoVarCompVariateRotate{T <: AbstractFloat}(
   # (generalized)-eigendecomposition of (V1, V2)
   if isa(vcobs.V[2], UniformScaling) ||
     (isdiag(vcobs.V[2]) && vecnorm(diag(vcobs.V[2]) - one(T)) < 1.0e-8)
-    deval, U = eig(vcobs.V[1])
+    F = eigfact(Symmetric(vcobs.V[1]))
+    deval = convert(Vector{T}, F.values)
+    U = convert(Matrix{T}, F.vectors)
     logdetV2 = zero(T)
   else
-    deval, U = eig(vcobs.V[1], vcobs.V[2])
-    logdetV2 = logdet(vcobs.V[2])
+    F = eigfact(Symmetric(vcobs.V[1]), Symmetric(vcobs.V[2]))
+    deval = convert(Vector{T}, F.values)
+    U = convert(Matrix{T}, F.vectors)
+    logdetV2 = convert(T, logdet(vcobs.V[2]))
   end
   # corect negative eigenvalues due to roundoff error
-  map!(x -> max(x, zero(eltype(vcobs))), deval)
+  map!(x -> max(x, zero(T)), deval)
   # rotate responses
   Yrot = At_mul_B(U, vcobs.Y)
   Xrot = isempty(vcobs.X) ? Array{T}(size(Yrot, 1), 0) : At_mul_B(U, vcobs.X)
@@ -158,12 +199,12 @@ end
 
 """
 Construct a `VarianceComponentModel` instance from a `VarianceComponentVariate`
-instance.
+instance. `B` is initialized to zero; `Σ` is initialized to a tupe of identity
+matrices.
 """
 function VarianceComponentModel(vcobs::VarianceComponentVariate)
   p, d, m = size(vcobs.X, 2), size(vcobs.Y, 2), length(vcobs.V)
   B = zeros(eltype(vcobs), p, d)
-  #Σ = (ntuple(x -> zeros(eltype(vcobs), d, d), m - 1)..., eye(eltype(vcobs), d))
   Σ = ntuple(x -> eye(eltype(vcobs), d), m)
   VarianceComponentModel{eltype(B), m, typeof(B), eltype(Σ)}(B, Σ)
 end
@@ -229,7 +270,7 @@ function cov!(
 end
 
 """
-    cov(vcm)
+    cov(vcm, vcobs)
 
 Calculate the `nd x nd` covariance matrix of a variance component model at an
 observation.
@@ -248,7 +289,7 @@ end
     mean!(μ, vcm, vcobs)
 
 Calculate the `n x d` mean matrix of a variance component model at an observation
-and over-write μ.
+and over-write `μ`.
 """
 function mean!(
   μ::AbstractMatrix,
@@ -270,16 +311,15 @@ function mean(vcm::VarianceComponentModel, vcobs::VarianceComponentVariate)
 end
 
 function residual(vcm::VarianceComponentModel, vcobs::VarianceComponentVariate)
-  resid = isempty(vcobs.X)? vcobs.Y : vcobs.Y - vcobs.X * vcm.B
+  return isempty(vcobs.X)? vcobs.Y : vcobs.Y - vcobs.X * vcm.B
 end
 
 function residual(vcmrot::TwoVarCompModelRotate, vcobsrot::TwoVarCompVariateRotate)
   if isempty(vcmrot.Brot)
-    resid = vcobsrot.Yrot * vcmrot.eigvec
+    return vcobsrot.Yrot * vcmrot.eigvec
   else
-    resid = vcobsrot.Yrot * vcmrot.eigvec - vcobsrot.Xrot * vcmrot.Brot
+    return vcobsrot.Yrot * vcmrot.eigvec - vcobsrot.Xrot * vcmrot.Brot
   end
-  resid
 end
 
 # utilities for multivariate calculus
