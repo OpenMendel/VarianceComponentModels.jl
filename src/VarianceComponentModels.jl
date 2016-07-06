@@ -1,10 +1,11 @@
 module VarianceComponentModels
 
 using MathProgBase, Ipopt, KNITRO#, Mosek, Gurobi
-import Base: eltype, length, size
+import Base: eltype, length, size, mean, mean!, cov
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, residual,
-  nvarcomps, nmeanparams, nvarparams, nparams
+  nvarcomps, nmeanparams, nvarparams, nparams,
+  mean!, mean, cov!, cov
 
 """
 `VarianceComponentModel` stores the model parameters of a variance component
@@ -278,8 +279,9 @@ function cov!(
 
   fill!(C, zero(eltype(vcm)))
   for i in 1:length(vcm.Σ)
-    kronaxpy!(C, vcm.Σ[i], vcobs.V[i])
+    kronaxpy!(vcm.Σ[i], vcobs.V[i], C)
   end
+  return C
 end
 
 """
@@ -319,7 +321,7 @@ end
 Calculate the `n x d` mean matrix of a variance component model at an observation.
 """
 function mean(vcm::VarianceComponentModel, vcobs::VarianceComponentVariate)
-  μ = zeros(eltype(vcm), size(vcm.B))
+  μ = zeros(eltype(vcobs), size(vcobs.Y))
   mean!(μ, vcm, vcobs)
 end
 

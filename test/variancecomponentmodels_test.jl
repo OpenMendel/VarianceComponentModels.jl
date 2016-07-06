@@ -109,5 +109,25 @@ info("Query functions")
 @test nparams(vcmodel) == p * d + m * binomial(d + 1, 2)
 @test nparams(vcmodelrot) == p * d + m * binomial(d + 1, 2)
 
+info("Mean, covariance, and residual of model")
+#@code_warntype mean(vcmodel, vcdata)
+@inferred mean(vcmodel, vcdata)
+μ = mean(vcmodel, vcdata)
+@test size(μ, 1) == n
+@test size(μ, 2) == d
+#@code_warntype cov(vcmodel, vcdata)
+@inferred cov(vcmodel, vcdata)
+Ω = cov(vcmodel, vcdata)
+@test size(Ω, 1) == n * d
+@test size(Ω, 2) == n * d
+#@code_warntype residual(vcmodel, vcdata)
+@inferred residual(vcmodel, vcdata)
+res = residual(vcmodel, vcdata)
+@test size(res, 1) == n
+@test size(res, 2) == d
+@inferred residual(vcmodelrot, vcdatarot)
+resrot = residual(vcmodelrot, vcdatarot)
+@test size(resrot, 1) == n
+@test size(resrot, 2) == d
 
 end # module VarianceComponentTypeTest
