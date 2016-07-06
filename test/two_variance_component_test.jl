@@ -71,7 +71,7 @@ H = zeros(2d^2, 2d^2)
 info("Update mean parameters from variance component parameters (no constraints)")
 vcmmean = deepcopy(vcmodel)
 #@code_warntype update_meanparam!(vcmmean, vcdatarot)
-@inferred update_meanparam!(vcmodel, vcdatarot, IpoptSolver(print_level = 0))
+@inferred update_meanparam!(vcmodel, vcdatarot)
 update_meanparam!(vcmmean, vcdatarot)
 @show vcmmean.B
 
