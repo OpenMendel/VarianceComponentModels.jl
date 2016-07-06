@@ -1,6 +1,6 @@
 module VarianceComponentModels
 
-using MathProgBase, Ipopt, KNITRO, Mosek, Gurobi
+using MathProgBase, Ipopt, KNITRO#, Mosek, Gurobi
 import Base: eltype, length, size
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, residual,
@@ -231,7 +231,7 @@ function VarianceComponentModel(vcobsrot::TwoVarCompVariateRotate)
   T = eltype(vcobsrot)
   B = zeros(T, p, d)
   Σ = (eye(T, d), eye(T, d))
-  VarianceComponentModel{eltype(B), 2, typeof(B), eltype(Σ)}(B, Σ)
+  VarianceComponentModel(B, Σ)
 end
 
 Base.eltype(vcm::VarianceComponentModel) = Base.eltype(vcm.B)
