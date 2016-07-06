@@ -636,7 +636,7 @@ function mle_fs!{T}(
       #MSK_IPAR_LOG_NONCONVEX = 20,
       #MSK_IPAR_NONCONVEX_MAX_ITERATIONS = 100,
       #MSK_DPAR_INTPNT_NL_TOL_NEAR_REL = 1e8,
-      #MSK_IPAR_LOG_CHECK_CONVEXITY = 1,
+      MSK_IPAR_LOG_CHECK_CONVEXITY = 1,
       #MSK_IPAR_INFEAS_PREFER_PRIMAL = MSK_OFF
       )
   elseif solver == :Knitro
@@ -644,11 +644,24 @@ function mle_fs!{T}(
     solver = KnitroSolver(
       KTR_PARAM_ALG = 1,
       KTR_PARAM_OUTLEV = verbose? 2 : 0,
+      #KTR_PARAM_SCALE = 0,
+      #KTR_PARAM_HONORBNDS = 1,
       #KTR_PARAM_GRADOPT = 1,
       #KTR_PARAM_HESSOPT = 1,
       #KTR_PARAM_DERIVCHECK = 2
       #KTR_PARAM_TUNER = 1,
       #KTR_PARAM_MAXTIMECPU = 5.0,
+      #KTR_PARAM_BAR_MURULE = 4,
+      #KTR_PARAM_BAR_FEASIBLE = 3,
+      #KTR_PARAM_BAR_FEASMODETOL = 1.0e-8,
+      #KTR_PARAM_BAR_SWITCHRULE = 3,
+      #KTR_PARAM_BAR_PENCONS = 2,
+      #KTR_PARAM_BAR_DIRECTINTERVAL = 0,
+      #KTR_PARAM_BAR_MAXBACKTRACK = 10,
+      #KTR_PARAM_BAR_MAXCROSSIT = 5,
+      #KTR_PARAM_BAR_MAXREFACTOR = 5,
+      #KTR_PARAM_BAR_REFINEMENT = 1,
+      #KTR_PARAM_BAR_WATCHDOG = 1,
       )
   end
   m = MathProgBase.NonlinearModel(solver)
