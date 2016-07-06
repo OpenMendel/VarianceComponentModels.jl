@@ -210,16 +210,16 @@ end
 
 """
 
-    fisher!(H, Σ, ev)
+    fisher!(H, vcmrot, vcobsrot)
 
-Calculate Fisher information matrix at `Σ = (Σ[1], Σ[2])` and overwrite `H`,
-under the model `vec(Y)` is normal with mean zero and covariance
-`Σ[1]⊗V[1] + Σ[2]⊗V[2]`.
+Calculate Fisher information matrix at `Σ = (Σ[1], Σ[2])` and overwrite `H`
+based on *rotated* two variance component model `vcmrot` and *rotated* two
+variance component data `vcobsrot`.
 
 # Input
 - `H`: Hessian matrix.
-- `Σ = (Σ[1], Σ[2])`: variance component parameters.
-- `ev`: eigenvalues from `(λ, U) = eig(V1, V2)`.
+- `vcmrot::TwoVarCompModelRotate`: *rotated* two variance component model.
+- `vcobsrot::TwoVarCompVariateRotate`: *rotated* two variance component data.
 
 # Output
 - `H`: Fisher information matrix at `Σ = (Σ[1], Σ[2])`.
@@ -325,6 +325,22 @@ function fisher{T <: AbstractFloat}(
   fisher!(H, vcmrot, vcobsrot)
 end
 
+"""
+
+    fisher_B!(H, vcmrot, vcobsrot)
+
+Calculate Fisher information matrix of `B` and overwrite `H`
+based on two variance component model `vcm` and *rotated* two
+variance component data `vcobsrot`.
+
+# Input
+- `H`: Hessian matrix.
+- `vcmrot::VarianceComponentModel{T, 2}`: two variance component model.
+- `vcobsrot::TwoVarCompVariateRotate`: *rotated* two variance component data.
+
+# Output
+- `H`: Fisher information matrix at `B`.
+"""
 function fisher_B!{T <: AbstractFloat}(
   H::AbstractMatrix{T},
   vcmrot::TwoVarCompModelRotate{T},
@@ -336,6 +352,16 @@ function fisher_B!{T <: AbstractFloat}(
   A_mul_Bt!(H, scale(M, oneT ./ (kron(vcobsrot.eigval, vcmrot.eigval) + oneT)), M)
 end
 
+function fisher_B{T <: AbstractFloat}(
+  vcmrot::TwoVarCompModelRotate{T},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  H = zeros(T, nmeanparams(vcmrot), nmeanparams(vcmrot))
+  fisher_B!(H, vcmrot, vcobsrot)
+end
+
+
 function fisher_B!{T <: AbstractFloat}(
   H::AbstractMatrix{T},
   vcm::VarianceComponentModel{T, 2},
@@ -345,6 +371,71 @@ function fisher_B!{T <: AbstractFloat}(
   fisher_B!(H, TwoVarCompModelRotate(vcm), vcobsrot)
 end
 
+function fisher_B{T <: AbstractFloat}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  )
+
+  H = zeros(T, nmeanparams(vcm), nmeanparams(vcmrot))
+  fisher_B!(H, TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+#---------------------------------------------------------------------------#
+# Update mean parameters by quadratic programming
+#---------------------------------------------------------------------------#
+
+"""
+Update mean parameters `vcm.B` by quadratic programming.
+
+## Input
+- `vcm::VarianceComponentModel{T, 2}`: two variance component model
+- `vcdatarot::TwoVarCompVariateRotate`: *rotated* two variance component data
+- `qpsolver`: QP solver
+- `Xwork`: working design matrix for updating `vcm.B`
+- `ywork`: working responses for updating `vcm.B`
+- `Q`: quadratic part in the QP
+- `c`: linear part in the QP
+
+## Output
+- `vcm.B`: updated mean parameters
+"""
+function update_meanparam!{T <: AbstractFloat}(
+    vcm::VarianceComponentModel{T, 2},
+    vcdatarot::TwoVarCompVariateRotate{T},
+    qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver = MathProgBase.defaultQPsolver,
+    Xwork::Matrix{T} = Array{T}(length(vcdatarot.Yrot), nmeanparams(vcm)),
+    ywork::Vector{T} = Array{T}(length(vcdatarot.Yrot)),
+    Q::Matrix{T} = Array{T}(nmeanparams(vcm), nmeanparams(vcm)),
+    c::Vector{T} = Array{T}(nmeanparams(vcm))
+    )
+
+    # quick return if there is no mean parameters
+    isempty(vcm.B) && return vcm.B
+    # fill Xwork, ywork
+    zeroT, oneT, infT = zero(T), one(T), convert(T, Inf)
+    vcmrot = TwoVarCompModelRotate(vcm)
+    wt = oneT ./ √(kron(vcmrot.eigval, vcdatarot.eigval) + oneT)
+    fill!(Xwork, zeroT)
+    kronaxpy!(vcmrot.eigvec', vcdatarot.Xrot, Xwork)
+    copy!(ywork, vcdatarot.Yrot * vcmrot.eigvec)
+    scale!(wt, Xwork)
+    ywork = ywork .* wt
+    # no constraints: quick return
+    if size(vcm.A, 1) == 0 && all(vcm.lb .== -infT) && all(vcm.ub .== infT)
+      copy!(vcm.B, Xwork \ ywork)
+      return vcm.B
+    end
+    # constraints: quadratic programming
+    At_mul_B!(Q, Xwork, Xwork)
+    At_mul_B!(c, Xwork, ywork)
+    scale!(c, -oneT)
+    qpsol = quadprog(c, Q, vcm.A, vcm.sense, vcm.b, vcm.lb, vcm.ub, qpsolver)
+    if qpsol.status ≠ :Optimal
+      println("Error in quadratic programming $(qpsol.status)")
+    end
+    copy!(vcm.B, qpsol.sol)
+    return vcm.B
+end
 
 #---------------------------------------------------------------------------#
 # Fisher scoring algorithm
@@ -353,11 +444,7 @@ end
 type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
   vcmodel::VarianceComponentModel{T, 2}
   vcdatarot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}}
-  A::Matrix{T}
-  sense::Union{Vector{Char}, Char}
-  b::Union{T, AbstractVector{T}}
-  lb::Union{T, AbstractVector{T}}
-  ub::Union{T, AbstractVector{T}}
+  # QP solver for updating B given Σ
   qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver
   # intermediate variables
   L::NTuple{2, Matrix{T}} # Cholesky factors
@@ -373,12 +460,7 @@ end
 function TwoVarCompOptProb{T}(
   vcm::VarianceComponentModel{T, 2},
   vcobsrot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}},
-  A::Matrix{T},
-  sense::Union{Vector{Char}, Char},
-  b::Union{T, AbstractVector{T}},
-  lb::Union{T, AbstractVector{T}},
-  ub::Union{T, AbstractVector{T}},
-  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver
+  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver = MathProgBase.defaultQPsolver
   )
 
   n, d, p = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2), size(vcobsrot.Xrot, 2)
@@ -394,8 +476,7 @@ function TwoVarCompOptProb{T}(
   ywork = zeros(T, n * d)
   Q = zeros(T, p * d, p * d)
   c = zeros(T, p * d)
-  TwoVarCompOptProb{T}(vcm, vcobsrot, A, sense, b, lb, ub, qpsolver,
-    L, ∇Σ, HΣ, HL, Xwork, ywork, Q, c)
+  TwoVarCompOptProb{T}(vcm, vcobsrot, qpsolver, L, ∇Σ, HΣ, HL, Xwork, ywork, Q, c)
 end
 
 function MathProgBase.initialize(dd::TwoVarCompOptProb,
@@ -422,7 +503,7 @@ function MathProgBase.eval_f{T}(dd::TwoVarCompOptProb, x::Vector{T})
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
   # update mean parameters
-  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.A, dd.sense, dd.b, dd.lb, dd.ub,
+  update_meanparam!(dd.vcmodel, dd.vcdatarot,
     dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
   # evaluate profile log-pdf
   logpdf(dd.vcmodel, dd.vcdatarot)
@@ -443,7 +524,7 @@ function MathProgBase.eval_grad_f{T}(
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
   # update mean parameters
-  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.A, dd.sense, dd.b, dd.lb, dd.ub,
+  update_meanparam!(dd.vcmodel, dd.vcdatarot,
     dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
   # gradient wrt (Σ[1], Σ[2])
   gradient!(dd.∇Σ, dd.vcmodel, dd.vcdatarot)
@@ -472,7 +553,7 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
   # update mean parameters
-  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.A, dd.sense, dd.b, dd.lb, dd.ub,
+  update_meanparam!(dd.vcmodel, dd.vcdatarot,
     dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
   # Hessian wrt (Σ1, Σ2)
   fisher!(dd.HΣ, dd.vcmodel, dd.vcdatarot)
@@ -495,18 +576,18 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   scale!(H, -σ)
 end
 
+"""
+    mle_fs!(vcmodel, vcdatarot; maxiter, solver, qpsolver, verbose)
+
+Find MLE by Fisher scoring algorithm.
+"""
 function mle_fs!{T}(
   vcmodel::VarianceComponentModel{T, 2},
   vcdatarot::TwoVarCompVariateRotate{T};
   maxiter::Integer = 1000,
   solver::Symbol = :Ipopt,
+  qpsolver::Symbol = :Ipopt,
   verbose::Bool = true,
-  A::AbstractMatrix = Array{T}(0, nmeanparams(vcmodel)),
-  sense::Union{Vector{Char}, Char} = Vector{Char}(0),
-  b::Union{T, AbstractVector{T}} = zero(T),
-  lb::Union{T, AbstractVector{T}} = convert(T, -Inf),
-  ub::Union{T, AbstractVector{T}} = convert(T, Inf),
-  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(print_level = 0)
   )
 
   n, d = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2)
@@ -520,7 +601,14 @@ function mle_fs!{T}(
   # pre-allocate variables for optimization
   zeroT = convert(T, 0)
   # data for the optimization problem
-  dd = TwoVarCompOptProb(vcmodel, vcdatarot, A, sense, b, lb, ub, qpsolver)
+  if qpsolver == :Ipopt
+    qs = IpoptSolver(print_level = 0)
+  elseif qpsolver == :Gurobi
+    qs = GurobiSolver(OutputFlag = 0)
+  elseif qpsolver == :Mosek
+    qs = MosekSolver(MSK_IPAR_LOG = 0)
+  end
+  dd = TwoVarCompOptProb(vcmodel, vcdatarot, qs)
 
   # set up MathProgBase interface
   if solver == :Ipopt
@@ -536,6 +624,7 @@ function mle_fs!{T}(
       #derivative_test = "second-order",
       #linear_solver = "mumps",
       #linear_solver = "pardiso",
+      mehrotra_algorithm = "yes",
       )
   elseif solver == :Mosek
     # see http://docs.mosek.com/7.0/capi/Parameters.html for Mosek options
@@ -558,6 +647,8 @@ function mle_fs!{T}(
       #KTR_PARAM_GRADOPT = 1,
       #KTR_PARAM_HESSOPT = 1,
       #KTR_PARAM_DERIVCHECK = 2
+      #KTR_PARAM_TUNER = 1,
+      #KTR_PARAM_MAXTIMECPU = 5.0,
       )
   end
   m = MathProgBase.NonlinearModel(solver)
@@ -583,15 +674,16 @@ function mle_fs!{T}(
   MathProgBase.optimize!(m)
   stat = MathProgBase.status(m)
   x = MathProgBase.getsolution(m)
-  maxlogl = MathProgBase.getobjval(m)
   # retrieve variance component parameters
   dd.L[1][Ltrilind] = x[1:nvarhalf]
   dd.L[2][Ltrilind] = x[nvarhalf+1:end]
   A_mul_Bt!(vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(vcmodel.Σ[2], dd.L[2], dd.L[2])
   # update mean parameters
-  update_meanparam!(vcmodel, vcdatarot, dd.A, dd.sense, dd.b, dd.lb, dd.ub, dd.qpsolver,
+  update_meanparam!(vcmodel, vcdatarot, dd.qpsolver,
     dd.Xwork, dd.ywork, dd.Q, dd.c)
+  # update final objective value
+  maxlogl = logpdf(vcmodel, vcdatarot)
 
   # standard errors
   Bcov = zeros(T, nmean, nmean)
@@ -600,64 +692,13 @@ function mle_fs!{T}(
   Bse = similar(vcmodel.B)
   copy!(Bse, sqrt(diag(Bcov)))
   Σcov = zeros(T, 2d^2, 2d^2)
-  Σse = deepcopy(vcmodel.Σ)
+  Σse = (zeros(T, d, d), zeros(T, d, d))
   copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
   maxlogl, vcmodel, Σse, Σcov, Bse, Bcov
 end # function mle_fs
-
-#---------------------------------------------------------------------------#
-# Update mean parameters by quadratic programming
-#---------------------------------------------------------------------------#
-
-"""
-Update mean parameters `vcm.B` by quadratic programming.
-"""
-function update_meanparam!{T <: AbstractFloat}(
-    vcm::VarianceComponentModel{T, 2},
-    vcdatarot::TwoVarCompVariateRotate{T},
-    A::AbstractMatrix = Array{T}(0, nmeanparams(vcm)),
-    sense::Union{Vector{Char}, Char} = Vector{Char}(0),
-    b::Union{T, AbstractVector{T}} = Vector{T}(0),
-    lb::Union{T, AbstractVector{T}} = convert(T, -Inf),
-    ub::Union{T, AbstractVector{T}} = convert(T, Inf),
-    qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(print_level = 0),
-    Xwork::AbstractMatrix{T} = Array{T}(length(vcdatarot.Yrot), nmeanparams(vcm)),
-    ywork::AbstractVector{T} = Array{T}(length(vcdatarot.Yrot)),
-    Q::AbstractMatrix{T} = Array{T}(nmeanparams(vcm), nmeanparams(vcm)),
-    c::AbstractVector{T} = Array{T}(nmeanparams(vcm))
-    )
-
-    # quick return if there is no mean parameters
-    nmean = nmeanparams(vcm)
-    if nmean == 0; return vcm.B; end
-    # fill Xwork, ywork
-    zeroT, oneT, infT = zero(T), one(T), convert(T, Inf)
-    vcmrot = TwoVarCompModelRotate(vcm)
-    wt = oneT ./ √(kron(vcmrot.eigval, vcdatarot.eigval) + oneT)
-    fill!(Xwork, zeroT)
-    kronaxpy!(vcmrot.eigvec', vcdatarot.Xrot, Xwork)
-    copy!(ywork, vcdatarot.Yrot * vcmrot.eigvec)
-    scale!(wt, Xwork)
-    ywork = ywork .* wt
-    # no constraints: quick return
-    if size(A, 1) == 0 && all(lb .== -infT) && all(ub .== infT)
-      copy!(vcm.B, Xwork \ ywork)
-      return vcm.B
-    end
-    # constraints: quadratic programming
-    At_mul_B!(Q, Xwork, Xwork)
-    At_mul_B!(c, Xwork, ywork)
-    scale!(c, -oneT)
-    qpsol = quadprog(c, Q, A, sense, b, lb, ub, qpsolver)
-    if qpsol.status ≠ :Optimal
-      println("Error in quadratic programming $(qpsol.status)")
-    end
-    copy!(vcm.B, qpsol.sol)
-    return vcm.B
-end
 
 #---------------------------------------------------------------------------#
 # MM algorithm
@@ -696,13 +737,8 @@ function mle_mm!{T, BT, ΣT, YT, XT}(
   vcdatarot::TwoVarCompVariateRotate{T, YT, XT};
   maxiter::Integer = 10000,
   funtol::T = convert(T, 1e-8),
+  qpsolver::Symbol = :Ipopt,
   verbose::Bool = true,
-  A::AbstractMatrix = Array{T}(0, nmeanparams(vcm)),
-  sense::Union{Vector{Char}, Char} = Vector{Char}(0),
-  b::Union{T, AbstractVector{T}} = zero(T),
-  lb::Union{T, AbstractVector{T}} = convert(T, -Inf),
-  ub::Union{T, AbstractVector{T}} = convert(T, Inf),
-  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver = IpoptSolver(print_level = 0)
   )
 
   # initialize algorithm
@@ -710,6 +746,14 @@ function mle_mm!{T, BT, ΣT, YT, XT}(
   n, d, p = size(vcdatarot.Yrot, 1), size(vcdatarot.Yrot, 2), size(vcm.B, 1)
   zeroT, oneT, halfT = zero(T), one(T), convert(T, 0.5)
   nmean = nmeanparams(vcm)
+  # set up QP solver
+  if qpsolver == :Ipopt
+    qs = IpoptSolver(print_level = 0)
+  elseif qpsolver == :Gurobi
+    qs = GurobiSolver(OutputFlag = 0)
+  elseif qpsolver == :Mosek
+    qs = MosekSolver(MSK_IPAR_LOG = 0)
+  end
   # initial log-likelihood
   vcmrot = TwoVarCompModelRotate(vcm)
   logl::T = logpdf(vcmrot, vcdatarot)
@@ -774,8 +818,7 @@ function mle_mm!{T, BT, ΣT, YT, XT}(
 
     # update mean parameters
     if !isempty(vcm.B)
-      update_meanparam!(vcm, vcdatarot, A, sense, b, lb, ub, qpsolver,
-        Xnew, Ynew, Q, c)
+      update_meanparam!(vcm, vcdatarot, qs, Xnew, Ynew, Q, c)
     end
     vcmrot = TwoVarCompModelRotate(vcm)
     Wt = oneT ./ sqrt(vcdatarot.eigval * vcmrot.eigval' + oneT)
@@ -802,7 +845,7 @@ function mle_mm!{T, BT, ΣT, YT, XT}(
   Bse = similar(vcm.B)
   copy!(Bse, sqrt(diag(Bcov)))
   Σcov = zeros(T, 2d^2, 2d^2)
-  Σse = deepcopy(vcm.Σ)
+  Σse = (zeros(T, d, d), zeros(T, d, d))
   copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 

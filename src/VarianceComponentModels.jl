@@ -1,6 +1,6 @@
 module VarianceComponentModels
 
-using MathProgBase, Ipopt, KNITRO#, Mosek
+using MathProgBase, Ipopt, KNITRO, Mosek, Gurobi
 import Base: eltype, length, size
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, residual,
@@ -11,15 +11,22 @@ export VarianceComponentModel, VarianceComponentVariate,
 model. `B` is `p x d` mean parameters and `Σ` is a tuple of `d x d` variance
 component parameters.
 """
-immutable VarianceComponentModel{T <: AbstractFloat, M,
+type VarianceComponentModel{T <: AbstractFloat, M,
   BT <: AbstractVecOrMat, ΣT <: AbstractMatrix}
   # model parameters
   B::BT
   Σ::NTuple{M, ΣT}
+  # constraints: A * vec(B) sense b, lb ≤ vec(B) ≤ ub
+  A::Matrix{T}
+  sense::Union{Char, Vector{Char}}
+  b::Union{T, Vector{T}}
+  lb::Union{T, Vector{T}}
+  ub::Union{T, Vector{T}}
   # inner constructor
   function VarianceComponentModel(B::AbstractVecOrMat{T},
-    Σ::NTuple{M, AbstractMatrix{T}})
-    new(B, Σ)
+    Σ::NTuple{M, AbstractMatrix{T}}, A::Matrix{T}, sense::Union{Char, Vector{Char}},
+    b::Union{T, Vector{T}}, lb::Union{T, Vector{T}}, ub::Union{T, Vector{T}})
+    new(B, Σ, A, sense, b, lb, ub)
   end
 end
 
@@ -28,10 +35,16 @@ Default constructor of `VarianceComponentModel` type.
 """
 function VarianceComponentModel{M}(
   B::AbstractVecOrMat,
-  Σ::NTuple{M, AbstractMatrix}
+  Σ::NTuple{M, AbstractMatrix},
+  A::Matrix = zeros(eltype(B), 0, length(B)),
+  sense::Union{Char, Vector{Char}} = Array{Char}(0),
+  b::Union{Number, Vector} = zeros(eltype(B), 0),
+  lb::Union{Number, Vector} = convert(eltype(B), -Inf),
+  ub::Union{Number, Vector} = convert(eltype(B), Inf),
   )
 
-  VarianceComponentModel{eltype(B), M, typeof(B), eltype(Σ)}(B, Σ)
+  VarianceComponentModel{eltype(B), M, typeof(B), eltype(Σ)}(B, Σ, A, sense, b,
+    lb, ub)
 end
 
 """
@@ -189,7 +202,7 @@ function TwoVarCompVariateRotate{T <: AbstractFloat}(
     logdetV2 = convert(T, logdet(vcobs.V[2]))
   end
   # corect negative eigenvalues due to roundoff error
-  map!(x -> max(x, zero(T)), deval)
+  map!(x -> max(x, zero(T)), deval)::Vector{T}
   # rotate responses
   Yrot = At_mul_B(U, vcobs.Y)
   Xrot = isempty(vcobs.X) ? Array{T}(size(Yrot, 1), 0) : At_mul_B(U, vcobs.X)
@@ -202,11 +215,11 @@ Construct a `VarianceComponentModel` instance from a `VarianceComponentVariate`
 instance. `B` is initialized to zero; `Σ` is initialized to a tupe of identity
 matrices.
 """
-function VarianceComponentModel(vcobs::VarianceComponentVariate)
+function VarianceComponentModel{T, M}(vcobs::VarianceComponentVariate{T, M})
   p, d, m = size(vcobs.X, 2), size(vcobs.Y, 2), length(vcobs.V)
-  B = zeros(eltype(vcobs), p, d)
-  Σ = ntuple(x -> eye(eltype(vcobs), d), m)
-  VarianceComponentModel{eltype(B), m, typeof(B), eltype(Σ)}(B, Σ)
+  B = zeros(T, p, d)
+  Σ = ntuple(x -> eye(T, d), m)::NTuple{M, Matrix{T}}
+  VarianceComponentModel(B, Σ)
 end
 
 """
@@ -214,12 +227,12 @@ Construct a `VarianceComponentModel` instance from a `TwoVarCompVariateRotate`
 instance.
 """
 function VarianceComponentModel(vcobsrot::TwoVarCompVariateRotate)
-  p, d, m = size(vcobsrot.Xrot, 2), size(vcobsrot.Yrot, 2), 2
-  B = zeros(eltype(vcobsrot), p, d)
-  Σ = ntuple(x -> eye(eltype(vcobsrot), d), m)
-  VarianceComponentModel{eltype(B), m, typeof(B), eltype(Σ)}(B, Σ)
+  p, d = size(vcobsrot.Xrot, 2), size(vcobsrot.Yrot, 2)
+  T = eltype(vcobsrot)
+  B = zeros(T, p, d)
+  Σ = (eye(T, d), eye(T, d))
+  VarianceComponentModel{eltype(B), 2, typeof(B), eltype(Σ)}(B, Σ)
 end
-
 
 Base.eltype(vcm::VarianceComponentModel) = Base.eltype(vcm.B)
 Base.eltype(vcobs::VarianceComponentVariate) = Base.eltype(vcobs.Y)

@@ -34,11 +34,19 @@ end
 Y = X * B + reshape(Ωchol[:L] * randn(n*d), n, d)
 
 info("Forming variance component model and data")
+#@code_warntype VarianceComponentVariate(Y, X, V)
+@inferred VarianceComponentVariate(Y, X, V)
 vcdata = VarianceComponentVariate(Y, X, V)
+#@code_warntype VarianceComponentModel(vcdata)
+@inferred VarianceComponentModel(vcdata)
 vcmodel = VarianceComponentModel(vcdata)
 
 info("Pre-compute (generalized) eigen-decomposition and rotate data")
+#@code_warntype TwoVarCompVariateRotate(vcdata)
+@inferred TwoVarCompVariateRotate(vcdata)
 vcdatarot = TwoVarCompVariateRotate(vcdata)
+#@code_warntype TwoVarCompModelRotate(vcmodel)
+@inferred TwoVarCompModelRotate(vcmodel)
 vcmodelrot = TwoVarCompModelRotate(vcmodel)
 
 info("Evaluate log-pdf")
@@ -49,13 +57,13 @@ info("Evaluate log-pdf")
 #   logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
 
 info("Evaluate gradient")
-∇ = zeros(nmeanparams(vcmodel) + 2d^2)
+∇ = zeros(2d^2)
 #@code_warntype gradient!(∇, vcmodelrot, vcdatarot)
 @inferred gradient!(∇, vcmodelrot, vcdatarot)
 @test vecnorm(gradient(vcmodel, vcdata) - gradient(vcmodelrot, vcdatarot)) ≈ 0.0
 
 info("Evaluate Fisher information matrix")
-H = zeros(nmeanparams(vcmodel) + 2d^2, nmeanparams(vcmodel) + 2d^2)
+H = zeros(2d^2, 2d^2)
 #@code_warntype fisher!(H, vcmodelrot, vcdatarot)
 @inferred fisher!(H, vcmodelrot, vcdatarot)
 @test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodelrot, vcdatarot)) ≈ 0.0
@@ -63,54 +71,53 @@ H = zeros(nmeanparams(vcmodel) + 2d^2, nmeanparams(vcmodel) + 2d^2)
 info("Update mean parameters from variance component parameters (no constraints)")
 vcmmean = deepcopy(vcmodel)
 #@code_warntype update_meanparam!(vcmmean, vcdatarot)
-#@inferred update_meanparam!(vcmodel, vcdatarot)
+@inferred update_meanparam!(vcmodel, vcdatarot, IpoptSolver(print_level = 0))
 update_meanparam!(vcmmean, vcdatarot)
 @show vcmmean.B
 
 info("Update mean parameters from variance component parameters (linear equality constraints)")
 vcmmean = deepcopy(vcmodel)
-#@code_warntype update_meanparam!(vcmmean, vcdatarot, [1.0 -1.0 0 0], '=', 0.0)
-update_meanparam!(vcmmean, vcdatarot, [1.0 -1.0 zeros(1, p*d-2)], '=', 0.0)
+vcmmean.A = [1.0 -1.0 zeros(1, p*d-2)]
+vcmmean.sense = '='
+vcmmean.b = 0.0
+#@code_warntype update_meanparam!(vcmmean, vcdatarot)
+update_meanparam!(vcmmean, vcdatarot, IpoptSolver(print_level = 0))
 @show vcmmean.B
 @test vcmmean.B[1] ≈ vcmmean.B[2]
 
 info("Update mean parameters from variance component parameters (box constraints)")
 vcmmean = deepcopy(vcmodel)
-# @code_warntype update_meanparam!(vcmmean, vcdatarot, zeros(0, p * d), Vector{Char}(0),
-#   Vector{Float64}(0), 0.0, 1.0, IpoptSolver(print_level = 0), zeros(n * d, p * d), zeros(n * d),
-#   zeros(p * d, p * d), zeros(p * d))
-update_meanparam!(vcmmean, vcdatarot, Matrix{Float64}(0, p * d), Vector{Char}(0),
-  Vector{Float64}(0), 0.0, 1.0)
+vcmmean.lb = 0.0
+vcmmean.ub = 0.0
+#@code_warntype update_meanparam!(vcmmean, vcdatarot)
+@inferred update_meanparam!(vcmmean, vcdatarot)
+update_meanparam!(vcmmean, vcdatarot, IpoptSolver(print_level = 0))
 @show vcmmean.B
 @test all(vcmmean.B .≥ 0.0)
 @test all(vcmmean.B .≤ 1.0)
 
 info("Find MLE using Fisher scoring")
 vcmfs = deepcopy(vcmodel)
+#@code_warntype mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
+#@inferred mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 @show vcmfs.B, Bse_fs, B
 
 info("Find MLE using MM algorithm")
 vcmm = deepcopy(vcmodel)
-# @code_warntype mle_mm!(vcmm, vcdatarot;
-#   maxiter = 10000,
-#   funtol = 1e-8,
-#   verbose = true,
-#   A = zeros(0, p * d),
-#   sense = '=',
-#   b = 0.0,
-#   lb = -Inf,
-#   ub = Inf,
-#   qpsolver = IpoptSolver(print_level = 0)
-# )
-#@inferred mle_mm!(vcmm, vcdatarot)
+#@code_warntype mle_mm!(vcmm, vcdatarot)
+@inferred mle_mm!(vcmm, vcdatarot)
 logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot)
 @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
 
 info("Find MLE using Fisher scoring (linear equality + box constraints)")
 vcmfs = deepcopy(vcmodel)
-logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt,
-  A = [1.0 -1.0 zeros(1, p*d-2)], sense = '=', b = 0.0, lb = 0.0, ub = 1.0)
+vcmfs.A = [1.0 -1.0 zeros(1, p*d-2)]
+vcmfs.sense = '='
+vcmfs.b = 0.0
+vcmfs.lb = 0.0
+vcmfs.ub = 1.0
+logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt, qpsolver = :Ipopt)
 @show vcmfs.B
 @test vcmfs.B[1] ≈ vcmfs.B[2]
 @test all(vcmfs.B .≥ 0.0)
@@ -118,8 +125,12 @@ logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt,
 
 info("Find MLE using MM algorithm (linear equality + box constraints)")
 vcmm = deepcopy(vcmodel)
-logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot; A = [1.0 -1.0 zeros(1, p*d-2)],
-  sense = '=', b = 0.0, lb = 0.0, ub = 1.0)
+vcmm.A = [1.0 -1.0 zeros(1, p*d-2)]
+vcmm.sense = '='
+vcmm.b = 0.0
+vcmm.lb = 0.0
+vcmm.ub = 1.0
+logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot; qpsolver = :Ipopt)
 @show vcmm.B
 @test vcmm.B[1] ≈ vcmm.B[2]
 @test all(vcmm.B .≥ 0.0)
