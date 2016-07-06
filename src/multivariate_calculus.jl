@@ -11,12 +11,7 @@ export vech, trilind, triuind,
 """
 Vectorize the lower triangular part of a matrix.
 """
-function vech(a::AbstractVecOrMat)
-  # a is a vector
-  if ndims(a) == 1
-    return similar(a)
-  end
-  # a is a matrix
+function vech(a::Union{Number, AbstractVecOrMat})
   m, n = size(a)
   out = similar(a, convert(Int, (2m - n + 1) * n / 2))
   ooffset, aoffset = 1, 1
@@ -28,6 +23,8 @@ function vech(a::AbstractVecOrMat)
   end
   out
 end
+# a is a scalar or (column) vector
+vech(a::Union{Number, AbstractVector}) = copy(a)
 
 """
     commutation(type, m[, n])

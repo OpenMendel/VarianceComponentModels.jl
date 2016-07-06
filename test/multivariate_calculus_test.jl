@@ -15,6 +15,8 @@ srand(123)
   @test vecha[4] == a[2, 2]
   @test vecha[5] == a[3, 2]
   @test vecha[6] == a[3, 3]
+  a = 1.0
+  @test vech(a) == a
 end
 
 # test trilind
@@ -32,6 +34,19 @@ end
   @test idx[1] == 1
   @test idx[2] == 3
   @test idx[3] == 4
+  idx = triuind(n)
+  @test length(idx) == binomial(n + 1, 2)
+  @test idx[1] == 1
+  @test idx[2] == 3
+  @test idx[3] == 4
+  idx = triuind(randn(n, n))
+  @test length(idx) == binomial(n + 1, 2)
+  @test idx[1] == 1
+  @test idx[2] == 3
+  @test idx[3] == 4
+  idx = triuind(randn(n, n), 1)
+  @test length(idx) == binomial(n, 2)
+  @test idx[1] == 3
 end
 
 # test commutation
@@ -42,6 +57,10 @@ end
   @test vecnorm(commutation(A) * vec(A) - vec(A')) ≈ 0.0
   @test vecnorm(spcommutation(m, n) * vec(A) - vec(A')) ≈ 0.0
   @test vecnorm(spcommutation(A) * vec(A) - vec(A')) ≈ 0.0
+  B = randn(m, m)
+  @test vecnorm(commutation(m) * vec(B) - vec(B')) ≈ 0.0
+  @test vecnorm(commutation(eltype(B), m) * vec(B) - vec(B')) ≈ 0.0
+  @test vecnorm(spcommutation(eltype(B), m) * vec(B) - vec(B')) ≈ 0.0
 end
 
 # test duplication
@@ -52,7 +71,7 @@ end
   @test vecnorm(duplication(n) * vech(A) - vec(A)) ≈ 0.0
   @test vecnorm(duplication(A) * vech(A) - vec(A)) ≈ 0.0
   @test vecnorm(spduplication(n) * vech(A) - vec(A)) ≈ 0.0
-  @test vecnorm(spduplication(n) * vech(A) - vec(A)) ≈ 0.0
+  @test vecnorm(spduplication(A) * vech(A) - vec(A)) ≈ 0.0
 end
 
 # test chol_gradient
