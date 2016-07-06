@@ -175,7 +175,7 @@ function TwoVarCompVariateRotate(
   Yrot::AbstractVecOrMat,
   Xrot::AbstractVecOrMat,
   eigval::Vector,
-  logdetV2)
+  logdetV2::Real)
 
   TwoVarCompVariateRotate{eltype(Yrot), typeof(Yrot), typeof(Xrot)}(Yrot, Xrot,
     eigval, logdetV2)
