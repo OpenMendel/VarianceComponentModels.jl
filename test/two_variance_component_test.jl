@@ -54,12 +54,22 @@ info("Evaluate gradient")
 #@code_warntype gradient!(∇, vcmodelrot, vcdatarot)
 @inferred gradient!(∇, vcmodelrot, vcdatarot)
 @test vecnorm(gradient(vcmodel, vcdata) - gradient(vcmodelrot, vcdatarot)) ≈ 0.0
+@test vecnorm(gradient(vcmodel, vcdata) - gradient(vcmodel, vcdatarot)) ≈ 0.0
 
-info("Evaluate Fisher information matrix")
+
+info("Evaluate Fisher information matrix of Σ")
 H = zeros(2d^2, 2d^2)
 #@code_warntype fisher!(H, vcmodelrot, vcdatarot)
 @inferred fisher!(H, vcmodelrot, vcdatarot)
 @test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodelrot, vcdatarot)) ≈ 0.0
+@test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodel, vcdatarot)) ≈ 0.0
+
+info("Evaluate Fisher information matrix of B")
+H = zeros(p * d, p * d)
+#@code_warntype fisher_B!(H, vcmodelrot, vcdatarot)
+@inferred fisher_B!(H, vcmodelrot, vcdatarot)
+@test vecnorm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodelrot, vcdatarot)) ≈ 0.0
+@test vecnorm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodel, vcdatarot)) ≈ 0.0
 
 info("Update mean parameters from variance component parameters (no constraints)")
 vcmmean = deepcopy(vcmodel)
@@ -135,14 +145,24 @@ h, h_se = heritability(vcmfs.Σ, Σcov_fs)
 @show h, h_se
 @test all(0.0 .≤ h .≤ 1.0)
 
-info("test fit_mle")
+info("test fit_mle (FS)")
 vcmmle = deepcopy(vcmodel)
 logl_mle, _, _, Σcov_mle, Bse_mle, = fit_mle!(vcmmle, vcdata; algo = :FS)
-@show vcmfs.B, Bse_fs, B
+@show vcmmle.B, Bse_mle, B
 
-info("test fit_reml")
+info("test fit_mle (MM)")
+vcmmle = deepcopy(vcmodel)
+logl_mle, _, _, Σcov_mle, Bse_mle, = fit_mle!(vcmmle, vcdata; algo = :MM)
+@show vcmmle.B, Bse_mle, B
+
+info("test fit_reml (FS)")
 vcmreml = deepcopy(vcmodel)
 logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
+@show vcmreml.B, Bse_reml, B
+
+info("test fit_reml (MM)")
+vcmreml = deepcopy(vcmodel)
+logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
 @show vcmreml.B, Bse_reml, B
 
 end # module VarianceComponentTypeTest

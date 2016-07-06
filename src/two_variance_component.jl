@@ -1,7 +1,7 @@
 import Base.gradient
 
 export heritability,
-  logpdf, gradient!, gradient, fisher!, fisher,
+  logpdf, gradient!, gradient, fisher!, fisher, fisher_B!, fisher_B,
   mle_fs!, mle_mm!,
   fit_mle!, fit_reml!,
   update_meanparam!
@@ -145,20 +145,20 @@ function gradient{T <: AbstractFloat}(
   gradient!(∇, vcmrot, vcobsrot)
 end
 
-function gradient!{T <: AbstractFloat}(
-  ∇::AbstractVector{T},
-  vcmrot::TwoVarCompModelRotate{T},
-  vcobsrot::Array{TwoVarCompVariateRotate{T}}
-  )
-
-  fill!(∇, zero(T))
-  tmp = copy(∇)
-  @inbounds for i in eachindex(vcobsrot)
-    gradient!(tmp, vcmrot, vcobsrot[i])
-    ∇ += tmp
-  end
-  ∇
-end
+# function gradient!{T <: AbstractFloat}(
+#   ∇::AbstractVector{T},
+#   vcmrot::TwoVarCompModelRotate{T},
+#   vcobsrot::Array{TwoVarCompVariateRotate{T}}
+#   )
+#
+#   fill!(∇, zero(T))
+#   tmp = copy(∇)
+#   @inbounds for i in eachindex(vcobsrot)
+#     gradient!(tmp, vcmrot, vcobsrot[i])
+#     ∇ += tmp
+#   end
+#   ∇
+# end
 
 function gradient!{T <: AbstractFloat}(
   ∇::AbstractVector{T},
@@ -194,15 +194,15 @@ function gradient{T <: AbstractFloat}(
   gradient(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
-function gradient{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2},
-  vcobsrot::Array{TwoVarCompVariateRotate{T}}
-  )
-
-  d = length(vcmrot)
-  ∇ = zeros(T, 2d^2)
-  gradient!(∇, vcmrot, vcobsrot)
-end
+# function gradient{T <: AbstractFloat}(
+#   vcm::VarianceComponentModel{T, 2},
+#   vcobsrot::Array{TwoVarCompVariateRotate{T}}
+#   )
+#
+#   d = length(vcmrot)
+#   ∇ = zeros(T, 2d^2)
+#   gradient!(∇, vcmrot, vcobsrot)
+# end
 
 #---------------------------------------------------------------------------#
 # Evaluate Fisher information matrix
@@ -300,30 +300,30 @@ function fisher{T <: AbstractFloat}(
   fisher(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
-function fisher!{T, BT, YT, XT}(
-  H::AbstractMatrix{T},
-  vcmrot::TwoVarCompModelRotate{T, BT},
-  vcobsrot::Array{TwoVarCompVariateRotate{T, YT, XT}}
-  )
-
-  fill!(H, zero(T))
-  tmp = copy(H)
-  for i in eachindex(vcobsrot)
-    fisher!(tmp, vcmrot, vcobsrot)
-    H += tmp
-  end
-  H
-end
-
-function fisher{T <: AbstractFloat}(
-  vcmrot::TwoVarCompModelRotate{T},
-  vcobsrot::Array{TwoVarCompVariateRotate{T}}
-  )
-
-  d = length(vcmrot.eigval)
-  H = zeros(T, 2d^2, 2d^2)
-  fisher!(H, vcmrot, vcobsrot)
-end
+# function fisher!{T, BT, YT, XT}(
+#   H::AbstractMatrix{T},
+#   vcmrot::TwoVarCompModelRotate{T, BT},
+#   vcobsrot::Array{TwoVarCompVariateRotate{T, YT, XT}}
+#   )
+#
+#   fill!(H, zero(T))
+#   tmp = copy(H)
+#   for i in eachindex(vcobsrot)
+#     fisher!(tmp, vcmrot, vcobsrot)
+#     H += tmp
+#   end
+#   H
+# end
+#
+# function fisher{T <: AbstractFloat}(
+#   vcmrot::TwoVarCompModelRotate{T},
+#   vcobsrot::Array{TwoVarCompVariateRotate{T}}
+#   )
+#
+#   d = length(vcmrot.eigval)
+#   H = zeros(T, 2d^2, 2d^2)
+#   fisher!(H, vcmrot, vcobsrot)
+# end
 
 """
 
@@ -376,8 +376,26 @@ function fisher_B{T <: AbstractFloat}(
   vcobsrot::TwoVarCompVariateRotate{T}
   )
 
-  H = zeros(T, nmeanparams(vcm), nmeanparams(vcmrot))
+  H = zeros(T, nmeanparams(vcm), nmeanparams(vcm))
   fisher_B!(H, TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+function fisher_B!{T <: AbstractFloat}(
+  H::AbstractMatrix{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2}
+  )
+
+  fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
+end
+
+function fisher_B{T <: AbstractFloat}(
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2}
+  )
+
+  H = zeros(T, nmeanparams(vcm), nmeanparams(vcm))
+  fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
 #---------------------------------------------------------------------------#
