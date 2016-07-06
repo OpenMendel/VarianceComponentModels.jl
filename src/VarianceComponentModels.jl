@@ -4,7 +4,7 @@ using MathProgBase, Ipopt, KNITRO#, Mosek, Gurobi
 import Base: eltype, length, size
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, residual,
-  nmeanparams, nvarparams, nparams
+  nvarcomps, nmeanparams, nvarparams, nparams
 
 """
 `VarianceComponentModel` stores the model parameters of a variance component
@@ -52,7 +52,7 @@ Construct a `VarianceComponentModel` instance from `Σ` alone. `B` is treated em
 """
 function VarianceComponentModel{M}(Σ::NTuple{M, AbstractMatrix})
   B = zeros(eltype(Σ[1]), 0, size(Σ[1], 1))
-  VarianceComponentModel{eltype(B), M, typeof(B), eltype(Σ)}(B, Σ)
+  VarianceComponentModel(B, Σ)
 end
 
 """
@@ -242,13 +242,13 @@ Base.eltype(vcobsrot::TwoVarCompVariateRotate) = Base.eltype(vcobsrot.Yrot)
 length(vcm::VarianceComponentModel) = size(vcm.Σ[1], 1)
 length(vcobs::VarianceComponentVariate) = size(vcobs.Y, 2)
 length(vcmrot::TwoVarCompModelRotate) = length(vcmrot.eigval)
-length(vcobsrot::TwoVarCompVariateRotate) = length(vcobsrot.eigval)
+length(vcobsrot::TwoVarCompVariateRotate) = size(vcobsrot.Yrot, 2)
 # Size of response, (n, d)
 size(vcobs::VarianceComponentVariate) = size(vcobs.Y)
 size(vcobsrot::TwoVarCompVariateRotate) = size(vcobsrot.Yrot)
 # Number of variance components, m
 nvarcomps(vcm::VarianceComponentModel) = length(vcm.Σ)
-nvarcomps(vcobs::VarianceComponentVariate) = length(vcm.V)
+nvarcomps(vcobs::VarianceComponentVariate) = length(vcobs.V)
 nvarcomps(vcmrot::TwoVarCompModelRotate) = 2
 nvarcomps(vcobsrot::TwoVarCompVariateRotate) = 2
 # Number of mean parameters, p * d
@@ -256,7 +256,7 @@ nmeanparams(vcm::VarianceComponentModel) = length(vcm.B)
 nmeanparams(vcmrot::TwoVarCompModelRotate) = length(vcmrot.Brot)
 nmeanparams(vcobs::VarianceComponentVariate) = size(vcobs.X, 2) * size(vcobs.Y, 2)
 nmeanparams(vcobsrot::TwoVarCompVariateRotate) =
-  size(vcobsrot.Xrot, 2) * size(vcobs.Yrot, 2)
+  size(vcobsrot.Xrot, 2) * size(vcobsrot.Yrot, 2)
 # Number of free parameters in Cholesky factors, m * d * (d + 1) / 2
 nvarparams(vcm::Union{VarianceComponentModel, TwoVarCompModelRotate}) =
   nvarcomps(vcm) * binomial(length(vcm) + 1, 2)

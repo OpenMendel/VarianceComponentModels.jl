@@ -1,4 +1,4 @@
-module VarianceComponentTypeTest
+module TwoVarianceComponentTest
 
 using VarianceComponentModels, MathProgBase, Ipopt
 using BaseTestNext
@@ -33,20 +33,13 @@ end
 Ωchol = cholfact(Ω)
 Y = X * B + reshape(Ωchol[:L] * randn(n*d), n, d)
 
-info("Forming variance component model and data")
-#@code_warntype VarianceComponentVariate(Y, X, V)
+info("Forming VarianceComponentModel from data")
 @inferred VarianceComponentVariate(Y, X, V)
 vcdata = VarianceComponentVariate(Y, X, V)
-#@code_warntype VarianceComponentModel(vcdata)
-@inferred VarianceComponentModel(vcdata)
 vcmodel = VarianceComponentModel(vcdata)
 
-info("Pre-compute (generalized) eigen-decomposition and rotate data")
-#@code_warntype TwoVarCompVariateRotate(vcdata)
-@inferred TwoVarCompVariateRotate(vcdata)
+info("Pre-compute eigen-decomposition and rotate data")
 vcdatarot = TwoVarCompVariateRotate(vcdata)
-#@code_warntype TwoVarCompModelRotate(vcmodel)
-@inferred TwoVarCompModelRotate(vcmodel)
 vcmodelrot = TwoVarCompModelRotate(vcmodel)
 
 info("Evaluate log-pdf")
