@@ -11,13 +11,13 @@ VarianceComponentModels provides computational routines for fitting and testing 
 
 Use the Julia package manager to install VarianceComponentModels.jl:
 
-    Pkg.clone("git@github.com:Hua-Zhou/VarianceComponentModels.jl.git")
+    Pkg.clone("git@github.com:OpenMendel/VarianceComponentModels.jl.git")
 
 ## Documentation
 
-View the [tutorial](https://github.com/Hua-Zhou/VarianceComponentModels.jl/blob/master/docs/variance_components.ipynb).
+View the [tutorial](https://github.com/OpenMendel/VarianceComponentModels.jl/blob/master/docs/variance_components.ipynb).
 
-For an application to heritability estimation in genetics, view the [tutorial](https://github.com/Hua-Zhou/VarianceComponentModels.jl/blob/master/docs/cg10k.ipynb).
+For an application to heritability estimation in genetics, view the [tutorial](https://github.com/OpenMendel/VarianceComponentModels.jl/blob/master/docs/cg10k.ipynb).
 
 ## OpenMendel
 
