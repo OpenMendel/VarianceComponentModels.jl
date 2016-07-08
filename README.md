@@ -1,9 +1,9 @@
 # VarianceComponentModels
 
-[![Build Status](https://travis-ci.org/Hua-Zhou/VarianceComponentModels.jl.svg?branch=master)](https://travis-ci.org/Hua-Zhou/VarianceComponentModels.jl)
-[![Build status](https://ci.appveyor.com/api/projects/status/huae8ed3g4dxhq73/branch/master?svg=true)](https://ci.appveyor.com/project/Hua-Zhou/variancecomponentmodels-jl/branch/master)
-[![Coverage Status](https://coveralls.io/repos/github/Hua-Zhou/VarianceComponentModels.jl/badge.svg?branch=master)](https://coveralls.io/github/Hua-Zhou/VarianceComponentModels.jl?branch=master)
-[![codecov](https://codecov.io/gh/Hua-Zhou/VarianceComponentModels.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/Hua-Zhou/VarianceComponentModels.jl)
+[![Build Status](https://travis-ci.org/OpenMendel/VarianceComponentModels.jl.svg?branch=master)](https://travis-ci.org/OpenMendel/VarianceComponentModels.jl)
+[![Build status](https://ci.appveyor.com/api/projects/status/5yyf2m4y8p68glbh/branch/master?svg=true)](https://ci.appveyor.com/project/Hua-Zhou/variancecomponentmodels-jl-cw40h/branch/master)
+[![Coverage Status](https://coveralls.io/repos/github/OpenMendel/VarianceComponentModels.jl/badge.svg?branch=master)](https://coveralls.io/github/OpenMendel/VarianceComponentModels.jl?branch=master)
+[![codecov](https://codecov.io/gh/OpenMendel/VarianceComponentModels.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/OpenMendel/VarianceComponentModels.jl)
 
 VarianceComponentModels provides computational routines for fitting and testing variance component models.
 
