@@ -34,5 +34,5 @@ docs_dir: 'build'
 pages:
 - Home: index.md
 - Manual:
-  - SnpArray: man/variance_components.md
-  - SnpData: man/cg10k.md
+  - MLE/REML: man/mle_reml.md
+  - Heritability: man/heritability.md

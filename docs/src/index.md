@@ -1,19 +1,30 @@
-# SnpArrays.jl
+# VarianceComponentModels.jl
 
-*Compressed storage for SNP data*
+*Utilities for fitting and testing variance component models*
 
-`SnpArrays.jl` implements the [SnpArray](@ref), [SnpData](@ref) and [HaplotypeArray](@ref) types for handling biallelic genotypes.
+VarianceComponentModels.jl implements computation routines for fitting and testing variance component model of form
+
+$\text{vec}(Y) \sim \text{Nomral}(X B, \Sigma_1 \otimes V_1 + \cdots + \Sigma_m \otimes V_m),$
+
+where $\otimes$ is the [Kronecker product](https://en.wikipedia.org/wiki/Kronecker_product).
+
+In this model, **data** is represented by  
+
+* `Y`: `n x d` response matrix  
+* `X`: `n x p` covariate matrix  
+* `V=(V1,...,Vm)`: a tuple `m` `n x n` covariance matrices  
+
+and **parameters** are  
+
+* `B`: `p x d` mean parameter matrix  
+* `Σ=(Σ1,...,Σm)`: a tuple of `m` `d x d` variance components  
 
 ## Package Features
 
-- Read and write [Plink binary files](http://pngu.mgh.harvard.edu/~purcell/plink/binary.shtml).  
-- Calculate summary statistics (minor allele frequencies, minor allele, count of missing genotypes).  
-- Simple and intuitive manipulation (subsetting, adjoining, assignment, imputation) of array of genotypes.  
-- Generate random genotypes according to minor allele frequencies.  
-- Filter an array of genotypes subject to minimum genotyping success rate per individual and per SNP.  
-- Convert genotypes into dense or sparse arrays of real numbers (minor allele counts).  
-- Calculate various empirical kinship matrices.  
-- Extract principal components.  
+- Maximum likelihood estimation (MLE) and restricted maximum likelihood estimation (REML) of mean parameters `B` and variance component parameters `Σ`   
+- Allow constrains in the mean parameters `B`  
+- Choice of different optimization algorithms: Fisher scoring and minorization-maximization algorithm  
+- Heritability analysis in genetics  
 
 ## Installation
 
@@ -27,8 +38,8 @@ This package supports Julia `0.4`.
 
 ```@contents
 Pages = [
-    "man/variance_components.md",
-    "man/cg10k.md",
+    "man/mle_reml.md",
+    "man/heritability.md",
 ]
 Depth = 2
 ```
