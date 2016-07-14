@@ -497,6 +497,26 @@ function TwoVarCompOptProb{T}(
   TwoVarCompOptProb{T}(vcm, vcobsrot, qpsolver, L, ∇Σ, HΣ, HL, Xwork, ywork, Q, c)
 end
 
+"""
+Translate optimization variables to variance component parmeters `dd.vcmodel.Σ`.
+"""
+function optimparam_to_vcparam!{T}(dd::TwoVarCompOptProb, x::Vector{T})
+
+  d        = size(dd.L[1], 1)
+  nvar     = nvarparams(dd.vcmodel)
+  nvarhalf = div(nvar, 2)
+  # variance parameter
+  dd.L[1][trilind(d)] = x[1:nvarhalf]
+  dd.L[2][trilind(d)] = x[(nvarhalf+1):end]
+  # exponentiate diagonal entries
+  @inbounds @simd for i in 1:d
+    dd.L[1][i, i] = exp(dd.L[1][i, i])
+    dd.L[2][i, i] = exp(dd.L[2][i, i])
+  end
+  A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
+  A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+end
+
 function MathProgBase.initialize(dd::TwoVarCompOptProb,
   requested_features::Vector{Symbol})
   for feat in requested_features
@@ -513,19 +533,8 @@ MathProgBase.eval_jac_g(dd::TwoVarCompOptProb, J, x) = nothing
 
 function MathProgBase.eval_f{T}(dd::TwoVarCompOptProb, x::Vector{T})
 
-  d        = size(dd.L[1], 1)
-  nvar     = nvarparams(dd.vcmodel)
-  nvarhalf = div(nvar, 2)
-  # variance parameter
-  dd.L[1][trilind(d)] = x[1:nvarhalf]
-  dd.L[2][trilind(d)] = x[(nvarhalf+1):end]
-  # exponentiate diagonal entries
-  @inbounds @simd for i in 1:d
-    dd.L[1][i, i] = exp(dd.L[1][i, i])
-    dd.L[2][i, i] = exp(dd.L[2][i, i])
-  end
-  A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
-  A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  # update variance parameter from optim variable x
+  optimparam_to_vcparam!(dd, x)
   # update mean parameters
   update_meanparam!(dd.vcmodel, dd.vcdatarot,
     dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
@@ -542,15 +551,8 @@ function MathProgBase.eval_grad_f{T}(
   d        = size(dd.L[1], 1)
   nvar     = nvarparams(dd.vcmodel)
   nvarhalf = div(nvar, 2)
-  # variance parameter
-  dd.L[1][trilind(d)] = x[1:nvarhalf]
-  dd.L[2][trilind(d)] = x[(nvarhalf+1):end]
-  @inbounds @simd for i in 1:d
-    dd.L[1][i, i] = exp(dd.L[1][i, i])
-    dd.L[2][i, i] = exp(dd.L[2][i, i])
-  end
-  A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
-  A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  # update variance parameter from optim variable x
+  optimparam_to_vcparam!(dd, x)
   # update mean parameters
   update_meanparam!(dd.vcmodel, dd.vcdatarot,
     dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
@@ -585,15 +587,8 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   d        = size(dd.L[1], 1)
   nvar     = nvarparams(dd.vcmodel)
   nvarhalf = div(nvar, 2)
-  # variance parameter
-  dd.L[1][trilind(d)] = x[1:nvarhalf]
-  dd.L[2][trilind(d)] = x[(nvarhalf+1):end]
-  @inbounds @simd for i in 1:d
-    dd.L[1][i, i] = exp(dd.L[1][i, i])
-    dd.L[2][i, i] = exp(dd.L[2][i, i])
-  end
-  A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
-  A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  # update variance parameter from optim variable x
+  optimparam_to_vcparam!(dd, x)
   # update mean parameters
   update_meanparam!(dd.vcmodel, dd.vcdatarot,
     dd.qpsolver, dd.Xwork, dd.ywork, dd.Q, dd.c)
