@@ -330,7 +330,7 @@ end
     fisher_B!(H, vcmrot, vcobsrot)
 
 Calculate Fisher information matrix of `B` and overwrite `H`
-based on two variance component model `vcm` and *rotated* two
+based on two variance component model `vcmrot` and *rotated* two
 variance component data `vcobsrot`.
 
 # Input
@@ -475,6 +475,11 @@ type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
   c::Vector{T}     # pd working vector
 end
 
+"""
+Constructor of `TwoVarCompOptProb` from two variance component model `vcm`,
+rotated two variance component data `vcobsrot`, and input quadratic programming
+sovler `qpsolver`.
+"""
 function TwoVarCompOptProb{T}(
   vcm::VarianceComponentModel{T, 2},
   vcobsrot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}},
@@ -516,15 +521,14 @@ function optimparam_to_vcparam!{T}(dd::TwoVarCompOptProb, x::Vector{T})
   # Σi = Li Li'
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
-  # make sure the last varianec component is pos. def.
+  # make sure the last variance component is pos. def.
   ϵ = convert(T, 1e-8)
-  @inbounds @simd for i in 1:d
-    dd.vcmodel.Σ[2][i, i] = max(dd.vcmodel.Σ[2][i, i], ϵ)
-  end
+  clamp_diagonal!(dd.vcmodel.Σ[2], ϵ, T(Inf))
 end
 
 function MathProgBase.initialize(dd::TwoVarCompOptProb,
   requested_features::Vector{Symbol})
+
   for feat in requested_features
     if !(feat in [:Grad, :Jac, :Hess])
       error("Unsupported feature $feat")
@@ -878,9 +882,7 @@ function mle_mm!{T, BT, ΣT, YT, XT}(
     copy!(vcm.Σ[2], At_mul_B(vcm.Σ[2], vcm.Σ[2]))
     # make sure the last varianec component is pos. def.
     ϵ = convert(T, 1e-8)
-    @inbounds @simd for i in 1:d
-      vcm.Σ[2][i, i] = max(vcm.Σ[2][i, i], ϵ)
-    end
+    clamp_diagonal!(vcm.Σ[2], ϵ, T(Inf))
 
     # update mean parameters
     if !isempty(vcm.B)

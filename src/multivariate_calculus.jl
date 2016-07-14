@@ -1,12 +1,11 @@
 # module MultivariateCalculus
 
-import Base.LowerTriangular
 export vech, trilind, triuind,
   commutation, spcommutation,
   duplication, spduplication,
   chol_gradient, chol_gradient!,
-  kron_gradient, kron_gradient!,
-  kronaxpy!
+  kron_gradient, kron_gradient!, kronaxpy!,
+  bump_diagonal!, clamp_diagonal!
 
 """
 Vectorize the lower triangular part of a matrix.
@@ -180,36 +179,24 @@ function kronaxpy!{T <: Real}(A::AbstractMatrix{T},
   Y
 end
 
-# """
-# Construct an `n x n` lower triangular matrix from data `l`.
-# """
-# function Base.LowerTriangular(l::AbstractVecOrMat, n::Integer)
-#   data = zeros(eltype(l), n, n)
-#   idx = 1
-#   @inbounds for j in 1:n
-#     @simd for i in j:n
-#       data[i, j] = l[idx]
-#       idx += 1
-#     end
-#   end
-#   LowerTriangular(data)
-# end # function Base.LowerTriangular
+"""
+Add `ϵ` to the diagonal entries of matrix `A`.
+"""
+function bump_diagonal!{T}(A::Matrix{T}, ϵ::T)
+  @inbounds @simd for i in 1:minimum(size(A))
+    A[i, i] += ϵ
+  end
+  A
+end
 
-# """
-# Copy lower triangular part of `A + A' - diag(A)` into `data`.
-# """
-# function duplicate!(data::AbstractVecOrMat, A::AbstractMatrix)
-#   n = size(A, 1)
-#   @assert n == size(A, 2) "A has to be a square matrix"
-#   idx = 1
-#   @inbounds for j in 1:n
-#     data[idx] = A[j, j]
-#     idx += 1
-#     @simd for i in (j + 1):n
-#       data[idx] = A[i, j] + A[j, i]
-#       idx += 1
-#     end
-#   end
-# end # function Base.LowerTriangular
+"""
+Clamp the diagonal entries of matrix `A` to `[lo, hi]`.
+"""
+function clamp_diagonal!{T}(A::Matrix{T}, lo::T, hi::T)
+  @inbounds @simd for i in 1:minimum(size(A))
+    A[i, i] = clamp(A[i, i], lo, hi)
+  end
+  A
+end
 
 #end # module MultivariateCalculus
