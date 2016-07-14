@@ -7,7 +7,7 @@ srand(123)
 
 # generate data from a d-variate response variane component model
 n = 100   # no. observations
-d = 3     # no. categories
+d = 2     # no. categories
 m = 2     # no. variance components
 p = 2     # no. covariates
 X = randn(n, p)
@@ -103,7 +103,7 @@ info("Find MLE using Fisher scoring")
 vcmfs = deepcopy(vcmodel)
 #@code_warntype mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 #@inferred mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
-logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Mosek)
+logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 @show vcmfs.B, Bse_fs, B
 
 info("Find MLE using MM algorithm")
