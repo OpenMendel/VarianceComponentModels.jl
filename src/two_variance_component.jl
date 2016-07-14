@@ -513,8 +513,14 @@ function optimparam_to_vcparam!{T}(dd::TwoVarCompOptProb, x::Vector{T})
     dd.L[1][i, i] = exp(dd.L[1][i, i])
     dd.L[2][i, i] = exp(dd.L[2][i, i])
   end
+  # Σi = Li Li'
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  # make sure the last varianec component is pos. def.
+  ϵ = convert(T, 1e-8)
+  @inbounds @simd for i in 1:d
+    dd.vcmodel.Σ[2][i, i] = max(dd.vcmodel.Σ[2][i, i], ϵ)
+  end
 end
 
 function MathProgBase.initialize(dd::TwoVarCompOptProb,
@@ -568,7 +574,7 @@ function MathProgBase.eval_grad_f{T}(
     idx = 1 + (j - 1) * d - div((j - 1) * (j - 2), 2)
     grad_f[idx] *= dd.L[1][j, j]
     # linear index of diagonal entries of L2
-    idx += binomial(d + 1, 2)
+    idx += nvarhalf
     grad_f[idx] *= dd.L[2][j, j]
   end
   return grad_f
@@ -615,7 +621,7 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
     dd.HL[:, idx] *= dd.L[1][j, j]
     dd.HL[idx, :] *= dd.L[1][j, j]
     # linear index of diagonal entries of L2
-    idx += binomial(d + 1, 2)
+    idx += nvarhalf
     dd.HL[:, idx] *= dd.L[2][j, j]
     dd.HL[idx, :] *= dd.L[2][j, j]
   end
@@ -733,14 +739,7 @@ function mle_fs!{T}(
   stat = MathProgBase.status(m)
   x = MathProgBase.getsolution(m)
   # retrieve variance component parameters
-  dd.L[1][Ltrilind] = x[1:nvarhalf]
-  dd.L[2][Ltrilind] = x[nvarhalf+1:end]
-  @inbounds @simd for i in 1:d
-    dd.L[1][i, i] = exp(dd.L[1][i, i])
-    dd.L[2][i, i] = exp(dd.L[2][i, i])
-  end
-  A_mul_Bt!(vcmodel.Σ[1], dd.L[1], dd.L[1])
-  A_mul_Bt!(vcmodel.Σ[2], dd.L[2], dd.L[2])
+  optimparam_to_vcparam!(dd, x)
   # update mean parameters
   update_meanparam!(vcmodel, vcdatarot, dd.qpsolver,
     dd.Xwork, dd.ywork, dd.Q, dd.c)
@@ -749,8 +748,7 @@ function mle_fs!{T}(
 
   # standard errors
   Bcov = zeros(T, nmean, nmean)
-  fisher_B!(Bcov, vcmodel, vcdatarot)
-  Bcov = inv(Bcov)
+  Bcov = inv(fisher_B(vcmodel, vcdatarot))
   Bse = similar(vcmodel.B)
   copy!(Bse, sqrt(diag(Bcov)))
   Σcov = inv(fisher(vcmodel, vcdatarot))
@@ -877,6 +875,11 @@ function mle_mm!{T, BT, ΣT, YT, XT}(
     copy!(vcm.Σ[2], scale(sqrt(Whalfsvd[:S]),
       Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
     copy!(vcm.Σ[2], At_mul_B(vcm.Σ[2], vcm.Σ[2]))
+    # make sure the last varianec component is pos. def.
+    ϵ = convert(T, 1e-8)
+    @inbounds @simd for i in 1:d
+      vcm.Σ[2][i, i] = max(vcm.Σ[2][i, i], ϵ)
+    end
 
     # update mean parameters
     if !isempty(vcm.B)

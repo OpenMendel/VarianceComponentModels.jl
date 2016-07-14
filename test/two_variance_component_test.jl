@@ -35,11 +35,11 @@ Y = X * B + reshape(Ωchol[:L] * randn(n*d), n, d)
 
 info("Forming VarianceComponentModel from data")
 @inferred VarianceComponentVariate(Y, X, V)
-vcdata = VarianceComponentVariate(Y, X, V)
+vcdata  = VarianceComponentVariate(Y, X, V)
 vcmodel = VarianceComponentModel(vcdata)
 
 info("Pre-compute eigen-decomposition and rotate data")
-vcdatarot = TwoVarCompVariateRotate(vcdata)
+vcdatarot  = TwoVarCompVariateRotate(vcdata)
 vcmodelrot = TwoVarCompModelRotate(vcmodel)
 
 info("Evaluate log-pdf")
