@@ -675,10 +675,11 @@ function mle_fs!{T}(
       print_frequency_iter = 5, # default is 1
       print_level = verbose? 5 : 0,
       print_info_string = "yes",
+      #nlp_scaling_method = "none",
       #derivative_test = "second-order",
       #linear_solver = "mumps",
       #linear_solver = "pardiso",
-      #mehrotra_algorithm = "yes",
+      mehrotra_algorithm = "yes",
       )
   elseif solver == :Mosek
     # see http://docs.mosek.com/7.0/capi/Parameters.html for Mosek options
