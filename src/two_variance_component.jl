@@ -237,17 +237,17 @@ function fisher!{T <: AbstractFloat}(
   C = zeros(T, d, d)
   Φ2 = kron(vcmrot.eigvec, vcmrot.eigvec)
   # (1, 1) block
-  C[:] = [mapreduce(
+  C[:] = T[mapreduce(
     x -> x^2 / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT),
     +, vcobsrot.eigval) for i=1:d, j=1:d]
   A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
   # (2, 1) block
-  C[:] = [mapreduce(
+  C[:] = T[mapreduce(
     x -> x / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
     vcobsrot.eigval) for i=1:d, j=1:d]
   A_mul_Bt!(sub(H, (d^2+1):(2d^2), 1:d^2), scale(Φ2, vec(C)), Φ2)
   # d-by-d (2, 2) block
-  C[:] = [mapreduce(
+  C[:] = T[mapreduce(
     x -> oneT / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
     vcobsrot.eigval) for i=1:d, j=1:d]
   A_mul_Bt!(sub(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), scale(Φ2, vec(C)), Φ2)
@@ -512,12 +512,18 @@ MathProgBase.jac_structure(dd::TwoVarCompOptProb) = Int[], Int[]
 MathProgBase.eval_jac_g(dd::TwoVarCompOptProb, J, x) = nothing
 
 function MathProgBase.eval_f{T}(dd::TwoVarCompOptProb, x::Vector{T})
-  d = size(dd.L[1], 1)
-  nvar = nvarparams(dd.vcmodel)
+
+  d        = size(dd.L[1], 1)
+  nvar     = nvarparams(dd.vcmodel)
   nvarhalf = div(nvar, 2)
   # variance parameter
-  dd.L[1][trilind(dd.L[1])] = x[1:nvarhalf]
-  dd.L[2][trilind(dd.L[2])] = x[(nvarhalf+1):end]
+  dd.L[1][trilind(d)] = x[1:nvarhalf]
+  dd.L[2][trilind(d)] = x[(nvarhalf+1):end]
+  # exponentiate diagonal entries
+  @inbounds @simd for i in 1:d
+    dd.L[1][i, i] = exp(dd.L[1][i, i])
+    dd.L[2][i, i] = exp(dd.L[2][i, i])
+  end
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
   # update mean parameters
@@ -533,12 +539,16 @@ function MathProgBase.eval_grad_f{T}(
   x::Vector{T}
   )
 
-  d = size(dd.L[1], 1)
-  nvar = nvarparams(dd.vcmodel)
+  d        = size(dd.L[1], 1)
+  nvar     = nvarparams(dd.vcmodel)
   nvarhalf = div(nvar, 2)
   # variance parameter
-  dd.L[1][trilind(dd.L[1])] = x[1:nvarhalf]
-  dd.L[2][trilind(dd.L[2])] = x[(nvarhalf+1):end]
+  dd.L[1][trilind(d)] = x[1:nvarhalf]
+  dd.L[2][trilind(d)] = x[(nvarhalf+1):end]
+  @inbounds @simd for i in 1:d
+    dd.L[1][i, i] = exp(dd.L[1][i, i])
+    dd.L[2][i, i] = exp(dd.L[2][i, i])
+  end
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
   # update mean parameters
@@ -550,6 +560,16 @@ function MathProgBase.eval_grad_f{T}(
   chol_gradient!(sub(grad_f, 1:nvarhalf), dd.∇Σ[1:d^2], dd.L[1])
   chol_gradient!(sub(grad_f, (nvarhalf+1):nvar),
     dd.∇Σ[(d^2+1):end], dd.L[2])
+  # chain rule for exponential of diagonal entries
+  for j in 1:d
+    # linear index of diagonal entries of L1
+    idx = 1 + (j - 1) * d - div((j - 1) * (j - 2), 2)
+    grad_f[idx] *= dd.L[1][j, j]
+    # linear index of diagonal entries of L2
+    idx += binomial(d + 1, 2)
+    grad_f[idx] *= dd.L[2][j, j]
+  end
+  return grad_f
 end # function MathProgBase.eval_grad_f
 
 function MathProgBase.hesslag_structure(dd::TwoVarCompOptProb)
@@ -562,12 +582,16 @@ end # function MathProgBase.hesslag_structure
 function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   x::Vector{T}, σ::T, μ::Vector{T})
 
-  d = size(dd.L[1], 1)
-  nvar = nvarparams(dd.vcmodel)
+  d        = size(dd.L[1], 1)
+  nvar     = nvarparams(dd.vcmodel)
   nvarhalf = div(nvar, 2)
   # variance parameter
-  dd.L[1][trilind(dd.L[1])] = x[1:nvarhalf]
-  dd.L[2][trilind(dd.L[2])] = x[(nvarhalf+1):end]
+  dd.L[1][trilind(d)] = x[1:nvarhalf]
+  dd.L[2][trilind(d)] = x[(nvarhalf+1):end]
+  @inbounds @simd for i in 1:d
+    dd.L[1][i, i] = exp(dd.L[1][i, i])
+    dd.L[2][i, i] = exp(dd.L[2][i, i])
+  end
   A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
   # update mean parameters
@@ -589,6 +613,17 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   chol_gradient!(sub(dd.HL, nvarhalf+1:nvar, nvarhalf+1:nvar),
     chol_gradient(dd.HΣ[(d^2+1):(2d^2), (d^2+1):(2d^2)], dd.L[2])',
     dd.L[2])
+  # chain rule for exponential of diagonal entries
+  for j in 1:d
+    # linear index of diagonal entries of L1
+    idx = 1 + (j - 1) * d - div((j - 1) * (j - 2), 2)
+    dd.HL[:, idx] *= dd.L[1][j, j]
+    dd.HL[idx, :] *= dd.L[1][j, j]
+    # linear index of diagonal entries of L2
+    idx += binomial(d + 1, 2)
+    dd.HL[:, idx] *= dd.L[2][j, j]
+    dd.HL[idx, :] *= dd.L[2][j, j]
+  end
   # output
   copy!(H, vech(dd.HL))
   scale!(H, -σ)
@@ -642,7 +677,7 @@ function mle_fs!{T}(
       #derivative_test = "second-order",
       #linear_solver = "mumps",
       #linear_solver = "pardiso",
-      mehrotra_algorithm = "yes",
+      #mehrotra_algorithm = "yes",
       )
   elseif solver == :Mosek
     # see http://docs.mosek.com/7.0/capi/Parameters.html for Mosek options
@@ -654,19 +689,20 @@ function mle_fs!{T}(
       #MSK_IPAR_LOG_NONCONVEX = 20,
       #MSK_IPAR_NONCONVEX_MAX_ITERATIONS = 100,
       #MSK_DPAR_INTPNT_NL_TOL_NEAR_REL = 1e8,
-      MSK_IPAR_LOG_CHECK_CONVEXITY = 1,
+      #MSK_IPAR_LOG_CHECK_CONVEXITY = 1,
       #MSK_IPAR_INFEAS_PREFER_PRIMAL = MSK_OFF
       )
   elseif solver == :Knitro
     # see https://www.artelys.com/tools/knitro_doc/3_referenceManual/userOptions.html for Mosek options
     solver = KnitroSolver(
-      KTR_PARAM_ALG = 1,
+      KTR_PARAM_ALG = 0,
       KTR_PARAM_OUTLEV = verbose? 2 : 0,
+      #KTR_PARAM_MAXCGIT = 5,
       #KTR_PARAM_SCALE = 0,
       #KTR_PARAM_HONORBNDS = 1,
       #KTR_PARAM_GRADOPT = 1,
       #KTR_PARAM_HESSOPT = 1,
-      #KTR_PARAM_DERIVCHECK = 2
+      #KTR_PARAM_DERIVCHECK = 3,
       #KTR_PARAM_TUNER = 1,
       #KTR_PARAM_MAXTIMECPU = 5.0,
       #KTR_PARAM_BAR_MURULE = 4,
@@ -684,22 +720,18 @@ function mle_fs!{T}(
   end
   m = MathProgBase.NonlinearModel(solver)
   # lower and upper bounds for variance parameter
-  lb = zeros(T, nvar)
-  fill!(lb, convert(T, -Inf))
-  for j in 1:d
-    # linear index of diagonal entries of L1
-    idx = 1 + (j - 1) * d - div((j - 1) * (j - 2), 2)
-    lb[idx] = zeroT
-    # linear index of diagonal entries of L2
-    idx += binomial(d + 1, 2)
-    lb[idx] = convert(T, 1e-4) # make sure last variance component is pos. def.
-  end
-  ub = similar(lb)
-  fill!(ub, convert(T, Inf))
+  lb = zeros(nvar); fill!(lb, -T(Inf))
+  ub = zeros(nvar); fill!(ub,  T(Inf))
   MathProgBase.loadproblem!(m, nvar, 0, lb, ub, T[], T[], :Max, dd)
   # start point
-  x0 = [vech(cholfact(vcmodel.Σ[1], :L, Val{true})[:L].data);
-        vech(cholfact(vcmodel.Σ[2], :L, Val{true})[:L].data)]
+  copy!(dd.L[1], cholfact(vcmodel.Σ[1], :L, Val{true})[:L].data)
+  copy!(dd.L[2], cholfact(vcmodel.Σ[2], :L, Val{true})[:L].data)
+  # reparameterize diagonal entries to exponential
+  @inbounds @simd for i in 1:d
+    dd.L[1][i, i] = log(dd.L[1][i, i] + convert(T, 1e-8))
+    dd.L[2][i, i] = log(dd.L[2][i, i] + convert(T, 1e-8))
+  end
+  x0 = [vech(dd.L[1]); vech(dd.L[2])]
   MathProgBase.setwarmstart!(m, x0)
   # optimize
   MathProgBase.optimize!(m)
@@ -708,6 +740,10 @@ function mle_fs!{T}(
   # retrieve variance component parameters
   dd.L[1][Ltrilind] = x[1:nvarhalf]
   dd.L[2][Ltrilind] = x[nvarhalf+1:end]
+  @inbounds @simd for i in 1:d
+    dd.L[1][i, i] = exp(dd.L[1][i, i])
+    dd.L[2][i, i] = exp(dd.L[2][i, i])
+  end
   A_mul_Bt!(vcmodel.Σ[1], dd.L[1], dd.L[1])
   A_mul_Bt!(vcmodel.Σ[2], dd.L[2], dd.L[2])
   # update mean parameters
