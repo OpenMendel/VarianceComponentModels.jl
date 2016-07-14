@@ -115,4 +115,24 @@ end
   @test vecnorm(Y - kron(A, X)) ≈ 0.0
 end
 
+# test bump_diagonal
+@testset "bump_diag" begin
+  A = randn(3, 3)
+  B = copy(A)
+  bump_diagonal!(B, 1e-3)
+  @test B[1, 1] - A[1, 1] ≈ 1e-3
+  @test B[2, 2] - A[2, 2] ≈ 1e-3
+  @test B[3, 3] - A[3, 3] ≈ 1e-3
+end
+
+# test clamp_diagonal
+@testset "clamp_diag" begin
+  n = 3
+  A = randn(n, n)
+  B = copy(A)
+  clamp_diagonal!(B, 0.0, 1.0)
+  @test all(0.0 .≤ diag(B) .≤ 1.0)
+end
+
+
 end # module MultivariateCalculusTest

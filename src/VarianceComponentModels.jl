@@ -1,6 +1,6 @@
 module VarianceComponentModels
 
-using MathProgBase, Ipopt, KNITRO#, Mosek, Gurobi
+using MathProgBase, Ipopt, KNITRO#, Mosek#, Gurobi
 import Base: eltype, length, size, mean, mean!, cov
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, residual,
