@@ -55,7 +55,10 @@ info("Evaluate gradient")
 @inferred gradient!(∇, vcmodelrot, vcdatarot)
 @test vecnorm(gradient(vcmodel, vcdata) - gradient(vcmodelrot, vcdatarot)) ≈ 0.0
 @test vecnorm(gradient(vcmodel, vcdata) - gradient(vcmodel, vcdatarot)) ≈ 0.0
-
+@test vecnorm(gradient(vcmodel, [vcdata vcdata]) -
+  2.0gradient(vcmodel, vcdata)) ≈ 0.0
+@test vecnorm(gradient(vcmodel, [vcdata vcdata]) -
+  gradient(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 info("Evaluate Fisher information matrix of Σ")
 H = zeros(2d^2, 2d^2)
@@ -63,6 +66,11 @@ H = zeros(2d^2, 2d^2)
 @inferred fisher!(H, vcmodelrot, vcdatarot)
 @test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodelrot, vcdatarot)) ≈ 0.0
 @test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodel, vcdatarot)) ≈ 0.0
+@test vecnorm(fisher(vcmodel, [vcdata vcdata]) -
+  2.0fisher(vcmodel, vcdata)) ≈ 0.0
+@test vecnorm(fisher(vcmodel, [vcdata vcdata]) -
+  fisher(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+
 
 info("Evaluate Fisher information matrix of B")
 H = zeros(p * d, p * d)
@@ -70,6 +78,10 @@ H = zeros(p * d, p * d)
 @inferred fisher_B!(H, vcmodelrot, vcdatarot)
 @test vecnorm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodelrot, vcdatarot)) ≈ 0.0
 @test vecnorm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodel, vcdatarot)) ≈ 0.0
+@test vecnorm(fisher_B(vcmodel, [vcdata vcdata]) -
+  2.0fisher_B(vcmodel, vcdata)) ≈ 0.0
+@test vecnorm(fisher_B(vcmodel, [vcdata vcdata]) -
+  fisher_B(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 info("Update mean parameters from variance component parameters (no constraints)")
 vcmmean = deepcopy(vcmodel)

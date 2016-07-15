@@ -159,21 +159,6 @@ function gradient{T <: AbstractFloat}(
   gradient!(∇, vcmrot, vcobsrot)
 end
 
-# function gradient!{T <: AbstractFloat}(
-#   ∇::AbstractVector{T},
-#   vcmrot::TwoVarCompModelRotate{T},
-#   vcobsrot::Array{TwoVarCompVariateRotate{T}}
-#   )
-#
-#   fill!(∇, zero(T))
-#   tmp = copy(∇)
-#   @inbounds for i in eachindex(vcobsrot)
-#     gradient!(tmp, vcmrot, vcobsrot[i])
-#     ∇ += tmp
-#   end
-#   ∇
-# end
-
 """
     gradient!(∇, vcm, vcobsrot)
 
@@ -270,18 +255,26 @@ function gradient{T <: AbstractFloat}(
   gradient(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
-# function gradient{T <: AbstractFloat}(
-#   vcm::VarianceComponentModel{T, 2},
-#   vcobsrot::Array{TwoVarCompVariateRotate{T}}
-#   )
-#
-#   d = length(vcmrot)
-#   ∇ = zeros(T, 2d^2)
-#   gradient!(∇, vcmrot, vcobsrot)
-# end
+function gradient!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+  ∇::AbstractVector,
+  vcm::T1,
+  vcobs::Array{T2}
+  )
+
+  copy!(∇, gradient(vcm, vcobs))
+end
+
+
+function gradient{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+  vcm::T1,
+  vcobs::Array{T2}
+  )
+
+  mapreduce(x -> gradient(vcm, x), +, vcobs)
+end
 
 #---------------------------------------------------------------------------#
-# Evaluate Fisher information matrix
+# Evaluate Fisher information matrix with respect to Σ
 #---------------------------------------------------------------------------#
 
 """
@@ -375,30 +368,27 @@ function fisher{T <: AbstractFloat}(
   fisher(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
-# function fisher!{T, BT, YT, XT}(
-#   H::AbstractMatrix{T},
-#   vcmrot::TwoVarCompModelRotate{T, BT},
-#   vcobsrot::Array{TwoVarCompVariateRotate{T, YT, XT}}
-#   )
-#
-#   fill!(H, zero(T))
-#   tmp = copy(H)
-#   for i in eachindex(vcobsrot)
-#     fisher!(tmp, vcmrot, vcobsrot)
-#     H += tmp
-#   end
-#   H
-# end
-#
-# function fisher{T <: AbstractFloat}(
-#   vcmrot::TwoVarCompModelRotate{T},
-#   vcobsrot::Array{TwoVarCompVariateRotate{T}}
-#   )
-#
-#   d = length(vcmrot.eigval)
-#   H = zeros(T, 2d^2, 2d^2)
-#   fisher!(H, vcmrot, vcobsrot)
-# end
+
+function fisher!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+  H::AbstractMatrix,
+  vcm::T1,
+  vcobs::Array{T2}
+  )
+
+  copy!(H, fisher(vcm, vcobs))
+end
+
+function fisher{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+  vcm::T1,
+  vcobs::Array{T2}
+  )
+
+  mapreduce(x -> fisher(vcm, x), +, vcobs)
+end
+
+#---------------------------------------------------------------------------#
+# Evaluate Fisher information matrix with respect to B
+#---------------------------------------------------------------------------#
 
 """
 
@@ -472,6 +462,24 @@ function fisher_B{T <: AbstractFloat}(
   H = zeros(T, nmeanparams(vcm), nmeanparams(vcm))
   fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
+
+function fisher_B!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+  H::AbstractMatrix,
+  vcm::T1,
+  vcobs::Array{T2}
+  )
+
+  copy!(H, fisher_B(vcm, vcobs))
+end
+
+function fisher_B{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+  vcm::T1,
+  vcobs::Array{T2}
+  )
+
+  mapreduce(x -> fisher_B(vcm, x), +, vcobs)
+end
+
 
 #---------------------------------------------------------------------------#
 # Update mean parameters by quadratic programming
