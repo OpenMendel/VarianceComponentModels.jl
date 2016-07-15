@@ -66,24 +66,16 @@ function logpdf{T <: AbstractFloat}(
   logpdf(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
 end
 
-# """
-# Calculate log-pdf of an array of variance component instances.
-# """
-# function logpdf(
-#   vcm::Union{TwoVarCompModelRotate, VarianceComponentModel},
-#   vcobs::Union{Array{TwoVarCompVariateRotate}, Array{VarianceComponentVariate}}
-#   )
-#
-#   mapreduce(x -> logpdf(vcm, x), +, vcobs)
-# end
+"""
+Calculate log-pdf of an array of variance component instances.
+"""
+function logpdf{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+  vcm::T1,
+  vcobs::Array{T2}
+  )
 
-# function logpdf(
-#   vcm::TwoVarCompModelRotate,
-#   vcobs::Array{TwoVarCompVariateRotate}
-#   )
-#
-#   mapreduce(x -> logpdf(vcm, x), +, vcobs)
-# end
+  mapreduce(x -> logpdf(vcm, x), +, vcobs)
+end
 
 #---------------------------------------------------------------------------#
 # Evaluate gradient

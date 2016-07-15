@@ -46,8 +46,8 @@ info("Evaluate log-pdf")
 #@code_warntype logpdf(vcmodelrot, vcdatarot)
 @inferred logpdf(vcmodelrot, vcdatarot)
 @test logpdf(vcmodel, vcdata) == logpdf(vcmodelrot, vcdatarot)
-# @test (logpdf(vcmodelrot, [vcdatarot vcdatarot; vcdatarot vcdatarot]) -
-#   logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
+@test (logpdf(vcmodelrot, [vcdatarot vcdatarot; vcdatarot vcdatarot]) -
+  logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
 
 info("Evaluate gradient")
 ∇ = zeros(2d^2)
