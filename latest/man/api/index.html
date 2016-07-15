@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<!--[if lt IE 7 ]><html class="no-js ie6"><![endif]-->
+<!--[if IE 7 ]><html class="no-js ie7"><![endif]-->
+<!--[if IE 8 ]><html class="no-js ie8"><![endif]-->
+<!--[if IE 9 ]><html class="no-js ie9"><![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html class="no-js"> <!--<![endif]-->
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1,maximum-scale=1">
+    
+      
+        <title>API - VarianceComponentModels.jl</title>
+      
+      
+      
+      
+        <meta name="author" content="Hua Zhou">
+      
+    
+    <meta property="og:url" content="None">
+    <meta property="og:title" content="VarianceComponentModels.jl">
+    <meta property="og:image" content="None/../../">
+    <meta name="apple-mobile-web-app-title" content="VarianceComponentModels.jl">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    
+    <link rel="shortcut icon" type="image/x-icon" href="../../assets/images/favicon-e565ddfa3b.ico">
+    <link rel="icon" type="image/x-icon" href="../../assets/images/favicon-e565ddfa3b.ico">
+    <style>
+      @font-face {
+      	font-family: 'Icon';
+      	src: url('../../assets/fonts/icon.eot?52m981');
+      	src: url('../../assets/fonts/icon.eot?#iefix52m981')
+               format('embedded-opentype'),
+      		   url('../../assets/fonts/icon.woff?52m981')
+               format('woff'),
+      		   url('../../assets/fonts/icon.ttf?52m981')
+               format('truetype'),
+      		   url('../../assets/fonts/icon.svg?52m981#icon')
+               format('svg');
+      	font-weight: normal;
+      	font-style: normal;
+      }
+    </style>
+    <link rel="stylesheet" href="../../assets/stylesheets/application-a422ff04cc.css">
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/palettes-05ab2406df.css">
+    
+    
+      
+      
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,700|Ubuntu+Mono">
+      <style>
+        body, input {
+          font-family: 'Ubuntu', Helvetica, Arial, sans-serif;
+        }
+        pre, code {
+          font-family: 'Ubuntu Mono', 'Courier New', 'Courier', monospace;
+        }
+      </style>
+    
+    
+      <link rel="stylesheet" href="../../assets/Documenter.css">
+    
+    <script src="../../assets/javascripts/modernizr-4ab42b99fd.js"></script>
+    
+  </head>
+  
+  
+  
+  <body class="palette-primary-indigo palette-accent-blue">
+    
+      
+      
+    
+    <div class="backdrop">
+      <div class="backdrop-paper"></div>
+    </div>
+    <input class="toggle" type="checkbox" id="toggle-drawer">
+    <input class="toggle" type="checkbox" id="toggle-search">
+    <label class="toggle-button overlay" for="toggle-drawer"></label>
+    <header class="header">
+      <nav aria-label="Header">
+  <div class="bar default">
+    <div class="button button-menu" role="button" aria-label="Menu">
+      <label class="toggle-button icon icon-menu" for="toggle-drawer">
+        <span></span>
+      </label>
+    </div>
+    <div class="stretch">
+      <div class="title">
+        
+          <span class="path">
+            
+          </span>
+        
+        API
+      </div>
+    </div>
+    
+    
+    <div class="button button-search" role="button" aria-label="Search">
+      <label class="toggle-button icon icon-search" title="Search" for="toggle-search"></label>
+    </div>
+  </div>
+  <div class="bar search">
+    <div class="button button-close" role="button" aria-label="Close">
+      <label class="toggle-button icon icon-back" for="toggle-search"></label>
+    </div>
+    <div class="stretch">
+      <div class="field">
+        <input class="query" type="text" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck>
+      </div>
+    </div>
+    <div class="button button-reset" role="button" aria-label="Search">
+      <button class="toggle-button icon icon-close" id="reset-search"></button>
+    </div>
+  </div>
+</nav>
+    </header>
+    <main class="main">
+      
+      <div class="drawer">
+        <nav aria-label="Navigation">
+  
+  <a href="https://github.com/OpenMendel/VarianceComponentModels.jl" class="project">
+    <div class="banner">
+      
+      <div class="name">
+        <strong>
+          VarianceComponentModels.jl
+          <span class="version">
+            
+          </span>
+        </strong>
+        
+          <br>
+          OpenMendel/VarianceComponentModels.jl
+        
+      </div>
+    </div>
+  </a>
+  <div class="scrollable">
+    <div class="wrapper">
+      
+        <ul class="repo">
+          <li class="repo-download">
+            
+            <a href="https://github.com/OpenMendel/VarianceComponentModels.jl/archive/master.zip" target="_blank" title="Download" data-action="download">
+              <i class="icon icon-download"></i> Download
+            </a>
+          </li>
+          <li class="repo-stars">
+            <a href="https://github.com/OpenMendel/VarianceComponentModels.jl/stargazers" target="_blank" title="Stargazers" data-action="star">
+              <i class="icon icon-star"></i> Stars
+              <span class="count">&ndash;</span>
+            </a>
+          </li>
+        </ul>
+        <hr>
+      
+      <div class="toc">
+        <ul>
+          
+            
+  <li>
+    <a class="" title="Home" href="../..">
+      Home
+    </a>
+    
+  </li>
+
+          
+            
+  <li>
+    <span class="section">Manual</span>
+    <ul>
+      
+        
+  <li>
+    <a class="" title="MLE/REML" href="../mle_reml/">
+      MLE/REML
+    </a>
+    
+  </li>
+
+      
+        
+  <li>
+    <a class="" title="Heritability" href="../heritability/">
+      Heritability
+    </a>
+    
+  </li>
+
+      
+    </ul>
+  </li>
+
+          
+            
+  <li>
+    <a class="current" title="API" href="./">
+      API
+    </a>
+    
+      
+        
+      
+      
+        <ul>
+          
+            <li class="anchor">
+              <a title="Index" href="#index">
+                Index
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="Types" href="#types">
+                Types
+              </a>
+            </li>
+          
+            <li class="anchor">
+              <a title="Functions" href="#functions">
+                Functions
+              </a>
+            </li>
+          
+        </ul>
+      
+    
+  </li>
+
+          
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+</nav>
+      </div>
+      <article class="article">
+        <div class="wrapper">
+          
+          <p><a id='API-1'></a></p>
+<h1 id="api">API</h1>
+<p>Documentation for <code>VarianceComponentModels.jl</code>'s types and methods.</p>
+<p><a id='Index-1'></a></p>
+<h2 id="index">Index</h2>
+<ul>
+<li><a href="./#VarianceComponentModels.TwoVarCompModelRotate"><code>VarianceComponentModels.TwoVarCompModelRotate</code></a></li>
+<li><a href="./#VarianceComponentModels.TwoVarCompVariateRotate"><code>VarianceComponentModels.TwoVarCompVariateRotate</code></a></li>
+<li><a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModels.VarianceComponentModel</code></a></li>
+<li><a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentModels.VarianceComponentVariate</code></a></li>
+<li><a href="./#Base.cov"><code>Base.cov</code></a></li>
+<li><a href="./#Base.eltype"><code>Base.eltype</code></a></li>
+<li><a href="./#Base.length"><code>Base.length</code></a></li>
+<li><a href="./#Base.mean"><code>Base.mean</code></a></li>
+<li><a href="./#Base.mean!"><code>Base.mean!</code></a></li>
+<li><a href="./#Base.size"><code>Base.size</code></a></li>
+<li><a href="./#VarianceComponentModels.cov!"><code>VarianceComponentModels.cov!</code></a></li>
+<li><a href="./#VarianceComponentModels.fit_mle!"><code>VarianceComponentModels.fit_mle!</code></a></li>
+<li><a href="./#VarianceComponentModels.fit_reml!"><code>VarianceComponentModels.fit_reml!</code></a></li>
+<li><a href="./#VarianceComponentModels.heritability"><code>VarianceComponentModels.heritability</code></a></li>
+<li><a href="./#VarianceComponentModels.mle_fs!"><code>VarianceComponentModels.mle_fs!</code></a></li>
+<li><a href="./#VarianceComponentModels.mle_mm!"><code>VarianceComponentModels.mle_mm!</code></a></li>
+<li><a href="./#VarianceComponentModels.nmeanparams"><code>VarianceComponentModels.nmeanparams</code></a></li>
+<li><a href="./#VarianceComponentModels.nparams"><code>VarianceComponentModels.nparams</code></a></li>
+<li><a href="./#VarianceComponentModels.nvarparams"><code>VarianceComponentModels.nvarparams</code></a></li>
+<li><a href="./#VarianceComponentModels.residual"><code>VarianceComponentModels.residual</code></a></li>
+</ul>
+<p><a id='Types-1'></a></p>
+<h2 id="types">Types</h2>
+<p><a id='VarianceComponentModels.VarianceComponentModel' href='#VarianceComponentModels.VarianceComponentModel'>#</a>
+<strong><code>VarianceComponentModels.VarianceComponentModel</code></strong> &mdash; <em>Type</em>.</p>
+<p><code>VarianceComponentModel</code> stores the model parameters of a variance component model.</p>
+<p><strong>Fields</strong></p>
+<ul>
+<li><code>B</code>: <code>p x d</code> mean parameters</li>
+<li><code>Σ</code>: tuple of <code>d x d</code> variance component parameters</li>
+<li><code>A</code>: constraint matrix for <code>vec(B)</code></li>
+<li><code>sense</code>: vector of characters <code>'='</code>, <code>'&lt;'</code> or <code>'&gt;'</code></li>
+<li><code>b</code>: constraint vector for <code>vec(B)</code></li>
+<li><code>lb</code>: lower bounds for <code>vec(B)</code></li>
+<li><code>ub</code>: upper bounds for <code>vec(B)</code></li>
+</ul>
+<div class="codehilite"><pre><span></span>VarianceComponentModel(B, Σ)
+VarianceComponentModel(B, Σ, A, sense, b, lb, ub)
+</pre></div>
+
+
+<p>Default constructor of <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> type.</p>
+<div class="codehilite"><pre><span></span>VarianceComponentModel(Σ)
+</pre></div>
+
+
+<p>Construct <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> from <code>Σ</code> alone. <code>B</code> is treated empty.</p>
+<div class="codehilite"><pre><span></span>VarianceComponentModel(vcobs)
+</pre></div>
+
+
+<p>Construct a <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> instance from a <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> instance. <code>B</code> is initialized to zero; <code>Σ</code> is initialized to a tupe of identity matrices.</p>
+<div class="codehilite"><pre><span></span>VarianceComponentModel(vcobsrot)
+</pre></div>
+
+
+<p>Construct <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> instance from a <a href="./#VarianceComponentModels.TwoVarCompVariateRotate"><code>TwoVarCompVariateRotate</code></a> instance.</p>
+<p><a id='VarianceComponentModels.VarianceComponentVariate' href='#VarianceComponentModels.VarianceComponentVariate'>#</a>
+<strong><code>VarianceComponentModels.VarianceComponentVariate</code></strong> &mdash; <em>Type</em>.</p>
+<p><code>VarianceComponentVariate</code> stores the data of a variance component model.</p>
+<p><strong>Feilds</strong></p>
+<ul>
+<li><code>Y</code>: <code>n x d</code> responses</li>
+<li><code>X</code>: <code>n x p</code> predictors</li>
+<li><code>V</code>: tuple of <code>n x n</code> covariance matrices</li>
+</ul>
+<div class="codehilite"><pre><span></span>VarianceComponentVariate(Y, X, V)
+</pre></div>
+
+
+<p>Default constructor of <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> type.</p>
+<p>VarianceComponentVariate(Y, V)</p>
+<p>Constructor of a <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> instance from <code>Y</code> and <code>V</code> alone. <code>X</code> is created empty.</p>
+<p><a id='VarianceComponentModels.TwoVarCompModelRotate' href='#VarianceComponentModels.TwoVarCompModelRotate'>#</a>
+<strong><code>VarianceComponentModels.TwoVarCompModelRotate</code></strong> &mdash; <em>Type</em>.</p>
+<p><code>TwoVarCompModelRotate</code> stores the rotated two variance component model.</p>
+<p><strong>Fields</strong></p>
+<ul>
+<li><code>Brot</code>: rotated mean parameters <code>B * eigvec</code></li>
+<li><code>eigval</code>: eigenvalues of <code>eig(Σ[1], Σ[2])</code></li>
+<li><code>eigvec</code>: eigenvectors of <code>eig(Σ[1], Σ[2])</code></li>
+<li><code>logdetΣ2</code>: log-determinant of <code>Σ[2]</code></li>
+</ul>
+<div class="codehilite"><pre><span></span>TwoVarCompModelRotate(Brot, eigval, eigvec, logdetΣ2)
+</pre></div>
+
+
+<p>Default constructor of <a href="./#VarianceComponentModels.TwoVarCompModelRotate"><code>TwoVarCompModelRotate</code></a> type.</p>
+<div class="codehilite"><pre><span></span>TwoVarCompModelRotate(vcmodel)
+</pre></div>
+
+
+<p>Constructor of a <a href="./#VarianceComponentModels.TwoVarCompModelRotate"><code>TwoVarCompModelRotate</code></a> instance from a <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> instance.</p>
+<p><a id='VarianceComponentModels.TwoVarCompVariateRotate' href='#VarianceComponentModels.TwoVarCompVariateRotate'>#</a>
+<strong><code>VarianceComponentModels.TwoVarCompVariateRotate</code></strong> &mdash; <em>Type</em>.</p>
+<p><code>TwoVarCompVariateRotate</code> stores the rotated two variance component data.</p>
+<p><strong>Fields</strong></p>
+<ul>
+<li><code>Yrot</code>: rotated responses <code>eigvec * Y</code></li>
+<li><code>Xrot</code>: rotated covariates <code>eigvec * X</code></li>
+<li><code>eigval</code>: eigenvalues of <code>eig(V[1], V[2])</code></li>
+<li><code>eigvec</code>: eigenvectors of <code>eig(V[1], V[2])</code></li>
+<li><code>logdetV2</code>: log-determinant of <code>V[2]</code></li>
+</ul>
+<div class="codehilite"><pre><span></span>TwoVarCompVariateRotate(Yrot, Xrot, eigval, logdetV2)
+</pre></div>
+
+
+<p>Default constructor of a <a href="./#VarianceComponentModels.TwoVarCompVariateRotate"><code>TwoVarCompVariateRotate</code></a> instance.</p>
+<div class="codehilite"><pre><span></span>TwoVarCompVariateRotate(vcobs)
+</pre></div>
+
+
+<p>Constructor of a <a href="./#VarianceComponentModels.TwoVarCompVariateRotate"><code>TwoVarCompVariateRotate</code></a> instance from a <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> instance.</p>
+<p><a id='Functions-1'></a></p>
+<h2 id="functions">Functions</h2>
+<p><a id='Base.eltype' href='#Base.eltype'>#</a>
+<strong><code>Base.eltype</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>eltype(type)
+</pre></div>
+
+
+<p>Determine the type of the elements generated by iterating a collection of the given <code>type</code>. For associative collection types, this will be a <code>Pair{KeyType,ValType}</code>. The definition <code>eltype(x) = eltype(typeof(x))</code> is provided for convenience so that instances can be passed instead of types. However the form that accepts a type argument should be defined for new types.</p>
+<div class="codehilite"><pre><span></span>eltype(vcm)
+eltype(vcobs)
+eltype(vcmrot)
+eltype(vcobsrot)
+</pre></div>
+
+
+<p>Element type of variance component model or data.</p>
+<p><a id='Base.length' href='#Base.length'>#</a>
+<strong><code>Base.length</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>length(A) -&gt; Integer
+</pre></div>
+
+
+<p>Returns the number of elements in <code>A</code>.</p>
+<div class="codehilite"><pre><span></span>length(s)
+</pre></div>
+
+
+<p>The number of characters in string <code>s</code>.</p>
+<div class="codehilite"><pre><span></span>length(collection) -&gt; Integer
+</pre></div>
+
+
+<p>For ordered, indexable collections, the maximum index <code>i</code> for which <code>getindex(collection, i)</code> is valid. For unordered collections, the number of elements.</p>
+<div class="codehilite"><pre><span></span>length(vcm)
+length(vcobs)
+length(vcmrot)
+length(vcobsrot)
+</pre></div>
+
+
+<p>Length <code>d</code> of response.</p>
+<p><a id='Base.size' href='#Base.size'>#</a>
+<strong><code>Base.size</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>size(A, [dim...])
+</pre></div>
+
+
+<p>Returns a tuple containing the dimensions of <code>A</code>. Optionally you can specify the dimension(s) you want the length of, and get the length of that dimension, or a tuple of the lengths of dimensions you asked for.:</p>
+<div class="codehilite"><pre><span></span>julia&gt; A = rand(2,3,4);
+
+julia&gt; size(A, 2)
+3
+
+julia&gt; size(A,3,2)
+(4,3)
+</pre></div>
+
+
+<div class="codehilite"><pre><span></span>size(vcobs)
+size(vcobsrot)
+</pre></div>
+
+
+<p>Size <code>(n, d)</code> of the response matrix of a <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> or <a href="./#VarianceComponentModels.TwoVarCompVariateRotate"><code>TwoVarCompVariateRotate</code></a>.</p>
+<p><a id='VarianceComponentModels.nmeanparams' href='#VarianceComponentModels.nmeanparams'>#</a>
+<strong><code>VarianceComponentModels.nmeanparams</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>nmeanparams(vcm)
+nmeanparams(vcmrot)
+nmeanparams(vcobs)
+nmeanparams(vcobsrot)
+</pre></div>
+
+
+<p>Number of mean parameters <code>p * d</code> of <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a>.</p>
+<p><a id='VarianceComponentModels.nvarparams' href='#VarianceComponentModels.nvarparams'>#</a>
+<strong><code>VarianceComponentModels.nvarparams</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>nvarparams(vcm)
+</pre></div>
+
+
+<p>Number of free parameters in Cholesky factors <code>m * d * (d + 1) / 2</code> of <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a>.</p>
+<p><a id='VarianceComponentModels.nparams' href='#VarianceComponentModels.nparams'>#</a>
+<strong><code>VarianceComponentModels.nparams</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>nparams(vcm)
+</pre></div>
+
+
+<p>Total number of model parameters <code>p * d + m * d * (d + 1) / 2</code> of <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a>.</p>
+<p><a id='VarianceComponentModels.cov!' href='#VarianceComponentModels.cov!'>#</a>
+<strong><code>VarianceComponentModels.cov!</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>cov!(C, vcm, vcobs)
+</pre></div>
+
+
+<p>Calculate the <code>nd x nd</code> covariance matrix of a <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> at a <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> observation and over-write <code>C</code>.</p>
+<p><a id='Base.cov' href='#Base.cov'>#</a>
+<strong><code>Base.cov</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>cov(v1[, v2][, vardim=1, corrected=true, mean=nothing])
+</pre></div>
+
+
+<p>Compute the Pearson covariance between the vector(s) in <code>v1</code> and <code>v2</code>. Here, <code>v1</code> and <code>v2</code> can be either vectors or matrices.</p>
+<p>This function accepts three keyword arguments:</p>
+<ul>
+<li><code>vardim</code>: the dimension of variables. When <code>vardim = 1</code>, variables are considered in columns while observations in rows; when <code>vardim = 2</code>, variables are in rows while observations in columns. By default, it is set to <code>1</code>.</li>
+<li><code>corrected</code>: whether to apply Bessel's correction (divide by <code>n-1</code> instead of <code>n</code>). By default, it is set to <code>true</code>.</li>
+<li><code>mean</code>: allow users to supply mean values that are known. By default, it is set to <code>nothing</code>, which indicates that the mean(s) are unknown, and the function will compute the mean. Users can use <code>mean=0</code> to indicate that the input data are centered, and hence there's no need to subtract the mean.</li>
+</ul>
+<p>The size of the result depends on the size of <code>v1</code> and <code>v2</code>. When both <code>v1</code> and <code>v2</code> are vectors, it returns the covariance between them as a scalar. When either one is a matrix, it returns a covariance matrix of size <code>(n1, n2)</code>, where <code>n1</code> and <code>n2</code> are the numbers of slices in <code>v1</code> and <code>v2</code>, which depend on the setting of <code>vardim</code>.</p>
+<p>Note: <code>v2</code> can be omitted, which indicates <code>v2 = v1</code>.</p>
+<div class="codehilite"><pre><span></span>cov(vcm, vcobs)
+</pre></div>
+
+
+<p>Calculate the <code>nd x nd</code> covariance matrix of a <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> at a <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> observation.</p>
+<p><a id='Base.mean!' href='#Base.mean!'>#</a>
+<strong><code>Base.mean!</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>mean!(r, v)
+</pre></div>
+
+
+<p>Compute the mean of <code>v</code> over the singleton dimensions of <code>r</code>, and write results to <code>r</code>.</p>
+<div class="codehilite"><pre><span></span>mean!(μ, vcm, vcobs)
+</pre></div>
+
+
+<p>Calculate the <code>n x d</code> mean matrix of a a <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> at a <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> observation and over-write <code>μ</code>.</p>
+<p><a id='Base.mean' href='#Base.mean'>#</a>
+<strong><code>Base.mean</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>mean(v[, region])
+</pre></div>
+
+
+<p>Compute the mean of whole array <code>v</code>, or optionally along the dimensions in <code>region</code>. Note: Julia does not ignore <code>NaN</code> values in the computation. For applications requiring the handling of missing data, the <code>DataArray</code> package is recommended.</p>
+<div class="codehilite"><pre><span></span>mean(vcm, vcobs)
+</pre></div>
+
+
+<p>Calculate the <code>n x d</code> mean matrix of a <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> at a <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> observation.</p>
+<p><a id='VarianceComponentModels.residual' href='#VarianceComponentModels.residual'>#</a>
+<strong><code>VarianceComponentModels.residual</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>residual(vcm, vcobs)
+</pre></div>
+
+
+<p>Residual of <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a> under <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a>.</p>
+<div class="codehilite"><pre><span></span>residual(vcmrot, vcobsrot)
+</pre></div>
+
+
+<p>Residual of <a href="./#VarianceComponentModels.TwoVarCompVariateRotate"><code>TwoVarCompVariateRotate</code></a> under <a href="./#VarianceComponentModels.TwoVarCompModelRotate"><code>TwoVarCompModelRotate</code></a>.</p>
+<p><a id='VarianceComponentModels.mle_fs!' href='#VarianceComponentModels.mle_fs!'>#</a>
+<strong><code>VarianceComponentModels.mle_fs!</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>mle_fs!(vcmodel, vcdatarot; maxiter, solver, qpsolver, verbose)
+</pre></div>
+
+
+<p>Find MLE by Fisher scoring algorithm.</p>
+<p><strong>Input</strong></p>
+<ul>
+<li><code>vcmodel</code>: two variane component model <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a>, with  <code>vcmodel.B</code> and <code>vcmodel.Σ</code> used as starting point</li>
+<li><code>vcdatarot</code>: rotated two varianec component data <a href="./#VarianceComponentModels.TwoVarCompVariateRotate"><code>TwoVarCompVariateRotate</code></a></li>
+</ul>
+<p><strong>Keyword</strong></p>
+<ul>
+<li><code>maxiter::Int</code>: maximum number of iterations, default is 1000</li>
+<li><code>solver::Symbol</code>: backend nonlinear programming solver, <code>:Ipopt</code> (default) or <code>:Knitro</code></li>
+<li><code>qpsolver::Symbol</code>: backend quadratic programming solver, <code>:Ipopt</code> (default) or <code>:Gurobi</code> or <code>Mosek</code></li>
+<li><code>verbose::Bool</code>: display information</li>
+</ul>
+<p><strong>Output</strong></p>
+<ul>
+<li><code>maxlogl</code>: log-likelihood at solution</li>
+<li><code>vcmodel</code>: <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> with updated model parameters</li>
+<li><code>Σse=(Σse[1],Σse[2])</code>: standard errors of estimate <code>Σ=(Σ[1],Σ[2])</code></li>
+<li><code>Σcov</code>: covariance matrix of estimate <code>Σ=(Σ[1],Σ[2])</code></li>
+<li><code>Bse</code>: standard errors of estimate <code>B</code></li>
+<li><code>Bcov</code>: covariance of estimate <code>B</code></li>
+</ul>
+<p><a id='VarianceComponentModels.mle_mm!' href='#VarianceComponentModels.mle_mm!'>#</a>
+<strong><code>VarianceComponentModels.mle_mm!</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>mle_mm!(vcmodel, vcdatarot; maxiter, qpsolver, verbose)
+</pre></div>
+
+
+<p>Find MLE by minorization-maximization (MM) algorithm.</p>
+<p><strong>Input</strong></p>
+<ul>
+<li><code>vcmodel</code>: two variane component model <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a>, with  <code>vcmodel.B</code> and <code>vcmodel.Σ</code> used as starting point</li>
+<li><code>vcdatarot</code>: rotated two varianec component data <a href="./#VarianceComponentModels.TwoVarCompVariateRotate"><code>TwoVarCompVariateRotate</code></a></li>
+</ul>
+<p><strong>Keyword</strong></p>
+<ul>
+<li><code>maxiter::Int</code>: maximum number of iterations, default is 1000</li>
+<li><code>qpsolver::Symbol</code>: backend quadratic programming solver, <code>:Ipopt</code> (default) or <code>:Gurobi</code> or <code>Mosek</code></li>
+<li><code>verbose::Bool</code>: display information</li>
+</ul>
+<p><strong>Output</strong></p>
+<ul>
+<li><code>maxlogl</code>: log-likelihood at solution</li>
+<li><code>vcmodel</code>: <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> with updated model parameters</li>
+<li><code>Σse=(Σse[1],Σse[2])</code>: standard errors of estimate <code>Σ=(Σ[1],Σ[2])</code></li>
+<li><code>Σcov</code>: covariance matrix of estimate <code>Σ=(Σ[1],Σ[2])</code></li>
+<li><code>Bse</code>: standard errors of estimate <code>B</code></li>
+<li><code>Bcov</code>: covariance of estimate <code>B</code></li>
+</ul>
+<p><strong>Reference</strong></p>
+<ul>
+<li>H. Zhou, L. Hu, J. Zhou, and K. Lange (2015)   MM algorithms for variance components models.   <a href="http://arxiv.org/abs/1509.07426">http://arxiv.org/abs/1509.07426</a></li>
+</ul>
+<p><a id='VarianceComponentModels.fit_mle!' href='#VarianceComponentModels.fit_mle!'>#</a>
+<strong><code>VarianceComponentModels.fit_mle!</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>fit_mle!(vcmodel, vcdata; algo)
+</pre></div>
+
+
+<p>Find MLE of variane component model.</p>
+<p><strong>Input</strong></p>
+<ul>
+<li><code>vcmodel</code>: two variane component model <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a>, with  <code>vcmodel.B</code> and <code>vcmodel.Σ</code> used as starting point</li>
+<li><code>vcdata</code>: two varianec component data <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a></li>
+</ul>
+<p><strong>Keyword</strong></p>
+<ul>
+<li><code>algo::Symbol</code>: algorithm, <code>:FS</code> (Fisher scoring) for <code>:MM</code> (minorization-maximization algorithm)</li>
+</ul>
+<p><strong>Output</strong></p>
+<ul>
+<li><code>maxlogl</code>: log-likelihood at solution</li>
+<li><code>vcmodel</code>: <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> with updated model parameters</li>
+<li><code>Σse=(Σse[1],Σse[2])</code>: standard errors of estimate <code>Σ=(Σ[1],Σ[2])</code></li>
+<li><code>Σcov</code>: covariance matrix of estimate <code>Σ=(Σ[1],Σ[2])</code></li>
+<li><code>Bse</code>: standard errors of estimate <code>B</code></li>
+<li><code>Bcov</code>: covariance of estimate <code>B</code></li>
+</ul>
+<p><a id='VarianceComponentModels.fit_reml!' href='#VarianceComponentModels.fit_reml!'>#</a>
+<strong><code>VarianceComponentModels.fit_reml!</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>fit_reml!(vcmodel, vcdata; algo)
+</pre></div>
+
+
+<p>Find restricted MLE (REML) of variane component model.</p>
+<p><strong>Input</strong></p>
+<ul>
+<li><code>vcmodel</code>: two variane component model <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a>, with  <code>vcmodel.B</code> and <code>vcmodel.Σ</code> used as starting point</li>
+<li><code>vcdata</code>: two varianec component data <a href="./#VarianceComponentModels.VarianceComponentVariate"><code>VarianceComponentVariate</code></a></li>
+</ul>
+<p><strong>Keyword</strong></p>
+<ul>
+<li><code>algo::Symbol</code>: algorithm, <code>:FS</code> (Fisher scoring) for <code>:MM</code> (minorization-maximization algorithm)</li>
+</ul>
+<p><strong>Output</strong></p>
+<ul>
+<li><code>maxlogl</code>: log-likelihood at solution</li>
+<li><code>vcmodel</code>: <a href="./#VarianceComponentModels.VarianceComponentModel"><code>VarianceComponentModel</code></a> with updated model parameters</li>
+<li><code>Σse=(Σse[1],Σse[2])</code>: standard errors of estimate <code>Σ=(Σ[1],Σ[2])</code></li>
+<li><code>Σcov</code>: covariance matrix of estimate <code>Σ=(Σ[1],Σ[2])</code></li>
+<li><code>Bse</code>: standard errors of estimate <code>B</code></li>
+<li><code>Bcov</code>: covariance of estimate <code>B</code></li>
+</ul>
+<p><a id='VarianceComponentModels.heritability' href='#VarianceComponentModels.heritability'>#</a>
+<strong><code>VarianceComponentModels.heritability</code></strong> &mdash; <em>Function</em>.</p>
+<div class="codehilite"><pre><span></span>heritability(Σ, Σcov, which=1)
+</pre></div>
+
+
+<p>Calcualte the heritability of each trait and its standard error from variance component estimates and their covariance.</p>
+<p><strong>Input</strong></p>
+<ul>
+<li><code>Σ=(Σ[1], ..., Σ[m])</code>: estimate of <code>m</code> <code>d x d</code> variance components.</li>
+<li><code>Σcov</code>: <code>md^2 x md^2</code> covariance matrix of the variance component estiamte.</li>
+<li><code>which</code>: indicator which is the additive genetic variance component.</li>
+</ul>
+<p><strong>Output</strong></p>
+<ul>
+<li><code>h</code>: estimated heritability of <code>d</code> traits.</li>
+<li><code>hse</code>: standard errors of the estiamted heritability.</li>
+</ul>
+          <aside class="copyright" role="note">
+            
+            Documentation built with
+            <a href="http://www.mkdocs.org" target="_blank">MkDocs</a>
+            using the
+            <a href="http://squidfunk.github.io/mkdocs-material/" target="_blank">
+              Material
+            </a>
+            theme.
+          </aside>
+          
+            <footer class="footer">
+              
+  <nav class="pagination" aria-label="Footer">
+    <div class="previous">
+      
+        <a href="../heritability/" title="Heritability">
+          <span class="direction">
+            Previous
+          </span>
+          <div class="page">
+            <div class="button button-previous" role="button" aria-label="Previous">
+              <i class="icon icon-back"></i>
+            </div>
+            <div class="stretch">
+              <div class="title">
+                Heritability
+              </div>
+            </div>
+          </div>
+        </a>
+      
+    </div>
+    <div class="next">
+      
+    </div>
+  </nav>
+
+            </footer>
+          
+        </div>
+      </article>
+      <div class="results" role="status" aria-live="polite">
+        <div class="scrollable">
+          <div class="wrapper">
+            <div class="meta"></div>
+            <div class="list"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script>
+      var base_url = '../..';
+      var repo_id  = 'OpenMendel/VarianceComponentModels.jl';
+    </script>
+    <script src="../../assets/javascripts/application-997097ee0c.js"></script>
+    
+      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+    
+      <script src="../../assets/mathjaxhelper.js"></script>
+    
+    
+  </body>
+</html>
