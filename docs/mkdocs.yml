@@ -36,3 +36,4 @@ pages:
 - Manual:
   - MLE/REML: man/mle_reml.md
   - Heritability: man/heritability.md
+- API: man/api.md

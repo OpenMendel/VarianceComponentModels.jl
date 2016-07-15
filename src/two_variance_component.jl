@@ -11,8 +11,10 @@ export heritability,
 #---------------------------------------------------------------------------#
 
 """
-Calculate log-pdf of a *rotated* two variance component instance under a
-*rotated* two variance component model.
+    logpdf(vcmrot, vcobsrot)
+
+Calculate log-pdf of a [`TwoVarCompVariateRotate`](@ref) instance under a
+[`TwoVarCompModelRotate`](@ref).
 """
 function logpdf{T <: AbstractFloat}(
   vcmrot::TwoVarCompModelRotate{T},
@@ -37,8 +39,10 @@ function logpdf{T <: AbstractFloat}(
 end
 
 """
-Calculate log-pdf of a *rotated* two variance component instance under an
-*unrotated* two variance component model.
+    logpdf(vcm, vcobsrot)
+
+Calculate log-pdf of a [`TwoVarCompVariateRotate`](@ref) instance under a
+[`VarianceComponentModel`](@ref).
 """
 function logpdf{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
@@ -49,8 +53,10 @@ function logpdf{T <: AbstractFloat}(
 end
 
 """
-Calculate log-pdf of an *unrotated* two variance component instance under an
-*unrotated* two variance component model.
+    logpdf(vcm, vcobsrot)
+
+Calculate log-pdf of a [`VarianceComponentVariate`](@ref) instance under a
+[`VarianceComponentModel`](@ref).
 """
 function logpdf{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
@@ -60,9 +66,9 @@ function logpdf{T <: AbstractFloat}(
   logpdf(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
 end
 
-"""
-Calculate log-pdf of an array of variance component instances.
-"""
+# """
+# Calculate log-pdf of an array of variance component instances.
+# """
 # function logpdf(
 #   vcm::Union{TwoVarCompModelRotate, VarianceComponentModel},
 #   vcobs::Union{Array{TwoVarCompVariateRotate}, Array{VarianceComponentVariate}}
@@ -71,33 +77,33 @@ Calculate log-pdf of an array of variance component instances.
 #   mapreduce(x -> logpdf(vcm, x), +, vcobs)
 # end
 
-function logpdf(
-  vcm::TwoVarCompModelRotate,
-  vcobs::Array{TwoVarCompVariateRotate}
-  )
-
-  mapreduce(x -> logpdf(vcm, x), +, vcobs)
-end
+# function logpdf(
+#   vcm::TwoVarCompModelRotate,
+#   vcobs::Array{TwoVarCompVariateRotate}
+#   )
+#
+#   mapreduce(x -> logpdf(vcm, x), +, vcobs)
+# end
 
 #---------------------------------------------------------------------------#
 # Evaluate gradient
 #---------------------------------------------------------------------------#
 
 """
-
     gradient!(∇, vcmrot, vcobsrot)
 
 Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
 
 # Input
 - `∇::Vector`: gradient vector.
-- `vcmrot::TwoVarCompModelRotate`: *rotated* two variance component model.
-- `vcobsrot::TwoVarCompVariateRotate`: *rotated* two variance component data.
+- `vcmrot`: *rotated* two variance component model [`TwoVarCompModelRotate`](@ref).
+- `vcobsrot`: *rotated* two variance component data [`TwoVarCompVariateRotate`](@ref).
 
 # Output
 - `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
 
-# TODO: optimize computation
+# TODO
+- optimize computation
 """
 function gradient!{T <: AbstractFloat}(
   ∇::AbstractVector{T},
@@ -135,6 +141,22 @@ function gradient!{T <: AbstractFloat}(
   scale!(∇, convert(T, 0.5))
 end # function gradient!
 
+"""
+
+    gradient(vcmrot, vcobsrot)
+
+Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
+
+# Input
+- `vcmrot`: *rotated* two variance component model [`TwoVarCompModelRotate`](@ref).
+- `vcobsrot`: *rotated* two variance component data [`TwoVarCompVariateRotate`](@ref).
+
+# Output
+- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
+
+# TODO
+- optimize computation
+"""
 function gradient{T <: AbstractFloat}(
   vcmrot::TwoVarCompModelRotate{T},
   vcobsrot::TwoVarCompVariateRotate{T}
@@ -160,6 +182,22 @@ end
 #   ∇
 # end
 
+"""
+    gradient!(∇, vcm, vcobsrot)
+
+Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
+
+# Input
+- `∇::Vector`: gradient vector.
+- `vcmrot`: two variance component model [`VarianceComponentModel`](@ref).
+- `vcobsrot`: *rotated* two variance component data [`TwoVarCompVariateRotate`](@ref).
+
+# Output
+- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
+
+# TODO
+- optimize computation
+"""
 function gradient!{T <: AbstractFloat}(
   ∇::AbstractVector{T},
   vcm::VarianceComponentModel{T, 2},
@@ -169,6 +207,22 @@ function gradient!{T <: AbstractFloat}(
   gradient!(∇, TwoVarCompModelRotate(vcm), vcobsrot)
 end
 
+"""
+    gradient!(∇, vcm, vcobsrot)
+
+Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
+
+# Input
+- `∇::Vector`: gradient vector.
+- `vcm`: variance component model [`VarianceComponentModel`](@ref).
+- `vcobs`: two variance component data [`VarianceComponentVariate`](@ref).
+
+# Output
+- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
+
+# TODO
+- optimize computation
+"""
 function gradient!{T <: AbstractFloat}(
   ∇::AbstractVector{T},
   vcm::VarianceComponentModel{T, 2},
@@ -178,6 +232,21 @@ function gradient!{T <: AbstractFloat}(
   gradient!(∇, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
+"""
+    gradient(vcm, vcobsrot)
+
+Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
+
+# Input
+- `vcmrot`: two variance component model [`VarianceComponentModel`](@ref).
+- `vcobsrot`: *rotated* two variance component data [`TwoVarCompVariateRotate`](@ref).
+
+# Output
+- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
+
+# TODO
+- optimize computation
+"""
 function gradient{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
   vcobsrot::TwoVarCompVariateRotate{T}
@@ -186,6 +255,21 @@ function gradient{T <: AbstractFloat}(
   gradient(TwoVarCompModelRotate(vcm), vcobsrot)
 end
 
+"""
+    gradient(vcm, vcobsrot)
+
+Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
+
+# Input
+- `vcm`: two variance component model [`VarianceComponentModel`](@ref).
+- `vcobs`: two variance component data [`VarianceComponentModel`](@ref).
+
+# Output
+- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
+
+# TODO
+- optimize computation
+"""
 function gradient{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
   vcobs::VarianceComponentVariate{T, 2}
@@ -209,7 +293,6 @@ end
 #---------------------------------------------------------------------------#
 
 """
-
     fisher!(H, vcmrot, vcobsrot)
 
 Calculate Fisher information matrix at `Σ = (Σ[1], Σ[2])` and overwrite `H`
@@ -459,6 +542,23 @@ end
 # Fisher scoring algorithm
 #---------------------------------------------------------------------------#
 
+"""
+`TwoVarCompOptProb` holds data and model for solving two variance component
+problem
+
+# Fields
+- `vcmodel`: [`VarianceComponentModel`](@ref)
+- `qcdatarot`: [`TwoVarCompVariateRotate`](@ref)
+- `qpsolver`: `MathProgBase.SolverInterface.AbstractMathProgSolver`
+- `L`: working variable, a tuple of two Cholesky factors `(L[1], L[2])`
+- `∇Σ`: working variable, gradient with respect to `(Σ[1], Σ[2])`
+- `HΣ`: working variable, Hessian with respect to `(Σ[1], Σ[2])`
+- `HL`: working variable, Hessian with respect to `(L[1], L[2])`
+- `Xwork`: working variable, design matrix for updating `B`
+- `ywork`: working variable, response vector for updating `B`
+- `Q`: working variable, quadratic part of QP for updating `B`
+- `c`: working variable, linear part of QP for updating `B`
+"""
 type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
   vcmodel::VarianceComponentModel{T, 2}
   vcdatarot::Union{TwoVarCompVariateRotate{T}, Array{TwoVarCompVariateRotate{T}}}
@@ -466,9 +566,9 @@ type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
   qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver
   # intermediate variables
   L::NTuple{2, Matrix{T}} # Cholesky factors
-  ∇Σ::Vector{T} # graident wrt (Σ1, Σ2)
-  HΣ::Matrix{T} # Hessian wrt (Σ1, Σ2)
-  HL::Matrix{T} # Hessian wrt (L1, L2)
+  ∇Σ::Vector{T}    # graident wrt (Σ1, Σ2)
+  HΣ::Matrix{T}    # Hessian wrt (Σ1, Σ2)
+  HL::Matrix{T}    # Hessian wrt (L1, L2)
   Xwork::Matrix{T} # nd-by-pd working matrix
   ywork::Vector{T} # nd working vector
   Q::Matrix{T}     # pd-by-pd working matrix
@@ -476,8 +576,11 @@ type TwoVarCompOptProb{T <: AbstractFloat} <: MathProgBase.AbstractNLPEvaluator
 end
 
 """
-Constructor of `TwoVarCompOptProb` from two variance component model `vcm`,
-rotated two variance component data `vcobsrot`, and input quadratic programming
+    TwoVarCompOptProb(vcm, vcobsrot)
+    TwoVarCompOptProb(vcm, vcobsrot, qpsolver)
+
+Constructor of [`TwoVarCompOptProb`](@ref) from [`VarianceComponentModel`](@ref) `vcm`,
+[`TwoVarCompVariateRotate`](@ref) `vcobsrot`, and input quadratic programming
 sovler `qpsolver`.
 """
 function TwoVarCompOptProb{T}(
@@ -503,7 +606,10 @@ function TwoVarCompOptProb{T}(
 end
 
 """
-Translate optimization variables to variance component parmeters `dd.vcmodel.Σ`.
+    optimparam_to_vcparam(dd, x)
+
+Translate optimization variables `x` to variance component parmeters
+`dd.vcmodel.Σ` in [`TwoVarCompOptProb`](@ref).
 """
 function optimparam_to_vcparam!{T}(dd::TwoVarCompOptProb, x::Vector{T})
 
@@ -638,6 +744,25 @@ end
     mle_fs!(vcmodel, vcdatarot; maxiter, solver, qpsolver, verbose)
 
 Find MLE by Fisher scoring algorithm.
+
+# Input
+- `vcmodel`: two variane component model [`VarianceComponentModel`](@ref), with
+ `vcmodel.B` and `vcmodel.Σ` used as starting point
+- `vcdatarot`: rotated two varianec component data [`TwoVarCompVariateRotate`](@ref)
+
+# Keyword
+- `maxiter::Int`: maximum number of iterations, default is 1000
+- `solver::Symbol`: backend nonlinear programming solver, `:Ipopt` (default) or `:Knitro`
+- `qpsolver::Symbol`: backend quadratic programming solver, `:Ipopt` (default) or `:Gurobi` or `Mosek`
+- `verbose::Bool`: display information
+
+# Output
+- `maxlogl`: log-likelihood at solution
+- `vcmodel`: [`VarianceComponentModel`](@ref) with updated model parameters
+- `Σse=(Σse[1],Σse[2])`: standard errors of estimate `Σ=(Σ[1],Σ[2])`
+- `Σcov`: covariance matrix of estimate `Σ=(Σ[1],Σ[2])`
+- `Bse`: standard errors of estimate `B`
+- `Bcov`: covariance of estimate `B`
 """
 function mle_fs!{T}(
   vcmodel::VarianceComponentModel{T, 2},
@@ -770,27 +895,27 @@ end # function mle_fs
 #---------------------------------------------------------------------------#
 
 """
-  mle_mm!(Yrot, ev, loglconst; Σ0, maxiter, verbose)
+    mle_mm!(vcmodel, vcdatarot; maxiter, qpsolver, verbose)
 
-Fit variance component model using minorization-maximization algorithm. Data
-`vec(Y)` is assumed to be normal with mean zero and covariance
-`Σ[1]⊗V[1] + Σ[2]⊗V[2]`.
+Find MLE by minorization-maximization (MM) algorithm.
 
 # Input
-- `Yrot`: rotated responses `U'*Y`, where `(ev,U) = eig(V[1],V[2])`.
-- `ev`: eigenvalues from `(ev,U) = eig(V[1],V[2])`.
-- `loglconst`: constant `n*d*log(2π)+d*logdet(V2)` in 2.0log-likelihood.
+- `vcmodel`: two variane component model [`VarianceComponentModel`](@ref), with
+ `vcmodel.B` and `vcmodel.Σ` used as starting point
+- `vcdatarot`: rotated two varianec component data [`TwoVarCompVariateRotate`](@ref)
 
-# Keyword arguments
-- `Σ0=(Σ0[1], Σ0[2])`: starting value for variance component parameters.
-- `maxiter`: maximum number of iterations for nonlinear programming solver.
-- `verbose`: logging information.
+# Keyword
+- `maxiter::Int`: maximum number of iterations, default is 1000
+- `qpsolver::Symbol`: backend quadratic programming solver, `:Ipopt` (default) or `:Gurobi` or `Mosek`
+- `verbose::Bool`: display information
 
 # Output
-- `logl`: log-likelihood at `Σ=(Σ[1],Σ[2])`.
-- `Σ=(Σ[1],Σ[2])`: variance component estimates.
-- `Σse=(Σse[1],Σse[2])`: standard errors of variance component estimates.
-- `Σcov`: `2d^2 x 2d^2` covariance matrix of variance component estimates.
+- `maxlogl`: log-likelihood at solution
+- `vcmodel`: [`VarianceComponentModel`](@ref) with updated model parameters
+- `Σse=(Σse[1],Σse[2])`: standard errors of estimate `Σ=(Σ[1],Σ[2])`
+- `Σcov`: covariance matrix of estimate `Σ=(Σ[1],Σ[2])`
+- `Bse`: standard errors of estimate `B`
+- `Bcov`: covariance of estimate `B`
 
 # Reference
 - H. Zhou, L. Hu, J. Zhou, and K. Lange (2015)
@@ -925,6 +1050,28 @@ end # function mle_mm
 # Estimation gateway
 #---------------------------------------------------------------------------#
 
+"""
+    fit_mle!(vcmodel, vcdata; algo)
+
+Find MLE of variane component model.
+
+# Input
+- `vcmodel`: two variane component model [`VarianceComponentModel`](@ref), with
+ `vcmodel.B` and `vcmodel.Σ` used as starting point
+- `vcdata`: two varianec component data [`VarianceComponentVariate`](@ref)
+
+# Keyword
+- `algo::Symbol`: algorithm, `:FS` (Fisher scoring) for `:MM`
+(minorization-maximization algorithm)
+
+# Output
+- `maxlogl`: log-likelihood at solution
+- `vcmodel`: [`VarianceComponentModel`](@ref) with updated model parameters
+- `Σse=(Σse[1],Σse[2])`: standard errors of estimate `Σ=(Σ[1],Σ[2])`
+- `Σcov`: covariance matrix of estimate `Σ=(Σ[1],Σ[2])`
+- `Bse`: standard errors of estimate `B`
+- `Bcov`: covariance of estimate `B`
+"""
 function fit_mle!{T <: AbstractFloat}(
   vcmodel::VarianceComponentModel{T, 2},
   vcdata::VarianceComponentVariate{T, 2};
@@ -940,6 +1087,28 @@ function fit_mle!{T <: AbstractFloat}(
   end
 end
 
+"""
+    fit_reml!(vcmodel, vcdata; algo)
+
+Find restricted MLE (REML) of variane component model.
+
+# Input
+- `vcmodel`: two variane component model [`VarianceComponentModel`](@ref), with
+ `vcmodel.B` and `vcmodel.Σ` used as starting point
+- `vcdata`: two varianec component data [`VarianceComponentVariate`](@ref)
+
+# Keyword
+- `algo::Symbol`: algorithm, `:FS` (Fisher scoring) for `:MM`
+(minorization-maximization algorithm)
+
+# Output
+- `maxlogl`: log-likelihood at solution
+- `vcmodel`: [`VarianceComponentModel`](@ref) with updated model parameters
+- `Σse=(Σse[1],Σse[2])`: standard errors of estimate `Σ=(Σ[1],Σ[2])`
+- `Σcov`: covariance matrix of estimate `Σ=(Σ[1],Σ[2])`
+- `Bse`: standard errors of estimate `B`
+- `Bcov`: covariance of estimate `B`
+"""
 function fit_reml!{T <: AbstractFloat}(
   vcmodel::VarianceComponentModel{T, 2},
   vcdata::VarianceComponentVariate{T, 2};

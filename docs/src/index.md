@@ -24,7 +24,7 @@ and **parameters** are
 - Maximum likelihood estimation (MLE) and restricted maximum likelihood estimation (REML) of mean parameters `B` and variance component parameters `Σ`   
 - Allow constrains in the mean parameters `B`  
 - Choice of optimization algorithms: [Fisher scoring](https://books.google.com/books?id=QYqeYTftPNwC&lpg=PP1&pg=PA142#v=onepage&q&f=false) and [minorization-maximization algorithm](http://arxiv.org/abs/1509.07426)  
-- [Heritability](@ref) analysis in genetics  
+- [Heritability Analysis](@ref) in genetics  
 
 ## Installation
 
