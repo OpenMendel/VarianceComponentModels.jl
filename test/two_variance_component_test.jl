@@ -89,6 +89,8 @@ vcmmean = deepcopy(vcmodel)
 @inferred update_meanparam!(vcmodel, vcdatarot)
 update_meanparam!(vcmmean, vcdatarot)
 @show vcmmean.B
+update_meanparam!(vcmmean, [vcdatarot vcdatarot])
+@show vcmmean.B
 
 info("Update mean parameters from variance component parameters (linear equality constraints)")
 vcmmean = deepcopy(vcmodel)
@@ -117,6 +119,8 @@ vcmfs = deepcopy(vcmodel)
 #@inferred mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 @show vcmfs.B, Bse_fs, B
+_, _, _, _, Bse_fs, = mle_fs!(vcmfs, [vcdatarot vcdatarot]; solver = :Ipopt)
+@show vcmfs.B, Bse_fs, B
 
 info("Find MLE using MM algorithm")
 vcmm = deepcopy(vcmodel)
@@ -124,14 +128,15 @@ vcmm = deepcopy(vcmodel)
 @inferred mle_mm!(vcmm, vcdatarot)
 logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot)
 @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
+mle_mm!(vcmm, [vcdatarot vcdatarot])
 
 info("Find MLE using Fisher scoring (linear equality + box constraints)")
-vcmfs = deepcopy(vcmodel)
-vcmfs.A = [1.0 -1.0 zeros(1, p*d-2)]
+vcmfs       = deepcopy(vcmodel)
+vcmfs.A     = [1.0 -1.0 zeros(1, p*d-2)]
 vcmfs.sense = '='
-vcmfs.b = 0.0
-vcmfs.lb = 0.0
-vcmfs.ub = 1.0
+vcmfs.b     = 0.0
+vcmfs.lb    = 0.0
+vcmfs.ub    = 1.0
 logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt, qpsolver = :Ipopt)
 @show vcmfs.B
 @test vcmfs.B[1] ≈ vcmfs.B[2]
