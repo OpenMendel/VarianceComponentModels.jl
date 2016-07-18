@@ -442,6 +442,36 @@ function residual(vcmrot::TwoVarCompModelRotate, vcobsrot::TwoVarCompVariateRota
   end
 end
 
+function residual{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
+  vcmrot::T1,
+  vcdatarot::Array{T2})
+
+  map(x -> residual(vcmrot, x), vcdatarot)
+end
+
+function residual!(
+  resid::AbstractMatrix,
+  vcmrot::TwoVarCompModelRotate,
+  vcobsrot::TwoVarCompVariateRotate)
+
+  if isempty(vcmrot.Brot)
+    A_mul_B!(resid, vcobsrot.Yrot, vcmrot.eigvec)
+  else
+    #A_mul_B!(resid, vcobsrot.Yrot, vcmrot.eigvec)
+    #resid -= vcobsrot.Xrot * vcmrot.Brot
+    copy!(resid, vcobsrot.Yrot * vcmrot.eigvec - vcobsrot.Xrot * vcmrot.Brot)
+  end
+  resid
+end
+
+function residual!{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
+  resid::Array{AbstractMatrix},
+  vcmrot::T1,
+  vcdatarot::Array{T2})
+
+  map!(x -> residual(vcmrot, x), resid, vcdatarot)
+end
+
 # utilities for multivariate calculus
 include("multivariate_calculus.jl")
 # source for fitting models with 2 variance components

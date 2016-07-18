@@ -491,24 +491,34 @@ end
 """
 Compute the quadratic and linear parts of generalized least squares criterion.
 """
-function suffstats{T <: AbstractFloat}(
+function suffstats_for_B{T <: AbstractFloat}(
   vcmrot::TwoVarCompModelRotate{T},
   vcdatarot::TwoVarCompVariateRotate{T}
   )
 
   oneT = one(T)
   wt = oneT ./ √(kron(vcmrot.eigval, vcdatarot.eigval) + oneT)
-  Xy = [kron(vcmrot.eigvec', vcdatarot.Xrot) vec(vcdatarot.Yrot * vcmrot.eigvec)]
-  scale!(wt, Xy)
-  return At_mul_B(Xy, Xy)
+  X = kron(vcmrot.eigvec', vcdatarot.Xrot)
+  scale!(wt, X)
+  y = vec(vcdatarot.Yrot * vcmrot.eigvec)
+  y = y .* wt
+  return At_mul_B(X, X), At_mul_B(X, y)
 end
 
-function suffstats{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
+function suffstats_for_B{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
   vcmrot::T1,
   vcdatarot::Array{T2}
   )
 
-  mapreduce(x -> suffstats(vcmrot, x), +, vcdatarot)
+  mapreduce(x -> suffstats_for_B(vcmrot, x), +, vcdatarot)
+end
+
+function +(
+  x::Tuple{AbstractMatrix, AbstractVector},
+  y::Tuple{AbstractMatrix, AbstractVector}
+  )
+
+  x[1] + y[1], x[2] + y[2]
 end
 
 """
@@ -538,10 +548,9 @@ function update_meanparam!{T1 <: VarianceComponentModel,
   # rotate the model
   vcmrot = TwoVarCompModelRotate(vcm)
   # accumlate the quadratic and linear parts of QP
-  Q = suffstats(vcmrot, vcdatarot)
+  Q, c = suffstats_for_B(vcmrot, vcdatarot)
   # quadratic programming
-  qpsol = quadprog(-Q[1:end-1, end], Q[1:end-1, 1:end-1],
-    vcm.A, vcm.sense, vcm.b, vcm.lb, vcm.ub, qpsolver)
+  qpsol = quadprog(-c, Q, vcm.A, vcm.sense, vcm.b, vcm.lb, vcm.ub, qpsolver)
   if qpsol.status ≠ :Optimal
     println("Error in quadratic programming $(qpsol.status)")
   end
@@ -681,8 +690,7 @@ function MathProgBase.eval_grad_f{T}(
   gradient!(dd.∇Σ, dd.vcmodel, dd.vcdatarot)
   # chain rule for gradient wrt Cholesky factor
   chol_gradient!(sub(grad_f, 1:nvarhalf), dd.∇Σ[1:d^2], dd.L[1])
-  chol_gradient!(sub(grad_f, (nvarhalf+1):nvar),
-    dd.∇Σ[(d^2+1):end], dd.L[2])
+  chol_gradient!(sub(grad_f, (nvarhalf+1):nvar), dd.∇Σ[(d^2+1):end], dd.L[2])
   # chain rule for exponential of diagonal entries
   for j in 1:d
     # linear index of diagonal entries of L1
@@ -696,7 +704,6 @@ function MathProgBase.eval_grad_f{T}(
 end # function MathProgBase.eval_grad_f
 
 function MathProgBase.hesslag_structure(dd::TwoVarCompOptProb)
-  d = size(dd.L[1], 1)
   nvar = nvarparams(dd.vcmodel)
   # linear indices for variance parameters
   ind2sub((nvar, nvar), trilind(nvar))
@@ -897,6 +904,102 @@ end # function mle_fs
 # MM algorithm
 #---------------------------------------------------------------------------#
 
+function suffstats_for_Σ!(
+  vcmrot::TwoVarCompModelRotate,
+  vcobsrot::TwoVarCompVariateRotate,
+  resid::AbstractMatrix
+  )
+
+  T = eltype(vcmrot)
+  n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
+  A1, b1 = zeros(T, d, d), zeros(T, d)
+  A2, b2 = zeros(T, d, d), zeros(T, d)
+  zeroT, oneT = zero(T), one(T)
+  λj, tmpij   = zeroT, zeroT
+  # (rotated) residual
+  residual!(resid, vcmrot, vcobsrot)
+  # sufficient statistics for Σ2
+  @inbounds for j in 1:d
+    λj = vcmrot.eigval[j]
+    for i in 1:n
+      tmpij = oneT / (vcobsrot.eigval[i] * λj + oneT)
+      resid[i, j] *= tmpij
+      b2[j] += tmpij
+    end
+  end
+  At_mul_B!(A2, resid, resid)
+  # sufficient statistics for Σ1
+  @inbounds for j in 1:d
+    λj = vcmrot.eigval[j]
+    for i in 1:n
+      tmpij = vcobsrot.eigval[i]
+      resid[i, j] *= √tmpij * λj
+      b1[j] += tmpij / (tmpij * λj + oneT)
+    end
+  end
+  At_mul_B!(A1, resid, resid)
+  # output
+  return A1, b1, A2, b2
+end
+
+function suffstats_for_Σ!{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
+  vcmrot::T1,
+  vcdatarot::Array{T2},
+  residual::Array{AbstractMatrix}
+  )
+
+  mapreduce((x, y, z) -> suffstats_for_Σ!(vcmrot, x, y, z), +,
+    vcdatarot, residual, diagentry)
+end
+
+function +(
+  x::Tuple{AbstractMatrix, AbstractVector, AbstractMatrix, AbstractVector},
+  y::Tuple{AbstractMatrix, AbstractVector, AbstractMatrix, AbstractVector}
+  )
+
+  x[1] + y[1], x[2] + y[2], x[3] + y[3], x[4] + y[4]
+end
+
+function mm_update_Σ!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
+  vcm::T1,
+  vcdatarot::Union{T2, Array{T2}},
+  resid::Union{Matrix, Array{Matrix}}
+  )
+
+  T = eltype(vcm)
+  zeroT, oneT = zero(T), one(T)
+  d = length(vcm)
+  # eigen-decomposition of (vcm.Σ[1], vcm.Σ[2])
+  vcmrot = TwoVarCompModelRotate(vcm)
+  # sufficient statistics for updating Σ1, Σ2
+  A1, b1, A2, b2 = suffstats_for_Σ!(vcmrot, vcdatarot, resid)
+  for j in 1:d
+    b1[j] = √b1[j]
+    b2[j] = √b2[j]
+  end
+  Φinv = inv(vcmrot.eigvec)
+  # update Σ1
+  scale!(b1, A1), scale!(A1, b1)
+  storage = eigfact!(Symmetric(A1))
+  @inbounds for i in 1:d
+    storage.values[i] = storage.values[i] > zeroT ? √storage.values[i] : zeroT
+  end
+  scale!(storage.vectors, storage.values)
+  scale!(oneT ./ b1, storage.vectors)
+  At_mul_B!(vcm.Σ[1], Φinv, storage.vectors)
+  A_mul_Bt!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
+  # update Σ2
+  scale!(b2, A2), scale!(A2, b2)
+  storage = eigfact!(Symmetric(A2))
+  @inbounds for i in 1:d
+    storage.values[i] = storage.values[i] > zeroT ? √storage.values[i] : zeroT
+  end
+  scale!(storage.vectors, storage.values)
+  scale!(oneT ./ b2, storage.vectors)
+  At_mul_B!(vcm.Σ[2], Φinv, storage.vectors)
+  A_mul_Bt!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
+end
+
 """
     mle_mm!(vcmodel, vcdatarot; maxiter, qpsolver, verbose)
 
@@ -934,12 +1037,8 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
   verbose::Bool = true,
   )
 
-  # initialize algorithm
   T = eltype(vcm)
-  # n = no. observations, d = no. categories
   d, pd = length(vcm), nmeanparams(vcm)
-  zeroT, oneT, halfT = zero(T), one(T), convert(T, 0.5)
-  nmean = nmeanparams(vcm)
   # set up QP solver
   if qpsolver == :Ipopt
     qs = IpoptSolver(print_level = 0)
@@ -949,8 +1048,7 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
     qs = MosekSolver(MSK_IPAR_LOG = 0)
   end
   # initial log-likelihood
-  vcmrot = TwoVarCompModelRotate(vcm)
-  logl::T = logpdf(vcmrot, vcdatarot)
+  logl::T = logpdf(vcm, vcdatarot)
   if verbose
     println()
     println("     MM Algorithm")
@@ -959,82 +1057,44 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
     @printf("%8.d  %13.e\n", 0, logl)
   end
   # allocate intermediate variables
-  if nmean > 0
+  if pd > 0
     Q = zeros(T, pd, pd)
     c = zeros(T, pd)
   end
-  Wt = oneT ./ √(vcdatarot.eigval * vcmrot.eigval' + oneT)
-  res = residual(vcmrot, vcdatarot) .* Wt
-  Whalf = zeros(T, n, d)
-  dg = zeros(T, d)
-  λj = zeroT
+  if typeof(vcdatarot) == Array{T2}
+    res = map(x -> zeros(x.Yrot), vcdatarot)
+  else
+    res = zeros(vcdatarot.Yrot)
+  end
 
   # MM loop
-  for iter = 1:maxiter
+  for iter in 1:maxiter
 
-    # update Σ1
-    @inbounds for j in 1:d
-      λj = vcmrot.eigval[j]
-      dg[j] = mapreduce(x -> x / (λj * x + oneT), +, vcdatarot.eigval)
-      dg[j] = sqrt(dg[j])
-    end
-    Whalf = res .* Wt
-    scale!(sqrt(vcdatarot.eigval), Whalf)
-    scale!(Whalf, vcmrot.eigval .* dg)
-    #W = sqrtm(Whalf' * Whalf) # produces imaginery eigenvalues due to precision
-    #dg = 1.0 ./ dg
-    #Σ[1] = scale(dg, inv(Φ))' * W * scale(dg, inv(Φ))
-    # this approach is more numerical stable
-    Whalfsvd = svdfact(Whalf)
-    copy!(vcm.Σ[1], scale(sqrt(Whalfsvd[:S]),
-      Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
-    copy!(vcm.Σ[1], At_mul_B(vcm.Σ[1], vcm.Σ[1]))
-
-    # update Σ2
-    @inbounds for j = 1:d
-      λj = vcmrot.eigval[j]
-      #dg[j] = sqrt(sum(oneT ./ (vcmrot.eigval[j] * vcdatarot.eigval + oneT)))
-      dg[j] = mapreduce(x -> oneT / (λj * x + oneT), +, vcdatarot.eigval)
-      dg[j] = sqrt(dg[j])
-    end
-    Whalf = res .* Wt
-    scale!(Whalf, dg)
-    # W = sqrtm(Whalf' * Whalf)
-    # dg = 1.0 ./ dg
-    # Σ[2] = scale(dg, inv(Φ))' * W * scale(dg, inv(Φ))
-    # this approach is more numerical stable
-    Whalfsvd = svdfact(Whalf)
-    copy!(vcm.Σ[2], scale(sqrt(Whalfsvd[:S]),
-      Whalfsvd[:Vt]) * scale(oneT ./ dg, inv(vcmrot.eigvec)))
-    copy!(vcm.Σ[2], At_mul_B(vcm.Σ[2], vcm.Σ[2]))
-    # make sure the last varianec component is pos. def.
+    # update Σ
+    mm_update_Σ!(vcm, vcdatarot, res)
+    # make sure the last variance component is pos. def.
     ϵ = convert(T, 1e-8)
     clamp_diagonal!(vcm.Σ[2], ϵ, T(Inf))
 
     # update mean parameters
-    if !isempty(vcm.B)
-      update_meanparam!(vcm, vcdatarot, qs, Q, c)
-    end
-    vcmrot = TwoVarCompModelRotate(vcm)
-    Wt = oneT ./ √(vcdatarot.eigval * vcmrot.eigval' + oneT)
-    res = residual(vcmrot, vcdatarot) .* Wt
+    if pd > 0; update_meanparam!(vcm, vcdatarot, qs, Q, c); end
 
     # check convergence
     loglold = logl
-    logl    = logpdf(vcmrot, vcdatarot)
+    logl    = logpdf(vcm, vcdatarot)
     if verbose
       if (iter <= 10) || (iter > 10 && iter % 10 == 0)
         @printf("%8.d  %13.e\n", iter, logl)
       end
     end
-    if abs(logl - loglold) < funtol * (abs(logl) + oneT)
+    if abs(logl - loglold) < funtol * (abs(logl) + one(T))
       break
     end
   end
   if verbose; println(); end
 
   # standard errors
-  Bcov = zeros(T, nmean, nmean)
+  Bcov = zeros(T, pd, pd)
   fisher_B!(Bcov, vcm, vcdatarot)
   Bcov = inv(Bcov)
   Bse = similar(vcm.B)
