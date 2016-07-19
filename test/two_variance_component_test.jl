@@ -63,13 +63,13 @@ info("Evaluate gradient")
 info("Evaluate Fisher information matrix of Σ")
 H = zeros(2d^2, 2d^2)
 #@code_warntype fisher!(H, vcmodelrot, vcdatarot)
-@inferred fisher!(H, vcmodelrot, vcdatarot)
-@test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodelrot, vcdatarot)) ≈ 0.0
-@test vecnorm(fisher(vcmodel, vcdata) - fisher(vcmodel, vcdatarot)) ≈ 0.0
-@test vecnorm(fisher(vcmodel, [vcdata vcdata]) -
-  2.0fisher(vcmodel, vcdata)) ≈ 0.0
-@test vecnorm(fisher(vcmodel, [vcdata vcdata]) -
-  fisher(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+@inferred fisher_Σ!(H, vcmodelrot, vcdatarot)
+@test vecnorm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodelrot, vcdatarot)) ≈ 0.0
+@test vecnorm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodel, vcdatarot)) ≈ 0.0
+@test vecnorm(fisher_Σ(vcmodel, [vcdata vcdata]) -
+  2.fisher_Σ(vcmodel, vcdata)) ≈ 0.0
+@test vecnorm(fisher_Σ(vcmodel, [vcdata vcdata]) -
+  fisher_Σ(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 
 info("Evaluate Fisher information matrix of B")

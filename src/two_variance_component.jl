@@ -1,7 +1,9 @@
 import Base.gradient
 
 export heritability,
-  logpdf, gradient!, gradient, fisher!, fisher, fisher_B!, fisher_B,
+  logpdf,
+  gradient!, gradient,
+  fisher_Σ!, fisher_Σ, fisher_B!, fisher_B,
   mle_fs!, mle_mm!,
   fit_mle!, fit_reml!,
   update_meanparam!
@@ -277,7 +279,7 @@ end
 #---------------------------------------------------------------------------#
 
 """
-    fisher!(H, vcmrot, vcobsrot)
+    fisher_Σ!(H, vcmrot, vcobsrot)
 
 Calculate Fisher information matrix at `Σ = (Σ[1], Σ[2])` and overwrite `H`
 based on *rotated* two variance component model `vcmrot` and *rotated* two
@@ -291,7 +293,7 @@ variance component data `vcobsrot`.
 # Output
 - `H`: Fisher information matrix at `Σ = (Σ[1], Σ[2])`.
 """
-function fisher!{T <: AbstractFloat}(
+function fisher_Σ!{T <: AbstractFloat}(
   H::AbstractMatrix{T},
   vcmrot::TwoVarCompModelRotate{T},
   vcobsrot::TwoVarCompVariateRotate{T}
@@ -323,66 +325,67 @@ function fisher!{T <: AbstractFloat}(
   scale!(H, convert(T, 0.5))
 end # function fisher!
 
-function fisher{T <: AbstractFloat}(
+function fisher_Σ{T <: AbstractFloat}(
   vcmrot::TwoVarCompModelRotate{T},
   vcobsrot::TwoVarCompVariateRotate{T}
   )
 
   d = length(vcmrot.eigval)
   H = zeros(T, 2d^2, 2d^2)
-  fisher!(H, vcmrot, vcobsrot)
+  fisher_Σ!(H, vcmrot, vcobsrot)
 end
 
-function fisher!{T <: AbstractFloat}(
+function fisher_Σ!{T <: AbstractFloat}(
   H::AbstractMatrix{T},
   vcm::VarianceComponentModel{T, 2},
   vcobsrot::TwoVarCompVariateRotate{T}
   )
 
-  fisher!(H, TwoVarCompModelRotate(vcm), vcobsrot)
+  fisher_Σ!(H, TwoVarCompModelRotate(vcm), vcobsrot)
 end
 
-function fisher{T <: AbstractFloat}(
+function fisher_Σ{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
   vcobsrot::TwoVarCompVariateRotate{T}
   )
 
-  fisher(TwoVarCompModelRotate(vcm), vcobsrot)
+  fisher_Σ(TwoVarCompModelRotate(vcm), vcobsrot)
 end
 
-function fisher!{T <: AbstractFloat}(
+function fisher_Σ!{T <: AbstractFloat}(
   H::AbstractMatrix{T},
   vcm::VarianceComponentModel{T, 2},
   vcobs::VarianceComponentVariate{T, 2}
   )
 
-  fisher!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
+  fisher_Σ!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
-function fisher{T <: AbstractFloat}(
+function fisher_Σ{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
   vcobs::VarianceComponentVariate{T, 2}
   )
 
-  fisher(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
+  fisher_Σ(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
 end
 
 
-function fisher!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+function fisher_Σ!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
   H::AbstractMatrix,
   vcm::T1,
   vcobs::Array{T2}
   )
 
-  copy!(H, fisher(vcm, vcobs))
+  copy!(H, fisher_Σ(vcm, vcobs))
 end
 
-function fisher{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+function fisher_Σ{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
   vcm::T1,
   vcobs::Array{T2}
   )
 
-  mapreduce(x -> fisher(vcm, x), +, vcobs)
+  mapreduce(x -> fisher_Σ(vcm, x), +, vcobs)
 end
 
 #---------------------------------------------------------------------------#
@@ -762,7 +765,7 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.qpsolver,
     dd.Xwork, dd.ywork, dd.obswt)
   # Hessian wrt (Σ1, Σ2)
-  fisher!(dd.HΣ, dd.vcmodel, dd.vcdatarot)
+  fisher_Σ!(dd.HΣ, dd.vcmodel, dd.vcdatarot)
   # chain rule for Hessian wrt Cholesky factor
   # only the lower left triangle
   # (1, 1) block
@@ -934,7 +937,7 @@ function mle_fs!{T1<:VarianceComponentModel, T2<:TwoVarCompVariateRotate}(
   Bcov = inv(fisher_B(vcmodel, vcdatarot))
   Bse = similar(vcmodel.B)
   copy!(Bse, sqrt(diag(Bcov)))
-  Σcov = inv(fisher(vcmodel, vcdatarot))
+  Σcov = inv(fisher_Σ(vcmodel, vcdatarot))
   Σse = (zeros(T, d, d), zeros(T, d, d))
   copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
@@ -1147,7 +1150,7 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
   Bcov = inv(Bcov)
   Bse = similar(vcm.B)
   copy!(Bse, sqrt(diag(Bcov)))
-  Σcov = inv(fisher(vcm, vcdatarot))
+  Σcov = inv(fisher_Σ(vcm, vcdatarot))
   Σse = (zeros(T, d, d), zeros(T, d, d))
   copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
   copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
@@ -1251,7 +1254,7 @@ function fit_reml!{T <: AbstractFloat}(
   # standard errors and covariance of mean parameters
   nmean = nmeanparams(vcmodel)
   covmatrix = zeros(T, nmean + 2d^2, nmean + 2d^2)
-  fisher!(covmatrix, vcmodel, vcdatarot)
+  fisher_Σ!(covmatrix, vcmodel, vcdatarot)
   Bcov = inv(covmatrix[1:nmean, 1:nmean])
   Bse = similar(vcmodel.B)
   copy!(Bse, sqrt(diag(Bcov)))
