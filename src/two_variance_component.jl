@@ -945,10 +945,10 @@ function suffstats_for_Σ!{T1 <: TwoVarCompModelRotate,
   T2 <: TwoVarCompVariateRotate, T3 <: AbstractMatrix}(
   vcmrot::T1,
   vcdatarot::Array{T2},
-  residual::Array{T3}
+  resid::Array{T3}
   )
 
-  mapreduce((x, y) -> suffstats_for_Σ!(vcmrot, x, y), +, vcdatarot, residual)
+  mapreduce(x -> suffstats_for_Σ!(vcmrot, x...), +, zip(vcdatarot, resid))
 end
 
 function +(
