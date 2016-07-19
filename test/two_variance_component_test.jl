@@ -83,52 +83,22 @@ H = zeros(p * d, p * d)
 @test vecnorm(fisher_B(vcmodel, [vcdata vcdata]) -
   fisher_B(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
-info("Update mean parameters from variance component parameters (no constraints)")
-vcmmean = deepcopy(vcmodel)
-#@code_warntype update_meanparam!(vcmmean, vcdatarot)
-@inferred update_meanparam!(vcmodel, vcdatarot)
-update_meanparam!(vcmmean, vcdatarot)
-@show vcmmean.B
-update_meanparam!(vcmmean, [vcdatarot vcdatarot])
-@show vcmmean.B
-
-info("Update mean parameters from variance component parameters (linear equality constraints)")
-vcmmean = deepcopy(vcmodel)
-vcmmean.A = [1.0 -1.0 zeros(1, p*d-2)]
-vcmmean.sense = '='
-vcmmean.b = 0.0
-#@code_warntype update_meanparam!(vcmmean, vcdatarot)
-update_meanparam!(vcmmean, vcdatarot, IpoptSolver(print_level = 0))
-@show vcmmean.B
-@test vcmmean.B[1] ≈ vcmmean.B[2]
-
-info("Update mean parameters from variance component parameters (box constraints)")
-vcmmean = deepcopy(vcmodel)
-vcmmean.lb = 0.0
-vcmmean.ub = 0.0
-#@code_warntype update_meanparam!(vcmmean, vcdatarot)
-@inferred update_meanparam!(vcmmean, vcdatarot)
-update_meanparam!(vcmmean, vcdatarot, IpoptSolver(print_level = 0))
-@show vcmmean.B
-@test all(vcmmean.B .≥ 0.0)
-@test all(vcmmean.B .≤ 1.0)
-
 info("Find MLE using Fisher scoring")
 vcmfs = deepcopy(vcmodel)
 #@code_warntype mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 #@inferred mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
-_, _, _, _, Bse_fs, = mle_fs!(vcmfs, [vcdatarot vcdatarot]; solver = :Ipopt)
+logl_fs_array, = mle_fs!(vcmfs, [vcdatarot vcdatarot]; solver = :Ipopt)
 
 info("Find MLE using MM algorithm")
 vcmmm = deepcopy(vcmodel)
 #@code_warntype mle_mm!(vcmm, vcdatarot)
 #@inferred mle_mm!(vcmmm, vcdatarot)
 logl_mm, = mle_mm!(vcmmm, vcdatarot)
-@show vcmfs.B
-@show vcmmm.B
 @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
-mle_mm!(vcmmm, [vcdatarot vcdatarot])
+vcmmm = deepcopy(vcmodel)
+logl_mm_array, = mle_mm!(vcmmm, [vcdatarot vcdatarot])
+@test abs(logl_fs_array - logl_mm_array) / (abs(logl_fs_array) + 1.0) < 1.0e-4
 
 info("Find MLE using Fisher scoring (linear equality + box constraints)")
 vcmfs       = deepcopy(vcmodel)
