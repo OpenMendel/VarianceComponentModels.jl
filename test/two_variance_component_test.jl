@@ -118,17 +118,17 @@ vcmfs = deepcopy(vcmodel)
 #@code_warntype mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 #@inferred mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
-@show vcmfs.B, Bse_fs, B
 _, _, _, _, Bse_fs, = mle_fs!(vcmfs, [vcdatarot vcdatarot]; solver = :Ipopt)
-@show vcmfs.B, Bse_fs, B
 
 info("Find MLE using MM algorithm")
-vcmm = deepcopy(vcmodel)
+vcmmm = deepcopy(vcmodel)
 #@code_warntype mle_mm!(vcmm, vcdatarot)
-@inferred mle_mm!(vcmm, vcdatarot)
-logl_mm, _, _, Σcov_mm = mle_mm!(vcmm, vcdatarot)
+#@inferred mle_mm!(vcmmm, vcdatarot)
+logl_mm, = mle_mm!(vcmmm, vcdatarot)
+@show vcmfs.B
+@show vcmmm.B
 @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
-mle_mm!(vcmm, [vcdatarot vcdatarot])
+mle_mm!(vcmmm, [vcdatarot vcdatarot])
 
 info("Find MLE using Fisher scoring (linear equality + box constraints)")
 vcmfs       = deepcopy(vcmodel)

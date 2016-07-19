@@ -444,7 +444,8 @@ end
 
 function residual{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
   vcmrot::T1,
-  vcdatarot::Array{T2})
+  vcdatarot::Array{T2}
+  )
 
   map(x -> residual(vcmrot, x), vcdatarot)
 end
@@ -452,14 +453,16 @@ end
 function residual!(
   resid::AbstractMatrix,
   vcmrot::TwoVarCompModelRotate,
-  vcobsrot::TwoVarCompVariateRotate)
+  vcobsrot::TwoVarCompVariateRotate
+  )
 
   if isempty(vcmrot.Brot)
     A_mul_B!(resid, vcobsrot.Yrot, vcmrot.eigvec)
   else
-    #A_mul_B!(resid, vcobsrot.Yrot, vcmrot.eigvec)
-    #resid -= vcobsrot.Xrot * vcmrot.Brot
-    copy!(resid, vcobsrot.Yrot * vcmrot.eigvec - vcobsrot.Xrot * vcmrot.Brot)
+    #copy!(resid, vcobsrot.Yrot * vcmrot.eigvec - vcobsrot.Xrot * vcmrot.Brot)
+    oneT = one(eltype(vcmrot))
+    A_mul_B!(resid, vcobsrot.Yrot, vcmrot.eigvec)
+    LinAlg.BLAS.gemm!('N', 'N', -oneT, vcobsrot.Xrot, vcmrot.Brot, oneT, resid)
   end
   resid
 end

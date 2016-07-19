@@ -22,11 +22,10 @@ function logpdf{T <: AbstractFloat}(
   )
 
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
-  nd = n * d
   zeroT, oneT = zero(T), one(T)
   res = residual(vcmrot, vcobsrot)
   # evaluate 2(log-likehood)
-  objval = convert(T, - nd * log(2π) - d * vcobsrot.logdetV2 - n * vcmrot.logdetΣ2)
+  objval = convert(T, - n * d * log(2π) - d * vcobsrot.logdetV2 - n * vcmrot.logdetΣ2)
   tmp, λj = zeroT, zeroT
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
@@ -915,16 +914,16 @@ function suffstats_for_Σ!(
   A1, b1 = zeros(T, d, d), zeros(T, d)
   A2, b2 = zeros(T, d, d), zeros(T, d)
   zeroT, oneT = zero(T), one(T)
-  λj, tmpij   = zeroT, zeroT
+  λj, tmp     = zeroT, zeroT
   # (rotated) residual
   residual!(resid, vcmrot, vcobsrot)
   # sufficient statistics for Σ2
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
     for i in 1:n
-      tmpij = oneT / (vcobsrot.eigval[i] * λj + oneT)
-      resid[i, j] *= tmpij
-      b2[j] += tmpij
+      tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
+      resid[i, j] *= tmp
+      b2[j] += tmp
     end
   end
   At_mul_B!(A2, resid, resid)
@@ -932,9 +931,9 @@ function suffstats_for_Σ!(
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
     for i in 1:n
-      tmpij = vcobsrot.eigval[i]
-      resid[i, j] *= √tmpij * λj
-      b1[j] += tmpij / (tmpij * λj + oneT)
+      tmp = vcobsrot.eigval[i]
+      resid[i, j] *= √tmp * λj
+      b1[j] += tmp / (tmp * λj + oneT)
     end
   end
   At_mul_B!(A1, resid, resid)
@@ -942,14 +941,14 @@ function suffstats_for_Σ!(
   return A1, b1, A2, b2
 end
 
-function suffstats_for_Σ!{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
+function suffstats_for_Σ!{T1 <: TwoVarCompModelRotate,
+  T2 <: TwoVarCompVariateRotate, T3 <: AbstractMatrix}(
   vcmrot::T1,
   vcdatarot::Array{T2},
-  residual::Array{AbstractMatrix}
+  residual::Array{T3}
   )
 
-  mapreduce((x, y, z) -> suffstats_for_Σ!(vcmrot, x, y, z), +,
-    vcdatarot, residual, diagentry)
+  mapreduce((x, y) -> suffstats_for_Σ!(vcmrot, x, y), +, vcdatarot, residual)
 end
 
 function +(
@@ -963,17 +962,16 @@ end
 function mm_update_Σ!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
   vcm::T1,
   vcdatarot::Union{T2, Array{T2}},
-  resid::Union{Matrix, Array{Matrix}}
+  resid::Union{AbstractMatrix, Array{AbstractMatrix}}
   )
 
-  T = eltype(vcm)
+  T, d = eltype(vcm), length(vcm)
   zeroT, oneT = zero(T), one(T)
-  d = length(vcm)
   # eigen-decomposition of (vcm.Σ[1], vcm.Σ[2])
   vcmrot = TwoVarCompModelRotate(vcm)
   # sufficient statistics for updating Σ1, Σ2
   A1, b1, A2, b2 = suffstats_for_Σ!(vcmrot, vcdatarot, resid)
-  for j in 1:d
+  @inbounds for j in 1:d
     b1[j] = √b1[j]
     b2[j] = √b2[j]
   end
@@ -982,7 +980,7 @@ function mm_update_Σ!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRota
   scale!(b1, A1), scale!(A1, b1)
   storage = eigfact!(Symmetric(A1))
   @inbounds for i in 1:d
-    storage.values[i] = storage.values[i] > zeroT ? √storage.values[i] : zeroT
+    storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
   scale!(storage.vectors, storage.values)
   scale!(oneT ./ b1, storage.vectors)
@@ -992,7 +990,7 @@ function mm_update_Σ!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRota
   scale!(b2, A2), scale!(A2, b2)
   storage = eigfact!(Symmetric(A2))
   @inbounds for i in 1:d
-    storage.values[i] = storage.values[i] > zeroT ? √storage.values[i] : zeroT
+    storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
   scale!(storage.vectors, storage.values)
   scale!(oneT ./ b2, storage.vectors)
@@ -1061,7 +1059,7 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
     Q = zeros(T, pd, pd)
     c = zeros(T, pd)
   end
-  if typeof(vcdatarot) == Array{T2}
+  if typeof(vcdatarot) <: AbstractArray
     res = map(x -> zeros(x.Yrot), vcdatarot)
   else
     res = zeros(vcdatarot.Yrot)
