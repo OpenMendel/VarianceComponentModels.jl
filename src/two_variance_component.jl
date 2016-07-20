@@ -107,30 +107,65 @@ function gradient!{T <: AbstractFloat}(
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
   zeroT, oneT = zero(T), one(T)
   residual!(vcaux.res, vcmrot, vcobsrot)
-  # evaluate gradient with respect to Σ[1], Σ[2]
-  m1diag = zeros(T, d)
-  m2diag = zeros(T, d)
-  tmp, λj = zeroT, zeroT
+  # # evaluate gradient with respect to Σ[1], Σ[2]
+  # m1diag = zeros(T, d)
+  # m2diag = zeros(T, d)
+  # tmp, λj = zeroT, zeroT
+  # @inbounds for j in 1:d
+  #   λj = vcmrot.eigval[j]
+  #   @simd for i in 1:n
+  #     tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
+  #     vcaux.res[i, j] *= tmp
+  #     m1diag[j] += vcobsrot.eigval[i] * tmp
+  #     m2diag[j] += tmp
+  #   end
+  # end
+  # N2 = At_mul_B(vcaux.res, vcaux.res)
+  # scale!(sqrt(vcobsrot.eigval), vcaux.res)
+  # N1 = At_mul_B(vcaux.res, vcaux.res)
+  # @inbounds for j in 1:d
+  #   N1[j, j] -= m1diag[j]
+  #   N2[j, j] -= m2diag[j]
+  # end
+  # A_mul_Bt!(N1, N1, vcmrot.eigvec), A_mul_B!(N1, vcmrot.eigvec, N1)
+  # A_mul_Bt!(N2, N2, vcmrot.eigvec), A_mul_B!(N2, vcmrot.eigvec, N2)
+  # copy!(sub(∇, 1:d^2), N1)
+  # copy!(sub(∇, (d^2 + 1):2d^2), N2)
+  # gradient wrt Σ[2]
+  tmp, λj, dg = zeroT, zeroT, zeros(T, d)
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
     @simd for i in 1:n
       tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
       vcaux.res[i, j] *= tmp
-      m1diag[j] += vcobsrot.eigval[i] * tmp
-      m2diag[j] += tmp
+      dg[j] += tmp
     end
   end
-  N2 = At_mul_B(vcaux.res, vcaux.res)
-  scale!(sqrt(vcobsrot.eigval), vcaux.res)
-  N1 = At_mul_B(vcaux.res, vcaux.res)
+  N = At_mul_B(vcaux.res, vcaux.res)
   @inbounds for j in 1:d
-    N1[j, j] -= m1diag[j]
-    N2[j, j] -= m2diag[j]
+    N[j, j] -= dg[j]
   end
-  N1 = vcmrot.eigvec * N1 * vcmrot.eigvec'
-  N2 = vcmrot.eigvec * N2 * vcmrot.eigvec'
-  ∇[1:d^2] = N1[:]
-  ∇[(d^2 + 1):(2d^2)] = N2[:]
+  #A_mul_Bt!(N, N, vcmrot.eigvec), A_mul_B!(N, vcmrot.eigvec, N)
+  N = vcmrot.eigvec * N * vcmrot.eigvec'
+  copy!(sub(∇, (d^2 + 1):2d^2), N)
+  # gradient wrt Σ[1]
+  @inbounds for j in 1:d
+    λj = vcmrot.eigval[j]
+    dg[j] = zeroT
+    @simd for i in 1:n
+      tmp = vcobsrot.eigval[i]
+      vcaux.res[i, j] *= √tmp
+      dg[j] += tmp / (tmp * λj + oneT)
+    end
+  end
+  At_mul_B!(N, vcaux.res, vcaux.res)
+  @inbounds for j in 1:d
+    N[j, j] -= dg[j]
+  end
+  #A_mul_Bt!(N, N, vcmrot.eigvec), A_mul_B!(N, vcmrot.eigvec, N)
+  N = vcmrot.eigvec * N * vcmrot.eigvec'
+  copy!(sub(∇, 1:d^2), N)
+  # scale by 0.5
   scale!(∇, convert(T, 0.5))
 end # function gradient!
 
@@ -263,26 +298,56 @@ function fisher_Σ!{T <: AbstractFloat}(
   vcobsrot::TwoVarCompVariateRotate{T}
   )
 
-  d = length(vcmrot)
+  n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
   zeroT, oneT = zero(T), one(T)
   fill!(H, zeroT)
   # evaluate Hessian with respect to Σ[1], Σ[2]
   C = zeros(T, d, d)
   Φ2 = kron(vcmrot.eigvec, vcmrot.eigvec)
   # (1, 1) block
-  C[:] = T[mapreduce(
-    x -> x^2 / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT),
-    +, vcobsrot.eigval) for i=1:d, j=1:d]
+  # C[:] = T[mapreduce(
+  #   x -> x^2 / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT),
+  #   +, vcobsrot.eigval) for i=1:d, j=1:d]
+  # A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
+  λi, λj, deval = zeroT, zeroT, zeroT
+  @inbounds for j in 1:d, i in j:d
+    λi, λj = vcmrot.eigval[i], vcmrot.eigval[j]
+    @simd for obs in 1:n
+      deval = vcobsrot.eigval[obs]
+      C[i, j] += deval * deval / (λi * deval + oneT) / (λj * deval + oneT)
+    end
+  end
+  LinAlg.copytri!(C, 'L')
   A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
   # (2, 1) block
-  C[:] = T[mapreduce(
-    x -> x / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
-    vcobsrot.eigval) for i=1:d, j=1:d]
+  # C[:] = T[mapreduce(
+  #   x -> x / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
+  #   vcobsrot.eigval) for i=1:d, j=1:d]
+  # A_mul_Bt!(sub(H, (d^2+1):(2d^2), 1:d^2), scale(Φ2, vec(C)), Φ2)
+  fill!(C, zeroT)
+  @inbounds for j in 1:d, i in j:d
+    λi, λj = vcmrot.eigval[i], vcmrot.eigval[j]
+    @simd for obs in 1:n
+      deval = vcobsrot.eigval[obs]
+      C[i, j] += deval / (λi * deval + oneT) / (λj * deval + oneT)
+    end
+  end
+  LinAlg.copytri!(C, 'L')
   A_mul_Bt!(sub(H, (d^2+1):(2d^2), 1:d^2), scale(Φ2, vec(C)), Φ2)
   # d-by-d (2, 2) block
-  C[:] = T[mapreduce(
-    x -> oneT / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
-    vcobsrot.eigval) for i=1:d, j=1:d]
+  # C[:] = T[mapreduce(
+  #   x -> oneT / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
+  #   vcobsrot.eigval) for i=1:d, j=1:d]
+  # A_mul_Bt!(sub(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), scale(Φ2, vec(C)), Φ2)
+  fill!(C, zeroT)
+  @inbounds for j in 1:d, i in j:d
+    λi, λj = vcmrot.eigval[i], vcmrot.eigval[j]
+    @simd for obs in 1:n
+      deval = vcobsrot.eigval[obs]
+      C[i, j] += oneT / (λi * deval + oneT) / (λj * deval + oneT)
+    end
+  end
+  LinAlg.copytri!(C, 'L')
   A_mul_Bt!(sub(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), scale(Φ2, vec(C)), Φ2)
   # copy to upper triangular part
   LinAlg.copytri!(H, 'L')
@@ -724,12 +789,16 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   @inbounds for j in 1:d
     # linear index of diagonal entries of L1
     idx = 1 + (j - 1) * d - div((j - 1) * (j - 2), 2)
-    dd.HL[:, idx] *= dd.L[1][j, j]
-    dd.HL[idx, :] *= dd.L[1][j, j]
+    for i in 1:nvar
+      dd.HL[i, idx] *= dd.L[1][j, j]
+      dd.HL[idx, i] *= dd.L[1][j, j]
+    end
     # linear index of diagonal entries of L2
     idx += nvarhalf
-    dd.HL[:, idx] *= dd.L[2][j, j]
-    dd.HL[idx, :] *= dd.L[2][j, j]
+    for i in 1:nvar
+      dd.HL[i, idx] *= dd.L[2][j, j]
+      dd.HL[idx, i] *= dd.L[2][j, j]
+    end
   end
   # output
   copy!(H, vech(dd.HL))
@@ -976,7 +1045,8 @@ function mm_update_Σ!{
   scale!(storage.vectors, storage.values)
   scale!(oneT ./ b1, storage.vectors)
   At_mul_B!(vcm.Σ[1], Φinv, storage.vectors)
-  A_mul_Bt!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
+  #A_mul_Bt!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
+  copy!(vcm.Σ[1], A_mul_Bt(vcm.Σ[1], vcm.Σ[1]))
   # update Σ2
   scale!(b2, A2), scale!(A2, b2)
   storage = eigfact!(Symmetric(A2))
@@ -986,7 +1056,8 @@ function mm_update_Σ!{
   scale!(storage.vectors, storage.values)
   scale!(oneT ./ b2, storage.vectors)
   At_mul_B!(vcm.Σ[2], Φinv, storage.vectors)
-  A_mul_Bt!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
+  #A_mul_Bt!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
+  copy!(vcm.Σ[2], A_mul_Bt(vcm.Σ[2], vcm.Σ[2]))
 end
 
 """
