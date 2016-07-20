@@ -151,7 +151,7 @@ vcmodel_mle = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.424500 seconds (376.24 k allocations: 35.750 MB, 2.45% gc time)
+      0.369037 seconds (13.81 k allocations: 23.961 MB, 1.31% gc time)
 
 
 The output of `fit_mle!` contains  
@@ -317,7 +317,7 @@ vcmodel_reml = deepcopy(vcmodel)
            9  -3.846631e+03
           10  -3.846630e+03
     
-      0.439750 seconds (518.76 k allocations: 34.737 MB, 9.35% gc time)
+      0.677764 seconds (16.35 k allocations: 62.680 MB, 1.06% gc time)
 
 
 The output of `fit_reml!` contains
@@ -332,7 +332,7 @@ logl
 
 
 
-    -3845.064174687702
+    -3844.377717902519
 
 
 
@@ -366,8 +366,8 @@ vcmodel_reml
 
 
     VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
-     1.11982   1.05614 
-     0.917773  0.986431,(
+     1.092     1.04727
+     0.955345  1.01632,(
     2x2 Array{Float64,2}:
       0.380594  -0.305485
      -0.305485   4.51994 ,
@@ -432,8 +432,8 @@ Bse
 
 
     2x2 Array{Float64,2}:
-     0.0765055  0.26305 
-     0.26305    0.904446
+     0.0425878  0.0484189
+     0.0430944  0.04964  
 
 
 
@@ -448,10 +448,10 @@ Bcov
 
 
     4x4 Array{Float64,2}:
-      0.00585309  -0.00467006  -0.00467006   0.00372613
-     -0.00467006   0.0691951    0.00372613  -0.0552092 
-     -0.00467006   0.00372613   0.0691951   -0.0552092 
-      0.00372613  -0.0552092   -0.0552092    0.818022  
+      0.00181372   -1.9846e-5    0.000240116  -2.40768e-6
+     -1.9846e-5     0.00185713  -2.40768e-6    0.00024024
+      0.000240116  -2.40768e-6   0.00234439   -2.81393e-5
+     -2.40768e-6    0.00024024  -2.81393e-5    0.00246413
 
 
 
@@ -502,7 +502,7 @@ vcmodel_mm = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.021407 seconds (372.18 k allocations: 12.394 MB, 19.16% gc time)
+      0.021236 seconds (9.75 k allocations: 619.875 KB)
 
 
 
@@ -585,11 +585,11 @@ vcmodel_ipopt = deepcopy(vcmodel)
     Number of Iterations....: 63
     
                                        (scaled)                 (unscaled)
-    Objective...............:   3.4496886481727677e+02    3.8443731733053764e+03
-    Dual infeasibility......:   2.2693632036307751e-07    2.5290047625444626e-06
+    Objective...............:   3.4496886481727671e+02    3.8443731733053760e+03
+    Dual infeasibility......:   2.2693632135739328e-07    2.5290047736252332e-06
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   2.2693632036307751e-07    2.5290047625444626e-06
+    Overall NLP error.......:   2.2693632135739328e-07    2.5290047736252332e-06
     
     
     Number of objective function evaluations             = 64
@@ -599,11 +599,11 @@ vcmodel_ipopt = deepcopy(vcmodel)
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.025
-    Total CPU secs in NLP function evaluations           =      0.389
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.019
+    Total CPU secs in NLP function evaluations           =      0.263
     
     EXIT: Solved To Acceptable Level.
-      0.344705 seconds (8.03 M allocations: 178.722 MB, 4.22% gc time)
+      0.314060 seconds (110.60 k allocations: 6.978 MB)
 
 
 
@@ -706,12 +706,12 @@ vcmodel_knitro = deepcopy(vcmodel)
     # of function evaluations           =         42
     # of gradient evaluations           =         42
     # of Hessian evaluations            =         40
-    Total program time (secs)           =       0.22907 (     0.228 CPU time)
-    Time spent in evaluations (secs)    =       0.22576
+    Total program time (secs)           =       0.18812 (     0.188 CPU time)
+    Time spent in evaluations (secs)    =       0.18277
     
     ===============================================================================
     
-      0.234995 seconds (5.15 M allocations: 115.082 MB, 4.41% gc time)
+      0.191113 seconds (73.31 k allocations: 4.642 MB)
 
 
     ### Could not find a valid license.
@@ -820,7 +820,7 @@ We first try the MM algorithm.
            9  -3.844650e+03
           10  -3.844650e+03
     
-      0.059954 seconds (376.25 k allocations: 10.876 MB, 7.08% gc time)
+      0.095903 seconds (34.73 k allocations: 1.715 MB)
 
 
 
@@ -927,10 +927,10 @@ vcmodel_constr
     
                                        (scaled)                 (unscaled)
     Objective...............:   3.4484507551948582e+02    3.8446498170293421e+03
-    Dual infeasibility......:   2.2694405772274184e-07    2.5301809187364578e-06
+    Dual infeasibility......:   2.2694405419276139e-07    2.5301808793809917e-06
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   2.2694405772274184e-07    2.5301809187364578e-06
+    Overall NLP error.......:   2.2694405419276139e-07    2.5301808793809917e-06
     
     
     Number of objective function evaluations             = 64
@@ -940,11 +940,11 @@ vcmodel_constr
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.030
-    Total CPU secs in NLP function evaluations           =      0.940
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.021
+    Total CPU secs in NLP function evaluations           =      0.650
     
     EXIT: Solved To Acceptable Level.
-      1.035646 seconds (8.10 M allocations: 154.309 MB, 7.46% gc time)
+      0.748622 seconds (160.13 k allocations: 8.986 MB, 17.15% gc time)
 
 
 
