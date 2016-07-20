@@ -3,8 +3,8 @@ module VarianceComponentModels
 using MathProgBase, Ipopt, KNITRO#, Mosek#, Gurobi
 import Base: eltype, length, size, mean, mean!, cov
 export VarianceComponentModel, VarianceComponentVariate,
-  TwoVarCompModelRotate, TwoVarCompVariateRotate, residual,
-  nvarcomps, nmeanparams, nvarparams, nparams,
+  TwoVarCompModelRotate, TwoVarCompVariateRotate, VarianceComponentAuxData,
+  residual, residual!, nvarcomps, nmeanparams, nvarparams, nparams,
   mean!, mean, cov!, cov
 
 """
@@ -277,7 +277,42 @@ function VarianceComponentModel(vcobsrot::TwoVarCompVariateRotate)
   VarianceComponentModel(B, Σ)
 end
 
-# Type of data
+"""
+Auxillary data for variance component model. This can be used as pre-allocated
+intermediate variable in iterative algorithm.
+"""
+immutable VarianceComponentAuxData{
+  T1 <: AbstractVecOrMat,
+  T2 <: AbstractMatrix,
+  T3 <: AbstractVector
+  }
+
+  res::T1     # same shape as response, p-by-d
+  Xwork::T2   # nd-by-pd
+  ywork::T3   # nd
+  obswt::T3   # nd
+end
+
+function VarianceComponentAuxData(vcobs::VarianceComponentVariate)
+  T     = eltype(vcobs)
+  res   = similar(vcobs.Y)
+  Xwork = zeros(T, length(vcobs.Y), nmeanparams(vcobs))
+  ywork = zeros(T, length(vcobs.Y))
+  obswt = zeros(T, length(vcobs.Y))
+  VarianceComponentAuxData{typeof(res), typeof(Xwork), typeof(ywork)}(res,
+    Xwork, ywork, obswt)
+end
+
+function VarianceComponentAuxData(vcobsrot::TwoVarCompVariateRotate)
+  T     = eltype(vcobsrot)
+  res   = similar(vcobsrot.Yrot)
+  Xwork = zeros(T, length(vcobsrot.Yrot), nmeanparams(vcobsrot))
+  ywork = zeros(T, length(vcobsrot.Yrot))
+  obswt = zeros(T, length(vcobsrot.Yrot))
+  VarianceComponentAuxData{typeof(res), typeof(Xwork), typeof(ywork)}(res,
+    Xwork, ywork, obswt)
+end
+
 """
     eltype(vcm)
     eltype(vcobs)

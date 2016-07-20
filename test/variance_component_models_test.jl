@@ -85,6 +85,14 @@ vcmodelfromrot = VarianceComponentModel(vcdatarot)
 @test size(vcmodelfromrot.B, 2) == d
 @test length(vcmodelfromrot.Σ) == m
 
+info("VarianceComponentAuxData from VarianceComponentVariate")
+vcobsaux1 = VarianceComponentAuxData(vcdata)
+vcobsaux2 = VarianceComponentAuxData(vcdatarot)
+@test size(vcobsaux1.res) == size(vcobsaux2.res)
+@test size(vcobsaux1.Xwork) == size(vcobsaux2.Xwork)
+@test size(vcobsaux1.ywork) == size(vcobsaux2.ywork)
+@test size(vcobsaux1.obswt) == size(vcobsaux2.obswt)
+
 info("Query functions")
 @test eltype(vcmodel) == eltype(B)
 @test eltype(vcdata) == eltype(Y)

@@ -89,13 +89,19 @@ vcmfs = deepcopy(vcmodel)
 #@inferred mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt)
 logl_fs_array, = mle_fs!(vcmfs, [vcdatarot vcdatarot]; solver = :Ipopt)
+@show vcmfs.B
+@show Bse_fs
+@show B
 
 info("Find MLE using MM algorithm")
 vcmmm = deepcopy(vcmodel)
 #@code_warntype mle_mm!(vcmm, vcdatarot)
 #@inferred mle_mm!(vcmmm, vcdatarot)
-logl_mm, = mle_mm!(vcmmm, vcdatarot)
+logl_mm, _, _, _, Bse_mm, = mle_mm!(vcmmm, vcdatarot)
 @test abs(logl_fs - logl_mm) / (abs(logl_fs) + 1.0) < 1.0e-4
+@show vcmmm.B
+@show Bse_mm
+@show B
 vcmmm = deepcopy(vcmodel)
 logl_mm_array, = mle_mm!(vcmmm, [vcdatarot vcdatarot])
 @test abs(logl_fs_array - logl_mm_array) / (abs(logl_fs_array) + 1.0) < 1.0e-4
@@ -142,14 +148,14 @@ vcmmle = deepcopy(vcmodel)
 logl_mle, _, _, Σcov_mle, Bse_mle, = fit_mle!(vcmmle, vcdata; algo = :MM)
 @show vcmmle.B, Bse_mle, B
 
-info("test fit_reml (FS)")
-vcmreml = deepcopy(vcmodel)
-logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
-@show vcmreml.B, Bse_reml, B
+# info("test fit_reml (FS)")
+# vcmreml = deepcopy(vcmodel)
+# logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
+# @show vcmreml.B, Bse_reml, B
 
-info("test fit_reml (MM)")
-vcmreml = deepcopy(vcmodel)
-logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
-@show vcmreml.B, Bse_reml, B
+# info("test fit_reml (MM)")
+# vcmreml = deepcopy(vcmodel)
+# logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
+# @show vcmreml.B, Bse_reml, B
 
 end # module VarianceComponentTypeTest

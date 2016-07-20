@@ -18,14 +18,19 @@ export heritability,
 Calculate log-pdf of a [`TwoVarCompVariateRotate`](@ref) instance under a
 [`TwoVarCompModelRotate`](@ref).
 """
-function logpdf{T <: AbstractFloat}(
-  vcmrot::TwoVarCompModelRotate{T},
-  vcobsrot::TwoVarCompVariateRotate{T}
+function logpdf{
+  T1 <: TwoVarCompModelRotate,
+  T2 <: TwoVarCompVariateRotate,
+  T3 <: VarianceComponentAuxData}(
+  vcmrot::T1,
+  vcobsrot::T2,
+  vcaux::T3 = VarianceComponentAuxData(vcobsrot)
   )
 
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
+  T = eltype(vcmrot)
   zeroT, oneT = zero(T), one(T)
-  res = residual(vcmrot, vcobsrot)
+  residual!(vcaux.res, vcmrot, vcobsrot)
   # evaluate 2(log-likehood)
   objval = convert(T, - n * d * log(2π) - d * vcobsrot.logdetV2 - n * vcmrot.logdetΣ2)
   tmp, λj = zeroT, zeroT
@@ -33,7 +38,7 @@ function logpdf{T <: AbstractFloat}(
     λj = vcmrot.eigval[j]
     @simd for i in 1:n
       tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
-      objval += log(tmp) - tmp * res[i, j]^2
+      objval += log(tmp) - tmp * vcaux.res[i, j]^2
     end
   end
   objval /= 2
@@ -45,37 +50,31 @@ end
 Calculate log-pdf of a [`TwoVarCompVariateRotate`](@ref) instance under a
 [`VarianceComponentModel`](@ref).
 """
-function logpdf{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2},
-  vcobsrot::TwoVarCompVariateRotate{T}
+function logpdf{
+  T1 <: VarianceComponentModel,
+  T2 <: Union{TwoVarCompVariateRotate, VarianceComponentVariate},
+  T3 <: VarianceComponentAuxData}(
+  vcm::T1,
+  vcobs::T2,
+  vcaux::T3 = VarianceComponentAuxData(vcobs)
   )
 
-  logpdf(TwoVarCompModelRotate(vcm), vcobsrot)
-end
-
-"""
-    logpdf(vcm, vcobsrot)
-
-Calculate log-pdf of a [`VarianceComponentVariate`](@ref) instance under a
-[`VarianceComponentModel`](@ref).
-"""
-function logpdf{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2},
-  vcobsrot::VarianceComponentVariate{T, 2}
-  )
-
-  logpdf(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
+  logpdf(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
 """
 Calculate log-pdf of an array of variance component instances.
 """
-function logpdf{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+function logpdf{
+  T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
+  T3 <: VarianceComponentAuxData}(
   vcm::T1,
-  vcobs::Array{T2}
+  vcdata::Array{T2},
+  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
   )
 
-  mapreduce(x -> logpdf(vcm, x), +, vcobs)
+  mapreduce(x -> logpdf(vcm, x...), +, zip(vcdata, vcaux))
 end
 
 #---------------------------------------------------------------------------#
@@ -101,12 +100,13 @@ Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
 function gradient!{T <: AbstractFloat}(
   ∇::AbstractVector{T},
   vcmrot::TwoVarCompModelRotate{T},
-  vcobsrot::TwoVarCompVariateRotate{T}
+  vcobsrot::TwoVarCompVariateRotate{T},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobsrot)
   )
 
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
   zeroT, oneT = zero(T), one(T)
-  res = residual(vcmrot, vcobsrot)
+  residual!(vcaux.res, vcmrot, vcobsrot)
   # evaluate gradient with respect to Σ[1], Σ[2]
   m1diag = zeros(T, d)
   m2diag = zeros(T, d)
@@ -115,14 +115,14 @@ function gradient!{T <: AbstractFloat}(
     λj = vcmrot.eigval[j]
     @simd for i in 1:n
       tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
-      res[i, j] *= tmp
+      vcaux.res[i, j] *= tmp
       m1diag[j] += vcobsrot.eigval[i] * tmp
       m2diag[j] += tmp
     end
   end
-  N2 = At_mul_B(res, res)
-  scale!(sqrt(vcobsrot.eigval), res)
-  N1 = At_mul_B(res, res)
+  N2 = At_mul_B(vcaux.res, vcaux.res)
+  scale!(sqrt(vcobsrot.eigval), vcaux.res)
+  N1 = At_mul_B(vcaux.res, vcaux.res)
   @inbounds for j in 1:d
     N1[j, j] -= m1diag[j]
     N2[j, j] -= m2diag[j]
@@ -152,12 +152,13 @@ Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
 """
 function gradient{T <: AbstractFloat}(
   vcmrot::TwoVarCompModelRotate{T},
-  vcobsrot::TwoVarCompVariateRotate{T}
+  vcobsrot::TwoVarCompVariateRotate{T},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobsrot)
   )
 
   d = length(vcmrot)
   ∇ = zeros(T, 2d^2)
-  gradient!(∇, vcmrot, vcobsrot)
+  gradient!(∇, vcmrot, vcobsrot, vcaux)
 end
 
 """
@@ -179,36 +180,13 @@ Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
 function gradient!{T <: AbstractFloat}(
   ∇::AbstractVector{T},
   vcm::VarianceComponentModel{T, 2},
-  vcobsrot::TwoVarCompVariateRotate{T}
+  vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   )
 
-  gradient!(∇, TwoVarCompModelRotate(vcm), vcobsrot)
+  gradient!(∇, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
-"""
-    gradient!(∇, vcm, vcobsrot)
-
-Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
-
-# Input
-- `∇::Vector`: gradient vector.
-- `vcm`: variance component model [`VarianceComponentModel`](@ref).
-- `vcobs`: two variance component data [`VarianceComponentVariate`](@ref).
-
-# Output
-- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
-
-# TODO
-- optimize computation
-"""
-function gradient!{T <: AbstractFloat}(
-  ∇::AbstractVector{T},
-  vcm::VarianceComponentModel{T, 2},
-  vcobs::VarianceComponentVariate{T, 2}
-  )
-
-  gradient!(∇, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
-end
 
 """
     gradient(vcm, vcobsrot)
@@ -227,51 +205,37 @@ Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
 """
 function gradient{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
-  vcobsrot::TwoVarCompVariateRotate{T}
+  vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   )
 
-  gradient(TwoVarCompModelRotate(vcm), vcobsrot)
+  gradient(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
-"""
-    gradient(vcm, vcobsrot)
-
-Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
-
-# Input
-- `vcm`: two variance component model [`VarianceComponentModel`](@ref).
-- `vcobs`: two variance component data [`VarianceComponentModel`](@ref).
-
-# Output
-- `∇`: gradient vector at `Σ = (Σ[1], Σ[2])`.
-
-# TODO
-- optimize computation
-"""
-function gradient{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2},
-  vcobs::VarianceComponentVariate{T, 2}
-  )
-
-  gradient(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
-end
-
-function gradient!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+function gradient!{
+  T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
+  T3 <: VarianceComponentAuxData}(
   ∇::AbstractVector,
   vcm::T1,
-  vcobs::Array{T2}
+  vcdata::Array{T2},
+  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
   )
 
-  copy!(∇, gradient(vcm, vcobs))
+  copy!(∇, gradient(vcm, vcdata, vcaux))
 end
 
 
-function gradient{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+function gradient{
+  T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
+  T3 <: VarianceComponentAuxData}(
   vcm::T1,
-  vcobs::Array{T2}
+  vcdata::Array{T2},
+  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
   )
 
-  mapreduce(x -> gradient(vcm, x), +, vcobs)
+  mapreduce(x -> gradient(vcm, x...), +, zip(vcdata, vcaux))
 end
 
 #---------------------------------------------------------------------------#
@@ -323,6 +287,8 @@ function fisher_Σ!{T <: AbstractFloat}(
   # copy to upper triangular part
   LinAlg.copytri!(H, 'L')
   scale!(H, convert(T, 0.5))
+  # output
+  return H
 end # function fisher!
 
 function fisher_Σ{T <: AbstractFloat}(
@@ -338,39 +304,23 @@ end
 function fisher_Σ!{T <: AbstractFloat}(
   H::AbstractMatrix{T},
   vcm::VarianceComponentModel{T, 2},
-  vcobsrot::TwoVarCompVariateRotate{T}
+  vcobsrot::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}}
   )
 
-  fisher_Σ!(H, TwoVarCompModelRotate(vcm), vcobsrot)
+  fisher_Σ!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
 end
 
 function fisher_Σ{T <: AbstractFloat}(
   vcm::VarianceComponentModel{T, 2},
-  vcobsrot::TwoVarCompVariateRotate{T}
+  vcobsrot::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}}
   )
 
-  fisher_Σ(TwoVarCompModelRotate(vcm), vcobsrot)
+  fisher_Σ(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
 end
 
-function fisher_Σ!{T <: AbstractFloat}(
-  H::AbstractMatrix{T},
-  vcm::VarianceComponentModel{T, 2},
-  vcobs::VarianceComponentVariate{T, 2}
-  )
-
-  fisher_Σ!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
-end
-
-function fisher_Σ{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2},
-  vcobs::VarianceComponentVariate{T, 2}
-  )
-
-  fisher_Σ(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
-end
-
-
-function fisher_Σ!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+function fisher_Σ!{
+  T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
   H::AbstractMatrix,
   vcm::T1,
   vcobs::Array{T2}
@@ -379,7 +329,8 @@ function fisher_Σ!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate}, 
   copy!(H, fisher_Σ(vcm, vcobs))
 end
 
-function fisher_Σ{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+function fisher_Σ{
+  T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
   T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
   vcm::T1,
   vcobs::Array{T2}
@@ -411,12 +362,23 @@ variance component data `vcobsrot`.
 function fisher_B!{T <: AbstractFloat}(
   H::AbstractMatrix{T},
   vcmrot::TwoVarCompModelRotate{T},
-  vcobsrot::TwoVarCompVariateRotate{T}
+  vcobsrot::TwoVarCompVariateRotate{T},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobsrot)
   )
 
-  oneT = one(T)
-  M = kron(vcmrot.eigvec, vcobsrot.Xrot')
-  A_mul_Bt!(H, scale(M, oneT ./ (kron(vcobsrot.eigval, vcmrot.eigval) + oneT)), M)
+  zeroT, oneT = zero(T), one(T)
+  # working X
+  fill!(vcaux.Xwork, zeroT)
+  kronaxpy!(vcmrot.eigvec', vcobsrot.Xrot, vcaux.Xwork)
+  # working weights
+  fill!(vcaux.obswt, zeroT)
+  kronaxpy!(vcobsrot.eigval, vcmrot.eigval, vcaux.obswt)
+  @inbounds @simd for i in eachindex(vcaux.obswt)
+    vcaux.obswt[i] = oneT / √(vcaux.obswt[i] + oneT)
+  end
+  # weighted least squares
+  scale!(vcaux.obswt, vcaux.Xwork)
+  At_mul_B!(H, vcaux.Xwork, vcaux.Xwork)
 end
 
 function fisher_B{T <: AbstractFloat}(
@@ -431,59 +393,50 @@ end
 
 function fisher_B!{T <: AbstractFloat}(
   H::AbstractMatrix{T},
-  vcm::VarianceComponentModel{T, 2},
-  vcobsrot::TwoVarCompVariateRotate{T}
+  vcm::Union{VarianceComponentModel{T, 2}, TwoVarCompVariateRotate{T}},
+  vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   )
 
-  fisher_B!(H, TwoVarCompModelRotate(vcm), vcobsrot)
+  fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
-function fisher_B{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2},
-  vcobsrot::TwoVarCompVariateRotate{T}
+function fisher_B{
+  T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
+  T3 <: VarianceComponentAuxData}(
+  vcm::T1,
+  vcobs::T2,
+  vcaux::T3 = VarianceComponentAuxData(vcobs)
   )
 
-  H = zeros(T, nmeanparams(vcm), nmeanparams(vcm))
-  fisher_B!(H, TwoVarCompModelRotate(vcm), vcobsrot)
+  H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
+  fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
-function fisher_B!{T <: AbstractFloat}(
-  H::AbstractMatrix{T},
-  vcm::VarianceComponentModel{T, 2},
-  vcobs::VarianceComponentVariate{T, 2}
-  )
-
-  fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
-end
-
-function fisher_B{T <: AbstractFloat}(
-  vcm::VarianceComponentModel{T, 2},
-  vcobs::VarianceComponentVariate{T, 2}
-  )
-
-  H = zeros(T, nmeanparams(vcm), nmeanparams(vcm))
-  fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs))
-end
-
-function fisher_B!{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
-  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
-
+function fisher_B!{
+  T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
+  T3 <: VarianceComponentAuxData}(
   H::AbstractMatrix,
   vcm::T1,
-  vcobs::Array{T2}
+  vcdata::Array{T2},
+  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
   )
 
-  copy!(H, fisher_B(vcm, vcobs))
+  copy!(H, fisher_B(vcm, vcdata, vcaux))
 end
 
-function fisher_B{T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
-  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
-
+function fisher_B{
+  T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+  T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
+  T3 <: VarianceComponentAuxData}(
   vcm::T1,
-  vcobs::Array{T2}
+  vcdata::Array{T2},
+  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
   )
 
-  mapreduce(x -> fisher_B(vcm, x), +, vcobs)
+  mapreduce(x -> fisher_B(vcm, x...), +, zip(vcdata, vcaux))
 end
 
 #---------------------------------------------------------------------------#
@@ -491,47 +444,45 @@ end
 #---------------------------------------------------------------------------#
 
 """
-Compute the quadratic and linear parts of generalized least squares criterion.
+Compute the quadratic and linear parts of weighted least squares criterion.
 """
 function suffstats_for_B{T <: AbstractFloat}(
   vcmrot::TwoVarCompModelRotate{T},
-  vcdatarot::TwoVarCompVariateRotate{T},
-  Xwork::AbstractMatrix{T},
-  ywork::AbstractVector{T},
-  obswt::AbstractVector{T}
+  vcobsrot::TwoVarCompVariateRotate{T},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobsrot)
   )
 
   zeroT, oneT = zero(T), one(T)
   # working weights
-  fill!(obswt, zeroT)
-  kronaxpy!(vcmrot.eigval, vcdatarot.eigval, obswt)
-  @inbounds @simd for i in eachindex(obswt)
-    obswt[i] = oneT / (obswt[i] + oneT)
+  fill!(vcaux.obswt, zeroT)
+  kronaxpy!(vcmrot.eigval, vcobsrot.eigval, vcaux.obswt)
+  @inbounds @simd for i in eachindex(vcaux.obswt)
+    vcaux.obswt[i] = oneT / √(vcaux.obswt[i] + oneT)
   end
   # working X
-  fill!(Xwork, zeroT)
-  kronaxpy!(vcmrot.eigvec', vcdatarot.Xrot, Xwork)
-  scale!(obswt, Xwork)
+  fill!(vcaux.Xwork, zeroT)
+  kronaxpy!(vcmrot.eigvec', vcobsrot.Xrot, vcaux.Xwork)
+  scale!(vcaux.obswt, vcaux.Xwork)
   # working y
-  copy!(ywork, vcdatarot.Yrot * vcmrot.eigvec)
-  @inbounds @simd for i in eachindex(ywork)
-    ywork[i] *= obswt[i]
+  A_mul_B!(vcaux.res, vcobsrot.Yrot, vcmrot.eigvec)
+  @inbounds @simd for i in eachindex(vcaux.ywork)
+    vcaux.ywork[i] = vcaux.res[i] * vcaux.obswt[i]
   end
   # output
-  return At_mul_B(Xwork, Xwork), At_mul_B(Xwork, ywork)
+  return At_mul_B(vcaux.Xwork, vcaux.Xwork), At_mul_B(vcaux.Xwork, vcaux.ywork)
 end
 
-function suffstats_for_B{T1 <: TwoVarCompModelRotate,
-  T2 <: TwoVarCompVariateRotate, T3 <: AbstractMatrix, T4 <: AbstractVector}(
+function suffstats_for_B{
+  T1 <: TwoVarCompModelRotate,
+  T2 <: TwoVarCompVariateRotate,
+  T3 <: VarianceComponentAuxData}(
   vcmrot::T1,
   vcdatarot::Array{T2},
-  Xwork::Array{T3},
-  ywork::Array{T4},
-  obswt::Array{T4},
+  vcaux::Array{T3}
   )
 
   mapreduce(x -> suffstats_for_B(vcmrot, x...), +,
-    zip(vcdatarot, Xwork, ywork, obswt))
+    zip(vcdatarot, vcaux))
 end
 
 function +(
@@ -557,13 +508,12 @@ Update mean parameters `vcm.B` by quadratic programming.
 """
 function update_meanparam!{
   T1 <: VarianceComponentModel,
-  T2 <: TwoVarCompVariateRotate}(
+  T2 <: TwoVarCompVariateRotate,
+  T3 <: VarianceComponentAuxData}(
   vcm::T1,
   vcdatarot::Union{T2, Array{T2}},
   qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver,
-  Xwork::AbstractArray,
-  ywork::AbstractArray,
-  obswt::AbstractArray
+  vcaux::Union{T3, Array{T3}}
   )
 
   # quick return if there is no mean parameters
@@ -571,7 +521,7 @@ function update_meanparam!{
   # rotate the model
   vcmrot = TwoVarCompModelRotate(vcm)
   # accumlate the quadratic and linear parts of QP
-  Q, c = suffstats_for_B(vcmrot, vcdatarot, Xwork, ywork, obswt)
+  Q, c = suffstats_for_B(vcmrot, vcdatarot, vcaux)
   # quadratic programming
   qpsol = quadprog(-c, Q, vcm.A, vcm.sense, vcm.b, vcm.lb, vcm.ub, qpsolver)
   if qpsol.status ≠ :Optimal
@@ -604,7 +554,8 @@ type TwoVarCompOptProb{
   T1 <: VarianceComponentModel,
   T2 <: TwoVarCompVariateRotate,
   T3 <: AbstractMatrix,
-  T4 <: AbstractVector} <: MathProgBase.AbstractNLPEvaluator
+  T4 <: AbstractVector,
+  T5 <: Union{VarianceComponentAuxData, AbstractArray}} <: MathProgBase.AbstractNLPEvaluator
   # variance component model and data
   vcmodel::T1
   vcdatarot::Union{T2, Array{T2}}
@@ -615,9 +566,7 @@ type TwoVarCompOptProb{
   ∇Σ::T4           # graident wrt (Σ1, Σ2)
   HΣ::T3           # Hessian wrt (Σ1, Σ2)
   HL::T3           # Hessian wrt (L1, L2)
-  Xwork::Union{T3, Array{T3}}        # nd-by-pd working matrix
-  ywork::Union{T4, Array{T4}}        # nd working vector
-  obswt::Union{T4, Array{T4}}        # nd working vector
+  vcaux::T5
 end
 
 """
@@ -628,8 +577,9 @@ Constructor of [`TwoVarCompOptProb`](@ref) from [`VarianceComponentModel`](@ref)
 [`TwoVarCompVariateRotate`](@ref) `vcobsrot`, and input quadratic programming
 sovler `qpsolver`.
 """
-function TwoVarCompOptProb{T1<:VarianceComponentModel,
-  T2<:TwoVarCompVariateRotate}(
+function TwoVarCompOptProb{
+  T1 <: VarianceComponentModel,
+  T2 <: TwoVarCompVariateRotate}(
   vcm::T1,
   vcdatarot::Union{T2, Array{T2}},
   qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver
@@ -642,24 +592,17 @@ function TwoVarCompOptProb{T1<:VarianceComponentModel,
   nvar = nvarparams(vcm)
   # allocate intermediate variables
   L  = (zeros(T, d, d), zeros(T, d, d))
-  ∇Σ = zeros(T, 2d^2) # graident wrt (Σ1, Σ2)
+  ∇Σ = zeros(T, 2d^2)       # graident wrt (Σ1, Σ2)
   HΣ = zeros(T, 2d^2, 2d^2) # Hessian wrt (Σ1, Σ2)
   HL = zeros(T, nvar, nvar) # Hessian wrt Ls
   if typeof(vcdatarot) <: AbstractArray
-    Xwork = map(x -> zeros(T, length(x.Yrot), pd), vcdatarot)
-    ywork = map(x -> zeros(T, length(x.Yrot)), vcdatarot)
-    obswt = map(x -> zeros(T, length(x.Yrot)), vcdatarot)
+    vcaux = map(x -> VarianceComponentAuxData(x), vcdatarot)
     return TwoVarCompOptProb{typeof(vcm), eltype(vcdatarot), typeof(HΣ),
-      typeof(∇Σ)}(vcm, vcdatarot, qpsolver, L, ∇Σ, HΣ, HL,
-      Xwork, ywork, obswt)
+      typeof(∇Σ), typeof(vcaux)}(vcm, vcdatarot, qpsolver, L, ∇Σ, HΣ, HL, vcaux)
   else
-    nd    = length(vcdatarot.Yrot)
-    Xwork = zeros(T, nd, pd)
-    ywork = zeros(T, nd)
-    obswt = zeros(T, nd)
+    vcaux = VarianceComponentAuxData(vcdatarot)
     return TwoVarCompOptProb{typeof(vcm), typeof(vcdatarot), typeof(HΣ),
-      typeof(∇Σ)}(vcm, vcdatarot, qpsolver, L, ∇Σ, HΣ, HL,
-      Xwork, ywork, obswt)
+      typeof(∇Σ), typeof(vcaux)}(vcm, vcdatarot, qpsolver, L, ∇Σ, HΣ, HL, vcaux)
   end
 end
 
@@ -710,10 +653,9 @@ function MathProgBase.eval_f{T}(dd::TwoVarCompOptProb, x::Vector{T})
   # update variance parameter from optim variable x
   optimparam_to_vcparam!(dd, x)
   # update mean parameters
-  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.qpsolver,
-    dd.Xwork, dd.ywork, dd.obswt)
+  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.qpsolver, dd.vcaux)
   # evaluate profile log-pdf
-  logpdf(dd.vcmodel, dd.vcdatarot)
+  logpdf(dd.vcmodel, dd.vcdatarot, dd.vcaux)
 end # function MathProgBase.eval_f
 
 function MathProgBase.eval_grad_f{T}(
@@ -728,10 +670,9 @@ function MathProgBase.eval_grad_f{T}(
   # update variance parameter from optim variable x
   optimparam_to_vcparam!(dd, x)
   # update mean parameters
-  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.qpsolver,
-    dd.Xwork, dd.ywork, dd.obswt)
+  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.qpsolver, dd.vcaux)
   # gradient wrt (Σ[1], Σ[2])
-  gradient!(dd.∇Σ, dd.vcmodel, dd.vcdatarot)
+  gradient!(dd.∇Σ, dd.vcmodel, dd.vcdatarot, dd.vcaux)
   # chain rule for gradient wrt Cholesky factor
   chol_gradient!(sub(grad_f, 1:nvarhalf), dd.∇Σ[1:d^2], dd.L[1])
   chol_gradient!(sub(grad_f, (nvarhalf+1):nvar), dd.∇Σ[(d^2+1):end], dd.L[2])
@@ -762,8 +703,7 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   # update variance parameter from optim variable x
   optimparam_to_vcparam!(dd, x)
   # update mean parameters
-  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.qpsolver,
-    dd.Xwork, dd.ywork, dd.obswt)
+  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.qpsolver, dd.vcaux)
   # Hessian wrt (Σ1, Σ2)
   fisher_Σ!(dd.HΣ, dd.vcmodel, dd.vcdatarot)
   # chain rule for Hessian wrt Cholesky factor
@@ -927,14 +867,13 @@ function mle_fs!{T1<:VarianceComponentModel, T2<:TwoVarCompVariateRotate}(
   # retrieve variance component parameters
   optimparam_to_vcparam!(dd, x)
   # update mean parameters
-  update_meanparam!(vcmodel, vcdatarot, dd.qpsolver,
-    dd.Xwork, dd.ywork, dd.obswt)
+  update_meanparam!(dd.vcmodel, dd.vcdatarot, dd.qpsolver, dd.vcaux)
   # update final objective value
-  maxlogl = logpdf(vcmodel, vcdatarot)
+  maxlogl = logpdf(vcmodel, vcdatarot, dd.vcaux)
 
   # standard errors
   Bcov = zeros(T, nmean, nmean)
-  Bcov = inv(fisher_B(vcmodel, vcdatarot))
+  Bcov = inv(fisher_B(vcmodel, vcdatarot, dd.vcaux))
   Bse = similar(vcmodel.B)
   copy!(Bse, sqrt(diag(Bcov)))
   Σcov = inv(fisher_Σ(vcmodel, vcdatarot))
@@ -953,7 +892,7 @@ end # function mle_fs
 function suffstats_for_Σ!(
   vcmrot::TwoVarCompModelRotate,
   vcobsrot::TwoVarCompVariateRotate,
-  resid::AbstractMatrix
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobsrot)
   )
 
   T = eltype(vcmrot)
@@ -963,39 +902,41 @@ function suffstats_for_Σ!(
   zeroT, oneT = zero(T), one(T)
   λj, tmp     = zeroT, zeroT
   # (rotated) residual
-  residual!(resid, vcmrot, vcobsrot)
+  residual!(vcaux.res, vcmrot, vcobsrot)
   # sufficient statistics for Σ2
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
     for i in 1:n
       tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
-      resid[i, j] *= tmp
+      vcaux.res[i, j] *= tmp
       b2[j] += tmp
     end
   end
-  At_mul_B!(A2, resid, resid)
+  At_mul_B!(A2, vcaux.res, vcaux.res)
   # sufficient statistics for Σ1
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
     for i in 1:n
       tmp = vcobsrot.eigval[i]
-      resid[i, j] *= √tmp * λj
+      vcaux.res[i, j] *= √tmp * λj
       b1[j] += tmp / (tmp * λj + oneT)
     end
   end
-  At_mul_B!(A1, resid, resid)
+  At_mul_B!(A1, vcaux.res, vcaux.res)
   # output
   return A1, b1, A2, b2
 end
 
-function suffstats_for_Σ!{T1 <: TwoVarCompModelRotate,
-  T2 <: TwoVarCompVariateRotate, T3 <: AbstractMatrix}(
+function suffstats_for_Σ!{
+  T1 <: TwoVarCompModelRotate,
+  T2 <: TwoVarCompVariateRotate,
+  T3 <: VarianceComponentAuxData}(
   vcmrot::T1,
   vcdatarot::Array{T2},
-  resid::Array{T3}
+  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdatarot)
   )
 
-  mapreduce(x -> suffstats_for_Σ!(vcmrot, x...), +, zip(vcdatarot, resid))
+  mapreduce(x -> suffstats_for_Σ!(vcmrot, x...), +, zip(vcdatarot, vcaux))
 end
 
 function +(
@@ -1006,10 +947,13 @@ function +(
   x[1] + y[1], x[2] + y[2], x[3] + y[3], x[4] + y[4]
 end
 
-function mm_update_Σ!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
+function mm_update_Σ!{
+  T1 <: VarianceComponentModel,
+  T2 <: TwoVarCompVariateRotate,
+  T3 <: Union{VarianceComponentAuxData, AbstractArray}}(
   vcm::T1,
   vcdatarot::Union{T2, Array{T2}},
-  resid::Union{AbstractMatrix, Array{AbstractMatrix}}
+  vcaux::T3
   )
 
   T, d = eltype(vcm), length(vcm)
@@ -1017,7 +961,7 @@ function mm_update_Σ!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRota
   # eigen-decomposition of (vcm.Σ[1], vcm.Σ[2])
   vcmrot = TwoVarCompModelRotate(vcm)
   # sufficient statistics for updating Σ1, Σ2
-  A1, b1, A2, b2 = suffstats_for_Σ!(vcmrot, vcdatarot, resid)
+  A1, b1, A2, b2 = suffstats_for_Σ!(vcmrot, vcdatarot, vcaux)
   @inbounds for j in 1:d
     b1[j] = √b1[j]
     b2[j] = √b2[j]
@@ -1082,8 +1026,7 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
   verbose::Bool = true,
   )
 
-  T = eltype(vcm)
-  d, pd = length(vcm), nmeanparams(vcm)
+  T, d, pd = eltype(vcm), length(vcm), nmeanparams(vcm)
   # set up QP solver
   if qpsolver == :Ipopt
     qs = IpoptSolver(print_level = 0)
@@ -1092,8 +1035,14 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
   elseif qpsolver == :Mosek
     qs = MosekSolver(MSK_IPAR_LOG = 0)
   end
+  # allocate intermediate variables
+  if typeof(vcdatarot) <: AbstractArray
+    vcaux = map(x -> VarianceComponentAuxData(x), vcdatarot)
+  else
+    vcaux = VarianceComponentAuxData(vcdatarot)
+  end
   # initial log-likelihood
-  logl::T = logpdf(vcm, vcdatarot)
+  logl::T = logpdf(vcm, vcdatarot, vcaux)
   if verbose
     println()
     println("     MM Algorithm")
@@ -1101,38 +1050,22 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
     println("--------  -------------")
     @printf("%8.d  %13.e\n", 0, logl)
   end
-  # allocate intermediate variables
-  if pd > 0
-    Q = zeros(T, pd, pd)
-    c = zeros(T, pd)
-  end
-  if typeof(vcdatarot) <: AbstractArray
-    res = map(x -> zeros(x.Yrot), vcdatarot)
-    Xwork = map(x -> zeros(T, length(x.Yrot), pd), vcdatarot)
-    ywork = map(x -> zeros(T, length(x.Yrot)), vcdatarot)
-    obswt = map(x -> zeros(T, length(x.Yrot)), vcdatarot)
-  else
-    res = zeros(vcdatarot.Yrot)
-    Xwork = zeros(T, length(vcdatarot.Yrot), pd)
-    ywork = zeros(T, length(vcdatarot.Yrot))
-    obswt = zeros(T, length(vcdatarot.Yrot))
-  end
 
   # MM loop
   for iter in 1:maxiter
 
     # update Σ
-    mm_update_Σ!(vcm, vcdatarot, res)
+    mm_update_Σ!(vcm, vcdatarot, vcaux)
     # make sure the last variance component is pos. def.
     ϵ = convert(T, 1e-8)
     clamp_diagonal!(vcm.Σ[2], ϵ, T(Inf))
 
     # update mean parameters
-    if pd > 0; update_meanparam!(vcm, vcdatarot, qs, Xwork, ywork, obswt); end
+    if pd > 0; update_meanparam!(vcm, vcdatarot, qs, vcaux); end
 
     # check convergence
     loglold = logl
-    logl    = logpdf(vcm, vcdatarot)
+    logl    = logpdf(vcm, vcdatarot, vcaux)
     if verbose
       if (iter <= 10) || (iter > 10 && iter % 10 == 0)
         @printf("%8.d  %13.e\n", iter, logl)
@@ -1145,9 +1078,7 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
   if verbose; println(); end
 
   # standard errors
-  Bcov = zeros(T, pd, pd)
-  fisher_B!(Bcov, vcm, vcdatarot)
-  Bcov = inv(Bcov)
+  Bcov = inv(fisher_B(vcm, vcdatarot, vcaux))
   Bse = similar(vcm.B)
   copy!(Bse, sqrt(diag(Bcov)))
   Σcov = inv(fisher_Σ(vcm, vcdatarot))
@@ -1185,9 +1116,11 @@ Find MLE of variane component model.
 - `Bse`: standard errors of estimate `B`
 - `Bcov`: covariance of estimate `B`
 """
-function fit_mle!{T <: AbstractFloat}(
-  vcmodel::VarianceComponentModel{T, 2},
-  vcdata::VarianceComponentVariate{T, 2};
+function fit_mle!{
+  T1 <: VarianceComponentModel,
+  T2 <: VarianceComponentVariate}(
+  vcmodel::T1,
+  vcdata::Union{T2, Array{T2}};
   algo::Symbol = :FS
   )
 
@@ -1222,19 +1155,26 @@ Find restricted MLE (REML) of variane component model.
 - `Bse`: standard errors of estimate `B`
 - `Bcov`: covariance of estimate `B`
 """
-function fit_reml!{T <: AbstractFloat}(
-  vcmodel::VarianceComponentModel{T, 2},
-  vcdata::VarianceComponentVariate{T, 2};
+function fit_reml!{
+  T1 <: VarianceComponentModel,
+  T2 <: VarianceComponentVariate}(
+  vcmodel::T1,
+  vcdata::Union{T2, Array{T2}};
   algo::Symbol = :FS
   )
 
-  n, d = size(vcdata.Y, 1), size(vcdata.Y, 2)
+  d = length(vcmodel)
   vcdatarot = TwoVarCompVariateRotate(vcdata)
-  resrot = vcdatarot.Yrot - vcdatarot.Xrot * (vcdatarot.Xrot \ vcdatarot.Yrot)
+  # residual assuming (Σ[1], Σ[2]) = (eye(d), eye(d))
+  vcmtmp = deepcopy(vcmodel)
+  copy!(vcmtmp.Σ[1], eye(d)), copy!(vcmtmp.Σ[2], eye(d))
+  update_meanparam!(vcmtmp, vcdatarot)
+  resrot = residual(TwoVarCompModelRotate(vcmtmp), vcdatarot)
   # use residuals as responses
   resdatarot = TwoVarCompVariateRotate(resrot, zeros(T, n, 0),
     vcdatarot.eigval, vcdatarot.logdetV2)
-  resmodel = VarianceComponentModel(zeros(T, 0, d), vcmodel.Σ)
+  resmodel = deepcopy(vcmodel)
+  resmodel.B = zeros(T, 0, d)
   if algo == :FS
     _, _, Σse, Σcov, = mle_fs!(resmodel, resdatarot)
   elseif algo == :MM
@@ -1242,20 +1182,11 @@ function fit_reml!{T <: AbstractFloat}(
   end
 
   # estimate mean parameters from covariance estimate
-  oneT = one(T)
-  resmodelrot = TwoVarCompModelRotate(resmodel)
-  wt = oneT ./ sqrt(kron(resdatarot.eigval, resmodelrot.eigval) + oneT)
-  Xnew = kron(resmodelrot.eigvec', vcdatarot.Xrot)
-  Ynew = vec(vcdatarot.Yrot * resmodelrot.eigvec)
-  scale!(wt, Xnew)
-  Ynew = Ynew .* wt
-  copy!(vcmodel.B, Xnew \ Ynew)
+  copy!(vcmodel.Σ[1], resmodel.Σ[1]), copy!(vcmodel.Σ[2], resmodel.Σ[2])
+  update_meanparam!(vcmodel, vcdatarot)
 
   # standard errors and covariance of mean parameters
-  nmean = nmeanparams(vcmodel)
-  covmatrix = zeros(T, nmean + 2d^2, nmean + 2d^2)
-  fisher_Σ!(covmatrix, vcmodel, vcdatarot)
-  Bcov = inv(covmatrix[1:nmean, 1:nmean])
+  Bcov = inv(fisher_B(vcmodel, vcdatarot))
   Bse = similar(vcmodel.B)
   copy!(Bse, sqrt(diag(Bcov)))
 
