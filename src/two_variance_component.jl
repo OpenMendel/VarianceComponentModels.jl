@@ -107,30 +107,6 @@ function gradient!{T <: AbstractFloat}(
   n, d = size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2)
   zeroT, oneT = zero(T), one(T)
   residual!(vcaux.res, vcmrot, vcobsrot)
-  # # evaluate gradient with respect to Σ[1], Σ[2]
-  # m1diag = zeros(T, d)
-  # m2diag = zeros(T, d)
-  # tmp, λj = zeroT, zeroT
-  # @inbounds for j in 1:d
-  #   λj = vcmrot.eigval[j]
-  #   @simd for i in 1:n
-  #     tmp = oneT / (vcobsrot.eigval[i] * λj + oneT)
-  #     vcaux.res[i, j] *= tmp
-  #     m1diag[j] += vcobsrot.eigval[i] * tmp
-  #     m2diag[j] += tmp
-  #   end
-  # end
-  # N2 = At_mul_B(vcaux.res, vcaux.res)
-  # scale!(sqrt(vcobsrot.eigval), vcaux.res)
-  # N1 = At_mul_B(vcaux.res, vcaux.res)
-  # @inbounds for j in 1:d
-  #   N1[j, j] -= m1diag[j]
-  #   N2[j, j] -= m2diag[j]
-  # end
-  # A_mul_Bt!(N1, N1, vcmrot.eigvec), A_mul_B!(N1, vcmrot.eigvec, N1)
-  # A_mul_Bt!(N2, N2, vcmrot.eigvec), A_mul_B!(N2, vcmrot.eigvec, N2)
-  # copy!(sub(∇, 1:d^2), N1)
-  # copy!(sub(∇, (d^2 + 1):2d^2), N2)
   # gradient wrt Σ[2]
   tmp, λj, dg = zeroT, zeroT, zeros(T, d)
   @inbounds for j in 1:d
@@ -305,10 +281,6 @@ function fisher_Σ!{T <: AbstractFloat}(
   C = zeros(T, d, d)
   Φ2 = kron(vcmrot.eigvec, vcmrot.eigvec)
   # (1, 1) block
-  # C[:] = T[mapreduce(
-  #   x -> x^2 / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT),
-  #   +, vcobsrot.eigval) for i=1:d, j=1:d]
-  # A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
   λi, λj, deval = zeroT, zeroT, zeroT
   @inbounds for j in 1:d, i in j:d
     λi, λj = vcmrot.eigval[i], vcmrot.eigval[j]
@@ -320,10 +292,6 @@ function fisher_Σ!{T <: AbstractFloat}(
   LinAlg.copytri!(C, 'L')
   A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
   # (2, 1) block
-  # C[:] = T[mapreduce(
-  #   x -> x / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
-  #   vcobsrot.eigval) for i=1:d, j=1:d]
-  # A_mul_Bt!(sub(H, (d^2+1):(2d^2), 1:d^2), scale(Φ2, vec(C)), Φ2)
   fill!(C, zeroT)
   @inbounds for j in 1:d, i in j:d
     λi, λj = vcmrot.eigval[i], vcmrot.eigval[j]
@@ -335,10 +303,6 @@ function fisher_Σ!{T <: AbstractFloat}(
   LinAlg.copytri!(C, 'L')
   A_mul_Bt!(sub(H, (d^2+1):(2d^2), 1:d^2), scale(Φ2, vec(C)), Φ2)
   # d-by-d (2, 2) block
-  # C[:] = T[mapreduce(
-  #   x -> oneT / (vcmrot.eigval[i] * x + oneT) / (vcmrot.eigval[j] * x + oneT), +,
-  #   vcobsrot.eigval) for i=1:d, j=1:d]
-  # A_mul_Bt!(sub(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), scale(Φ2, vec(C)), Φ2)
   fill!(C, zeroT)
   @inbounds for j in 1:d, i in j:d
     λi, λj = vcmrot.eigval[i], vcmrot.eigval[j]
