@@ -142,20 +142,22 @@ info("test fit_mle (FS)")
 vcmmle = deepcopy(vcmodel)
 logl_mle, _, _, Σcov_mle, Bse_mle, = fit_mle!(vcmmle, vcdata; algo = :FS)
 @show vcmmle.B, Bse_mle, B
+vcmle = deepcopy(vcmodel)
+fit_mle!(vcmmle, [vcdata vcdata]; algo = :FS)
 
 info("test fit_mle (MM)")
 vcmmle = deepcopy(vcmodel)
 logl_mle, _, _, Σcov_mle, Bse_mle, = fit_mle!(vcmmle, vcdata; algo = :MM)
 @show vcmmle.B, Bse_mle, B
 
-# info("test fit_reml (FS)")
-# vcmreml = deepcopy(vcmodel)
-# logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
-# @show vcmreml.B, Bse_reml, B
+info("test fit_reml (FS)")
+vcmreml = deepcopy(vcmodel)
+logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
+@show vcmreml.B, Bse_reml, B
 
-# info("test fit_reml (MM)")
-# vcmreml = deepcopy(vcmodel)
-# logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
-# @show vcmreml.B, Bse_reml, B
+info("test fit_reml (MM)")
+vcmreml = deepcopy(vcmodel)
+logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
+@show vcmreml.B, Bse_reml, B
 
 end # module VarianceComponentTypeTest

@@ -134,7 +134,7 @@ model.
 - `X`: `n x p` predictors
 - `V`: tuple of `n x n` covariance matrices
 """
-immutable VarianceComponentVariate{T <: AbstractFloat, M,
+type VarianceComponentVariate{T <: AbstractFloat, M,
   YT <: AbstractVecOrMat, XT <: AbstractVecOrMat, VT <: AbstractMatrix}
   # data
   Y::YT
@@ -247,6 +247,10 @@ function TwoVarCompVariateRotate{T <: AbstractFloat}(
   TwoVarCompVariateRotate(Yrot, Xrot, deval, logdetV2)
 end
 
+function TwoVarCompVariateRotate{T <: VarianceComponentVariate}(vcdata::Array{T})
+  map(x -> TwoVarCompVariateRotate(x), vcdata)
+end
+
 """
     VarianceComponentModel(vcobs)
 
@@ -311,6 +315,14 @@ function VarianceComponentAuxData(vcobsrot::TwoVarCompVariateRotate)
   obswt = zeros(T, length(vcobsrot.Yrot))
   VarianceComponentAuxData{typeof(res), typeof(Xwork), typeof(ywork)}(res,
     Xwork, ywork, obswt)
+end
+
+function VarianceComponentAuxData{
+  T <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
+  vcdata::Array{T}
+  )
+
+  map(x -> VarianceComponentAuxData(x), vcdata)
 end
 
 """
@@ -462,6 +474,39 @@ Residual of [`VarianceComponentVariate`](@ref) under [`VarianceComponentModel`](
 """
 function residual(vcm::VarianceComponentModel, vcobs::VarianceComponentVariate)
   return isempty(vcobs.X)? vcobs.Y : vcobs.Y - vcobs.X * vcm.B
+end
+
+function residual{T1 <: VarianceComponentModel, T2 <: VarianceComponentVariate}(
+  vcm::T1,
+  vcdata::Array{T2}
+  )
+
+  map(x -> residual(vcm, x), vcdata)
+end
+
+function residual!(
+  resid::AbstractVecOrMat,
+  vcm::VarianceComponentModel,
+  vcobs::VarianceComponentVariate
+  )
+
+  if isempty(vcobs.X)
+    copy!(resid, vcobs.Y)
+  else
+    oneT = one(eltype(vcm))
+    copy!(resid, vcobs.Y)
+    LinAlg.BLAS.gemm!('N', 'N', -oneT, vcobs.X, vcm.B, oneT, resid)
+  end
+  resid
+end
+
+function residual!{T1 <: VarianceComponentModel, T2 <: VarianceComponentVariate}(
+  resid::AbstractArray,
+  vcm::T1,
+  vcdata::Array{T2}
+  )
+
+  map(x -> residual!(x[1], vcm, x[2]), zip(resid, vcdata))
 end
 
 """

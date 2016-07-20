@@ -71,7 +71,7 @@ function logpdf{
   T3 <: VarianceComponentAuxData}(
   vcm::T1,
   vcdata::Array{T2},
-  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
+  vcaux::Array{T3} = VarianceComponentAuxData(vcdata)
   )
 
   mapreduce(x -> logpdf(vcm, x...), +, zip(vcdata, vcaux))
@@ -243,7 +243,7 @@ function gradient{
   T3 <: VarianceComponentAuxData}(
   vcm::T1,
   vcdata::Array{T2},
-  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
+  vcaux::Array{T3} = VarianceComponentAuxData(vcdata)
   )
 
   mapreduce(x -> gradient(vcm, x...), +, zip(vcdata, vcaux))
@@ -450,7 +450,7 @@ function fisher_B!{
   H::AbstractMatrix,
   vcm::T1,
   vcdata::Array{T2},
-  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
+  vcaux::Array{T3} = VarianceComponentAuxData(vcdata)
   )
 
   copy!(H, fisher_B(vcm, vcdata, vcaux))
@@ -462,7 +462,7 @@ function fisher_B{
   T3 <: VarianceComponentAuxData}(
   vcm::T1,
   vcdata::Array{T2},
-  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
+  vcaux::Array{T3} = VarianceComponentAuxData(vcdata)
   )
 
   mapreduce(x -> fisher_B(vcm, x...), +, zip(vcdata, vcaux))
@@ -541,8 +541,9 @@ function update_meanparam!{
   T3 <: VarianceComponentAuxData}(
   vcm::T1,
   vcdatarot::Union{T2, Array{T2}},
-  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver,
-  vcaux::Union{T3, Array{T3}}
+  qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver
+    = MathProgBase.defaultQPsolver,
+  vcaux::Union{T3, Array{T3}} = VarianceComponentAuxData(vcdatarot)
   )
 
   # quick return if there is no mean parameters
@@ -581,13 +582,13 @@ problem
 """
 type TwoVarCompOptProb{
   T1 <: VarianceComponentModel,
-  T2 <: TwoVarCompVariateRotate,
+  T2 <: Union{TwoVarCompVariateRotate, AbstractArray},
   T3 <: AbstractMatrix,
   T4 <: AbstractVector,
   T5 <: Union{VarianceComponentAuxData, AbstractArray}} <: MathProgBase.AbstractNLPEvaluator
   # variance component model and data
   vcmodel::T1
-  vcdatarot::Union{T2, Array{T2}}
+  vcdatarot::T2
   # QP solver for updating B given Σ
   qpsolver::MathProgBase.SolverInterface.AbstractMathProgSolver
   # intermediate variables
@@ -624,15 +625,10 @@ function TwoVarCompOptProb{
   ∇Σ = zeros(T, 2d^2)       # graident wrt (Σ1, Σ2)
   HΣ = zeros(T, 2d^2, 2d^2) # Hessian wrt (Σ1, Σ2)
   HL = zeros(T, nvar, nvar) # Hessian wrt Ls
-  if typeof(vcdatarot) <: AbstractArray
-    vcaux = map(x -> VarianceComponentAuxData(x), vcdatarot)
-    return TwoVarCompOptProb{typeof(vcm), eltype(vcdatarot), typeof(HΣ),
-      typeof(∇Σ), typeof(vcaux)}(vcm, vcdatarot, qpsolver, L, ∇Σ, HΣ, HL, vcaux)
-  else
-    vcaux = VarianceComponentAuxData(vcdatarot)
-    return TwoVarCompOptProb{typeof(vcm), typeof(vcdatarot), typeof(HΣ),
-      typeof(∇Σ), typeof(vcaux)}(vcm, vcdatarot, qpsolver, L, ∇Σ, HΣ, HL, vcaux)
-  end
+  vcaux = VarianceComponentAuxData(vcdatarot)
+  # constructor
+  TwoVarCompOptProb{typeof(vcm), typeof(vcdatarot), typeof(HΣ),
+    typeof(∇Σ), typeof(vcaux)}(vcm, vcdatarot, qpsolver, L, ∇Σ, HΣ, HL, vcaux)
 end
 
 """
@@ -966,7 +962,7 @@ function suffstats_for_Σ!{
   T3 <: VarianceComponentAuxData}(
   vcmrot::T1,
   vcdatarot::Array{T2},
-  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdatarot)
+  vcaux::Array{T3} = VarianceComponentAuxData(vcdatarot)
   )
 
   mapreduce(x -> suffstats_for_Σ!(vcmrot, x...), +, zip(vcdatarot, vcaux))
@@ -983,10 +979,10 @@ end
 function mm_update_Σ!{
   T1 <: VarianceComponentModel,
   T2 <: TwoVarCompVariateRotate,
-  T3 <: Union{VarianceComponentAuxData, AbstractArray}}(
+  T3 <: VarianceComponentAuxData}(
   vcm::T1,
   vcdatarot::Union{T2, Array{T2}},
-  vcaux::T3
+  vcaux::Union{T3, Array{T3}} = VarianceComponentAuxData(vcdatarot)
   )
 
   T, d = eltype(vcm), length(vcm)
@@ -1071,11 +1067,7 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
     qs = MosekSolver(MSK_IPAR_LOG = 0)
   end
   # allocate intermediate variables
-  if typeof(vcdatarot) <: AbstractArray
-    vcaux = map(x -> VarianceComponentAuxData(x), vcdatarot)
-  else
-    vcaux = VarianceComponentAuxData(vcdatarot)
-  end
+  vcaux = VarianceComponentAuxData(vcdatarot)
   # initial log-likelihood
   logl::T = logpdf(vcm, vcdatarot, vcaux)
   if verbose
@@ -1195,19 +1187,45 @@ function fit_reml!{
   T2 <: VarianceComponentVariate}(
   vcmodel::T1,
   vcdata::Union{T2, Array{T2}};
-  algo::Symbol = :FS
+  algo::Symbol = :FS,
+  qpsolver::Symbol = :Ipopt
   )
 
-  d = length(vcmodel)
-  vcdatarot = TwoVarCompVariateRotate(vcdata)
-  # residual assuming (Σ[1], Σ[2]) = (eye(d), eye(d))
-  vcmtmp = deepcopy(vcmodel)
-  copy!(vcmtmp.Σ[1], eye(d)), copy!(vcmtmp.Σ[2], eye(d))
-  update_meanparam!(vcmtmp, vcdatarot)
-  resrot = residual(TwoVarCompModelRotate(vcmtmp), vcdatarot)
+  T, d = eltype(vcmodel), length(vcmodel)
+  vcaux = VarianceComponentAuxData(vcdata)
+  # solve regular least squares problem
+  if qpsolver == :Ipopt
+    qs = IpoptSolver(print_level = 0)
+  elseif qpsolver == :Gurobi
+    qs = GurobiSolver(OutputFlag = 0)
+  elseif qpsolver == :Mosek
+    qs = MosekSolver(MSK_IPAR_LOG = 0)
+  end
+  if typeof(vcdata) <: AbstractArray
+    Q = kron(eye(T, d), mapreduce(x -> At_mul_B(x.X, x.X), +, vcdata))
+    c = vec(mapreduce(x -> At_mul_B(x.X, x.Y), +, vcdata))
+  else
+    Q = kron(eye(T, d), At_mul_B(vcdata.X, vcdata.X))
+    c = vec(At_mul_B(vcdata.X, vcdata.Y))
+  end
+  qpsol = quadprog(-c, Q, vcmodel.A, vcmodel.sense, vcmodel.b,
+    vcmodel.lb, vcmodel.ub, qs)
+  if qpsol.status ≠ :Optimal
+    println("Error in quadratic programming $(qpsol.status)")
+  end
+  copy!(vcmodel.B, qpsol.sol)
   # use residuals as responses
-  resdatarot = TwoVarCompVariateRotate(resrot, zeros(T, n, 0),
-    vcdatarot.eigval, vcdatarot.logdetV2)
+  resdata = deepcopy(vcdata)
+  if typeof(vcdata) <: AbstractArray
+    for i in eachindex(resdata)
+      residual!(resdata[i].Y, vcmodel, vcdata[i])
+      resdata[i].X = zeros(T, size(resdata[i].Y, 1), 0)
+    end
+  else
+    residual!(resdata.Y, vcmodel, vcdata)
+    resdata.X = zeros(T, size(resdata.Y, 1), 0)
+  end
+  resdatarot = TwoVarCompVariateRotate(resdata)
   resmodel = deepcopy(vcmodel)
   resmodel.B = zeros(T, 0, d)
   if algo == :FS
@@ -1218,10 +1236,11 @@ function fit_reml!{
 
   # estimate mean parameters from covariance estimate
   copy!(vcmodel.Σ[1], resmodel.Σ[1]), copy!(vcmodel.Σ[2], resmodel.Σ[2])
-  update_meanparam!(vcmodel, vcdatarot)
+  vcdatarot = TwoVarCompVariateRotate(vcdata)
+  update_meanparam!(vcmodel, vcdatarot, qs, vcaux)
 
   # standard errors and covariance of mean parameters
-  Bcov = inv(fisher_B(vcmodel, vcdatarot))
+  Bcov = inv(fisher_B(vcmodel, vcdatarot, vcaux))
   Bse = similar(vcmodel.B)
   copy!(Bse, sqrt(diag(Bcov)))
 
