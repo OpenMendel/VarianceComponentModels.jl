@@ -123,7 +123,7 @@ function gradient!{T <: AbstractFloat}(
   end
   #A_mul_Bt!(N, N, vcmrot.eigvec), A_mul_B!(N, vcmrot.eigvec, N)
   N = vcmrot.eigvec * N * vcmrot.eigvec'
-  copy!(sub(∇, (d^2 + 1):2d^2), N)
+  copy!(∇, d^2 + 1, N, 1, d^2)
   # gradient wrt Σ[1]
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
@@ -140,9 +140,9 @@ function gradient!{T <: AbstractFloat}(
   end
   #A_mul_Bt!(N, N, vcmrot.eigvec), A_mul_B!(N, vcmrot.eigvec, N)
   N = vcmrot.eigvec * N * vcmrot.eigvec'
-  copy!(sub(∇, 1:d^2), N)
+  copy!(∇, N)
   # scale by 0.5
-  scale!(∇, convert(T, 0.5))
+  scale!(∇, 1//2)
 end # function gradient!
 
 """
@@ -1005,7 +1005,6 @@ function mm_update_Σ!{
   scale!(storage.vectors, storage.values)
   scale!(oneT ./ b1, storage.vectors)
   At_mul_B!(vcm.Σ[1], Φinv, storage.vectors)
-  #A_mul_Bt!(vcm.Σ[1], vcm.Σ[1], vcm.Σ[1])
   copy!(vcm.Σ[1], A_mul_Bt(vcm.Σ[1], vcm.Σ[1]))
   # update Σ2
   scale!(b2, A2), scale!(A2, b2)
@@ -1016,7 +1015,6 @@ function mm_update_Σ!{
   scale!(storage.vectors, storage.values)
   scale!(oneT ./ b2, storage.vectors)
   At_mul_B!(vcm.Σ[2], Φinv, storage.vectors)
-  #A_mul_Bt!(vcm.Σ[2], vcm.Σ[2], vcm.Σ[2])
   copy!(vcm.Σ[2], A_mul_Bt(vcm.Σ[2], vcm.Σ[2]))
 end
 

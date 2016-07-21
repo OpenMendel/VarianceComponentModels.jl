@@ -286,34 +286,33 @@ Auxillary data for variance component model. This can be used as pre-allocated
 intermediate variable in iterative algorithm.
 """
 immutable VarianceComponentAuxData{
-  T1 <: AbstractVecOrMat,
-  T2 <: AbstractMatrix,
-  T3 <: AbstractVector
+  T1 <: AbstractMatrix,
+  T2 <: AbstractVector
   }
 
   res::T1     # same shape as response, p-by-d
-  Xwork::T2   # nd-by-pd
-  ywork::T3   # nd
-  obswt::T3   # nd
+  Xwork::T1   # nd-by-pd
+  ywork::T2   # nd
+  obswt::T2   # nd
 end
 
 function VarianceComponentAuxData(vcobs::VarianceComponentVariate)
   T     = eltype(vcobs)
-  res   = similar(vcobs.Y)
+  res   = zeros(T, size(vcobs.Y, 1), size(vcobs.Y, 2))
   Xwork = zeros(T, length(vcobs.Y), nmeanparams(vcobs))
   ywork = zeros(T, length(vcobs.Y))
   obswt = zeros(T, length(vcobs.Y))
-  VarianceComponentAuxData{typeof(res), typeof(Xwork), typeof(ywork)}(res,
+  VarianceComponentAuxData{typeof(Xwork), typeof(ywork)}(res,
     Xwork, ywork, obswt)
 end
 
 function VarianceComponentAuxData(vcobsrot::TwoVarCompVariateRotate)
   T     = eltype(vcobsrot)
-  res   = similar(vcobsrot.Yrot)
+  res   = zeros(T, size(vcobsrot.Yrot, 1), size(vcobsrot.Yrot, 2))
   Xwork = zeros(T, length(vcobsrot.Yrot), nmeanparams(vcobsrot))
   ywork = zeros(T, length(vcobsrot.Yrot))
   obswt = zeros(T, length(vcobsrot.Yrot))
-  VarianceComponentAuxData{typeof(res), typeof(Xwork), typeof(ywork)}(res,
+  VarianceComponentAuxData{typeof(Xwork), typeof(ywork)}(res,
     Xwork, ywork, obswt)
 end
 
