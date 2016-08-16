@@ -7,8 +7,6 @@
 
 This [Julia](http://julialang.org/) package provides computational routines for fitting and testing variance component models. It is one component of the umbrella [OpenMendel](https://openmendel.github.io) project.
 
-[![](https://img.shields.io/badge/docs-current-blue.svg)](https://OpenMendel.github.io/VarianceComponentModels.jl)
-
 ## Installation
 
 *Note: Three OpenMendel packages - [SnpArrays](https://github.com/OpenMendel/SnpArrays.jl), [Search](https://github.com/OpenMendel/Search.jl), and [MendelBase](https://github.com/OpenMendel/MendelBase.jl) must be installed before any Mendel analysis packages will run.*
