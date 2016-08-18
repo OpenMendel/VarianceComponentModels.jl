@@ -5,7 +5,7 @@
 [![Coverage Status](https://coveralls.io/repos/github/OpenMendel/VarianceComponentModels.jl/badge.svg?branch=master)](https://coveralls.io/github/OpenMendel/VarianceComponentModels.jl?branch=master)
 [![codecov](https://codecov.io/gh/OpenMendel/VarianceComponentModels.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/OpenMendel/VarianceComponentModels.jl)
 
-This [Julia](http://julialang.org/) package provides computational routines for fitting and testing variance component models. It is one component of the umbrella [OpenMendel](https://openmendel.github.io) project.
+This [Julia](http://julialang.org/) package provides computational routines for fitting and testing variance component models. VarianceComponentModels is one package of the umbrella [OpenMendel](https://openmendel.github.io) project.
 
 [![](https://img.shields.io/badge/docs-current-blue.svg)](https://openmendel.github.io/VarianceComponentModels.jl/latest/)
 
