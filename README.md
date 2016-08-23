@@ -15,7 +15,7 @@ This [Julia](http://julialang.org/) package provides computational routines for 
 
 Within Julia, use the package manager to install VarianceComponentModels:
 
-    Pkg.clone("git@github.com:OpenMendel/VarianceComponentModels.jl.git")
+    Pkg.clone("https://github.com/OpenMendel/VarianceComponentModels.jl.git")
 
 This package supports Julia v0.4.
 
