@@ -192,16 +192,22 @@ immutable TwoVarCompVariateRotate{T <: AbstractFloat, YT <: AbstractVecOrMat,
   Yrot::YT
   Xrot::XT
   eigval::Vector{T}
+  ## JZ ###
+  eigvec::Matrix{T}
+  ## JZ ###
   logdetV2::T
+
   # inner constructor
+  ## JZ ###
   function TwoVarCompVariateRotate(Yrot::AbstractVecOrMat{T},
-    Xrot::AbstractVecOrMat{T}, eigval::Vector{T}, logdetV2::T)
-    new(Yrot, Xrot, eigval, logdetV2)
+    Xrot::AbstractVecOrMat{T}, eigval::Vector{T}, eigvec::Matrix{T},logdetV2::T)
+    new(Yrot, Xrot, eigval, eigvec,logdetV2)
   end
+  ## JZ ###
 end
 
 """
-    TwoVarCompVariateRotate(Yrot, Xrot, eigval, logdetV2)
+    TwoVarCompVariateRotate(Yrot, Xrot, eigval, eigvec,logdetV2)
 
 Default constructor of a [`TwoVarCompVariateRotate`](@ref) instance.
 """
@@ -209,10 +215,15 @@ function TwoVarCompVariateRotate(
   Yrot::AbstractVecOrMat,
   Xrot::AbstractVecOrMat,
   eigval::Vector,
+  ## JZ ###
+  eigvec::Matrix,
+  ## JZ ###
   logdetV2::Real)
 
+  ## JZ ###
   TwoVarCompVariateRotate{eltype(Yrot), typeof(Yrot), typeof(Xrot)}(Yrot, Xrot,
-    eigval, logdetV2)
+    eigval, eigvec,logdetV2)
+  ## JZ ###
 end
 
 """
@@ -244,7 +255,9 @@ function TwoVarCompVariateRotate{T <: AbstractFloat}(
   Yrot = At_mul_B(U, vcobs.Y)
   Xrot = isempty(vcobs.X) ? Array{T}(size(Yrot, 1), 0) : At_mul_B(U, vcobs.X)
   # output
-  TwoVarCompVariateRotate(Yrot, Xrot, deval, logdetV2)
+  ## JZ ###
+  TwoVarCompVariateRotate(Yrot, Xrot, deval, U,logdetV2)
+  ## JZ ###
 end
 
 function TwoVarCompVariateRotate{T <: VarianceComponentVariate}(vcdata::Array{T})
