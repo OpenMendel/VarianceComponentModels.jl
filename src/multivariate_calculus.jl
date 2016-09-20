@@ -171,7 +171,7 @@ function kronaxpy!{T <: Real}(A::AbstractVecOrMat{T},
     a = A[i, j]
     irange = ((i - 1) * p + 1):(i * p)
     jrange = ((j - 1) * q + 1):(j * q)
-    Yij = sub(Y, irange, jrange)  # view of (i, j)-block
+    Yij = view(Y, irange, jrange)  # view of (i, j)-block
     @simd for k in eachindex(Yij)
       Yij[k] += a * X[k]
     end
