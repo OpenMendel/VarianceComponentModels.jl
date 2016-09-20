@@ -67,7 +67,7 @@ H = zeros(2d^2, 2d^2)
 @test vecnorm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodelrot, vcdatarot)) ≈ 0.0
 @test vecnorm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodel, vcdatarot)) ≈ 0.0
 @test vecnorm(fisher_Σ(vcmodel, [vcdata vcdata]) -
-  2.fisher_Σ(vcmodel, vcdata)) ≈ 0.0
+  2fisher_Σ(vcmodel, vcdata)) ≈ 0.0
 @test vecnorm(fisher_Σ(vcmodel, [vcdata vcdata]) -
   fisher_Σ(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 

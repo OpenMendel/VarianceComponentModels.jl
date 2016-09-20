@@ -1,5 +1,8 @@
 module VarianceComponentModels
 
+using Compat
+import Compat.view
+
 using MathProgBase, Ipopt, KNITRO#, Mosek#, Gurobi
 import Base: eltype, length, size, mean, mean!, cov, +
 export VarianceComponentModel, VarianceComponentVariate,

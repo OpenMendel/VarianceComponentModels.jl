@@ -290,7 +290,7 @@ function fisher_Σ!{T <: AbstractFloat}(
     end
   end
   LinAlg.copytri!(C, 'L')
-  A_mul_Bt!(sub(H, 1:d^2, 1:d^2), scale(Φ2, vec(C)), Φ2)
+  A_mul_Bt!(view(H, 1:d^2, 1:d^2), Φ2 * Diagonal(vec(C)), Φ2)
   # (2, 1) block
   fill!(C, zeroT)
   @inbounds for j in 1:d, i in j:d
@@ -301,7 +301,7 @@ function fisher_Σ!{T <: AbstractFloat}(
     end
   end
   LinAlg.copytri!(C, 'L')
-  A_mul_Bt!(sub(H, (d^2+1):(2d^2), 1:d^2), scale(Φ2, vec(C)), Φ2)
+  A_mul_Bt!(view(H, (d^2+1):(2d^2), 1:d^2), Φ2 * Diagonal(vec(C)), Φ2)
   # d-by-d (2, 2) block
   fill!(C, zeroT)
   @inbounds for j in 1:d, i in j:d
@@ -312,7 +312,7 @@ function fisher_Σ!{T <: AbstractFloat}(
     end
   end
   LinAlg.copytri!(C, 'L')
-  A_mul_Bt!(sub(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), scale(Φ2, vec(C)), Φ2)
+  A_mul_Bt!(view(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), Φ2 * Diagonal(vec(C)), Φ2)
   # copy to upper triangular part
   LinAlg.copytri!(H, 'L')
   scale!(H, convert(T, 0.5))
@@ -699,8 +699,8 @@ function MathProgBase.eval_grad_f{T}(
   # gradient wrt (Σ[1], Σ[2])
   gradient!(dd.∇Σ, dd.vcmodel, dd.vcdatarot, dd.vcaux)
   # chain rule for gradient wrt Cholesky factor
-  chol_gradient!(sub(grad_f, 1:nvarhalf), dd.∇Σ[1:d^2], dd.L[1])
-  chol_gradient!(sub(grad_f, (nvarhalf+1):nvar), dd.∇Σ[(d^2+1):end], dd.L[2])
+  chol_gradient!(view(grad_f, 1:nvarhalf), dd.∇Σ[1:d^2], dd.L[1])
+  chol_gradient!(view(grad_f, (nvarhalf+1):nvar), dd.∇Σ[(d^2+1):end], dd.L[2])
   # chain rule for exponential of diagonal entries
   @inbounds for j in 1:d
     # linear index of diagonal entries of L1
@@ -734,15 +734,15 @@ function MathProgBase.eval_hesslag{T}(dd::TwoVarCompOptProb, H::Vector{T},
   # chain rule for Hessian wrt Cholesky factor
   # only the lower left triangle
   # (1, 1) block
-  chol_gradient!(sub(dd.HL, 1:nvarhalf, 1:nvarhalf),
+  chol_gradient!(view(dd.HL, 1:nvarhalf, 1:nvarhalf),
     chol_gradient(dd.HΣ[1:d^2, 1:d^2], dd.L[1])',
     dd.L[1])
   # (2, 1) block
-  chol_gradient!(sub(dd.HL, nvarhalf+1:nvar, 1:nvarhalf),
+  chol_gradient!(view(dd.HL, nvarhalf+1:nvar, 1:nvarhalf),
     chol_gradient(dd.HΣ[(d^2+1):(2d^2), 1:d^2], dd.L[1])',
     dd.L[2])
   # (2, 2) block
-  chol_gradient!(sub(dd.HL, nvarhalf+1:nvar, nvarhalf+1:nvar),
+  chol_gradient!(view(dd.HL, nvarhalf+1:nvar, nvarhalf+1:nvar),
     chol_gradient(dd.HΣ[(d^2+1):(2d^2), (d^2+1):(2d^2)], dd.L[2])',
     dd.L[2])
   # chain rule for exponential of diagonal entries
@@ -907,8 +907,8 @@ function mle_fs!{T1<:VarianceComponentModel, T2<:TwoVarCompVariateRotate}(
   copy!(Bse, sqrt(diag(Bcov)))
   Σcov = inv(fisher_Σ(vcmodel, vcdatarot))
   Σse = (zeros(T, d, d), zeros(T, d, d))
-  copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
-  copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+  copy!(Σse[1], sqrt(diag(view(Σcov, 1:d^2, 1:d^2))))
+  copy!(Σse[2], sqrt(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
   maxlogl, vcmodel, Σse, Σcov, Bse, Bcov
@@ -1108,8 +1108,8 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
   copy!(Bse, sqrt(diag(Bcov)))
   Σcov = inv(fisher_Σ(vcm, vcdatarot))
   Σse = (zeros(T, d, d), zeros(T, d, d))
-  copy!(Σse[1], sqrt(diag(sub(Σcov, 1:d^2, 1:d^2))))
-  copy!(Σse[2], sqrt(diag(sub(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+  copy!(Σse[1], sqrt(diag(view(Σcov, 1:d^2, 1:d^2))))
+  copy!(Σse[2], sqrt(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
   logl, vcm, Σse, Σcov, Bse, Bcov
@@ -1291,7 +1291,7 @@ function heritability{T, N}(
     end
     dgidx = diagind(Σ[1])[trait]
     traitidx = dgidx:d^2:((m - 1) * d^2 + dgidx)
-    hse[trait] = sqrt(dot(hgrad, sub(Σcov, traitidx, traitidx) * hgrad))
+    hse[trait] = sqrt(dot(hgrad, view(Σcov, traitidx, traitidx) * hgrad))
   end
   # output
   h, hse
