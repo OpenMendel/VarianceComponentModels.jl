@@ -5,21 +5,29 @@
 [![Coverage Status](https://coveralls.io/repos/github/OpenMendel/VarianceComponentModels.jl/badge.svg?branch=master)](https://coveralls.io/github/OpenMendel/VarianceComponentModels.jl?branch=master)
 [![codecov](https://codecov.io/gh/OpenMendel/VarianceComponentModels.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/OpenMendel/VarianceComponentModels.jl)
 
-VarianceComponentModels provides computational routines for fitting and testing variance component models.
+This [Julia](http://julialang.org/) package provides computational routines for fitting and testing variance component models. VarianceComponentModels is one package of the umbrella [OpenMendel](https://openmendel.github.io) project.
+
+[![](https://img.shields.io/badge/docs-current-blue.svg)](https://openmendel.github.io/VarianceComponentModels.jl/latest/)
 
 ## Installation
 
-Use the Julia package manager to install VarianceComponentModels.jl:
+*Note: Three OpenMendel packages - [SnpArrays](https://github.com/OpenMendel/SnpArrays.jl), [Search](https://github.com/OpenMendel/Search.jl), and [MendelBase](https://github.com/OpenMendel/MendelBase.jl) must be installed before any Mendel analysis packages will run.*
 
-    Pkg.clone("git@github.com:OpenMendel/VarianceComponentModels.jl.git")
+Within Julia, use the package manager to install VarianceComponentModels:
 
-## Documentation
+    Pkg.clone("https://github.com/OpenMendel/VarianceComponentModels.jl.git")
 
-[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://OpenMendel.github.io/VarianceComponentModels.jl/latest)
+This package supports Julia v0.4.
 
-## OpenMendel
+## Citation
 
-VarianceComponentModels is one component of the umbrella [OpenMendel](https://github.com/OpenMendel) project. See [cite]() if you use the code in your research.    
+If you use this analysis package in your research, please cite the following reference in the resulting publications:
+
+*Lange K, Papp JC, Sinsheimer JS, Sripracha R, Zhou H, Sobel EM (2013) Mendel: The Swiss army knife of genetic analysis programs. Bioinformatics 29:1568-1570.*
+
+<!--- ## Contributing
+We welcome contributions to this Open Source project. To contribute, follow this procedure ... --->
 
 ## Acknowledgments
-This project is supported through National Institutes of Health R01 HG006139.
+
+This project is supported by the National Institutes of Health under NIGMS awards R01GM053275 and R25GM103774 and NHGRI award R01HG006139.

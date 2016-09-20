@@ -194,6 +194,7 @@ immutable TwoVarCompVariateRotate{T <: AbstractFloat, YT <: AbstractVecOrMat,
   eigval::Vector{T}
   eigvec::Matrix{T}
   logdetV2::T
+
   # inner constructor
   function TwoVarCompVariateRotate(Yrot::AbstractVecOrMat{T},
     Xrot::AbstractVecOrMat{T}, eigval::Vector{T}, eigvec::Matrix{T}, logdetV2::T)
@@ -202,7 +203,7 @@ immutable TwoVarCompVariateRotate{T <: AbstractFloat, YT <: AbstractVecOrMat,
 end
 
 """
-    TwoVarCompVariateRotate(Yrot, Xrot, eigval, logdetV2)
+    TwoVarCompVariateRotate(Yrot, Xrot, eigval, eigvec,logdetV2)
 
 Default constructor of a [`TwoVarCompVariateRotate`](@ref) instance.
 """
@@ -213,6 +214,7 @@ function TwoVarCompVariateRotate(
   eigvec::Matrix,
   logdetV2::Real)
 
+  ## JZ ###
   TwoVarCompVariateRotate{eltype(Yrot), typeof(Yrot), typeof(Xrot)}(Yrot, Xrot,
     eigval, eigvec, logdetV2)
 end
