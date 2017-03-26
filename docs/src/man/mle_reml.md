@@ -104,16 +104,10 @@ vcmodel
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
-     0.0  0.0
-     0.0  0.0,(
-    2x2 Array{Float64,2}:
-     1.0  0.0
-     0.0  1.0,
+    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0],(
+    [1.0 0.0; 0.0 1.0],
     
-    2x2 Array{Float64,2}:
-     1.0  0.0
-     0.0  1.0),0x4 Array{Float64,2},Char[],Float64[],-Inf,Inf)
+    [1.0 0.0; 0.0 1.0]),,Char[],Float64[],-Inf,Inf)
 
 
 
@@ -151,7 +145,7 @@ vcmodel_mle = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.369037 seconds (13.81 k allocations: 23.961 MB, 1.31% gc time)
+      0.234076 seconds (9.71 k allocations: 23.934 MB, 1.82% gc time)
 
 
 The output of `fit_mle!` contains  
@@ -166,7 +160,7 @@ logl
 
 
 
-    -3844.373181418088
+    -3844.3731814180805
 
 
 
@@ -199,16 +193,10 @@ vcmodel_mle
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
-     1.092     1.04727
-     0.955346  1.01632,(
-    2x2 Array{Float64,2}:
-      0.380637  -0.305465
-     -0.305465   4.51938 ,
+    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632],(
+    [0.380637 -0.305465; -0.305465 4.51938],
     
-    2x2 Array{Float64,2}:
-     1.84009   0.265569
-     0.265569  2.17275 ),0x4 Array{Float64,2},Char[],Float64[],-Inf,Inf)
+    [1.84009 0.265569; 0.265569 2.17275]),,Char[],Float64[],-Inf,Inf)
 
 
 
@@ -223,13 +211,9 @@ vcmodel_mle
 
 
     (
-    2x2 Array{Float64,2}:
-     0.0765136  0.263047
-     0.263047   0.904332,
+    [0.0765136 0.263047; 0.263047 0.904332],
     
-    2x2 Array{Float64,2}:
-     0.0844292  0.0917441
-     0.0917441  0.0996927)
+    [0.0844292 0.0917441; 0.0917441 0.0996927])
 
 
 
@@ -243,7 +227,7 @@ vcmodel_mle
 
 
 
-    8x8 Array{Float64,2}:
+    8×8 Array{Float64,2}:
       0.00585433  -0.00467019  -0.00467019  …  -1.07903e-6   -1.557e-7   
      -0.00467019   0.0691937    0.00372555     -1.557e-7     -1.27444e-6 
      -0.00467019   0.00372555   0.0691937      -8.83212e-6   -1.27444e-6 
@@ -265,9 +249,9 @@ Bse
 
 
 
-    2x2 Array{Float64,2}:
-     0.042556   0.0483538
-     0.0430622  0.0495727
+    2×2 Array{Float64,2}:
+     0.042559   0.0487086
+     0.0430588  0.049178 
 
 
 
@@ -281,11 +265,11 @@ Bcov
 
 
 
-    4x4 Array{Float64,2}:
-      0.00181101   -1.98163e-5    0.000243689  -2.44708e-6 
-     -1.98163e-5    0.00185435   -2.44708e-6    0.000243907
-      0.000243689  -2.44708e-6    0.00233809   -2.80614e-5 
-     -2.44708e-6    0.000243907  -2.80614e-5    0.00245745 
+    4×4 Array{Float64,2}:
+      0.00181127   -1.98035e-5    0.000240705  -2.59506e-6 
+     -1.98035e-5    0.00185406   -2.59506e-6    0.000247285
+      0.000240705  -2.59506e-6    0.00237252   -2.63542e-5 
+     -2.59506e-6    0.000247285  -2.63542e-5    0.00241848 
 
 
 
@@ -317,7 +301,7 @@ vcmodel_reml = deepcopy(vcmodel)
            9  -3.846631e+03
           10  -3.846630e+03
     
-      0.677764 seconds (16.35 k allocations: 62.680 MB, 1.06% gc time)
+      0.448162 seconds (10.73 k allocations: 62.676 MB, 2.12% gc time)
 
 
 The output of `fit_reml!` contains
@@ -332,7 +316,7 @@ logl
 
 
 
-    -3844.377717902519
+    -3844.3777179025096
 
 
 
@@ -365,16 +349,10 @@ vcmodel_reml
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
-     1.092     1.04727
-     0.955345  1.01632,(
-    2x2 Array{Float64,2}:
-      0.380594  -0.305485
-     -0.305485   4.51994 ,
+    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632],(
+    [0.380594 -0.305485; -0.305485 4.51994],
     
-    2x2 Array{Float64,2}:
-     1.84285   0.261963
-     0.261963  2.17842 ),0x4 Array{Float64,2},Char[],Float64[],-Inf,Inf)
+    [1.84285 0.261963; 0.261963 2.17842]),,Char[],Float64[],-Inf,Inf)
 
 
 
@@ -389,13 +367,9 @@ vcmodel_reml
 
 
     (
-    2x2 Array{Float64,2}:
-     0.0765055  0.26305 
-     0.26305    0.904446,
+    [0.0765055 0.26305; 0.26305 0.904446],
     
-    2x2 Array{Float64,2}:
-     0.0845559  0.0919325
-     0.0919325  0.0999526)
+    [0.0845559 0.0919325; 0.0919325 0.0999526])
 
 
 
@@ -409,7 +383,7 @@ vcmodel_reml
 
 
 
-    8x8 Array{Float64,2}:
+    8×8 Array{Float64,2}:
       0.0058531   -0.00467005  -0.00467005  …  -1.06597e-6   -1.51499e-7 
      -0.00467005   0.0691951    0.00372613     -1.51499e-7   -1.26041e-6 
      -0.00467005   0.00372613   0.0691951      -8.86843e-6   -1.26041e-6 
@@ -431,9 +405,9 @@ Bse
 
 
 
-    2x2 Array{Float64,2}:
-     0.0425878  0.0484189
-     0.0430944  0.04964  
+    2×2 Array{Float64,2}:
+     0.0425909  0.0487744
+     0.043091   0.0492444
 
 
 
@@ -447,11 +421,11 @@ Bcov
 
 
 
-    4x4 Array{Float64,2}:
-      0.00181372   -1.9846e-5    0.000240116  -2.40768e-6
-     -1.9846e-5     0.00185713  -2.40768e-6    0.00024024
-      0.000240116  -2.40768e-6   0.00234439   -2.81393e-5
-     -2.40768e-6    0.00024024  -2.81393e-5    0.00246413
+    4×4 Array{Float64,2}:
+      0.00181398   -1.98331e-5    0.000237127  -2.55589e-6 
+     -1.98331e-5    0.00185683   -2.55589e-6    0.000243624
+      0.000237127  -2.55589e-6    0.00237894   -2.6426e-5  
+     -2.55589e-6    0.000243624  -2.6426e-5     0.00242501 
 
 
 
@@ -470,10 +444,11 @@ fieldnames(vcdatarot)
 
 
 
-    4-element Array{Symbol,1}:
+    5-element Array{Symbol,1}:
      :Yrot    
      :Xrot    
      :eigval  
+     :eigvec  
      :logdetV2
 
 
@@ -502,7 +477,7 @@ vcmodel_mm = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.021236 seconds (9.75 k allocations: 619.875 KB)
+      0.022691 seconds (9.67 k allocations: 655.344 KB)
 
 
 
@@ -514,7 +489,7 @@ vcmodel_mm.B
 
 
 
-    2x2 Array{Float64,2}:
+    2×2 Array{Float64,2}:
      1.092     1.04727
      0.955346  1.01632
 
@@ -530,17 +505,13 @@ vcmodel_mm.Σ
 
 
     (
-    2x2 Array{Float64,2}:
-      0.380637  -0.305465
-     -0.305465   4.51938 ,
+    [0.380637 -0.305465; -0.305465 4.51938],
     
-    2x2 Array{Float64,2}:
-     1.84009   0.265569
-     0.265569  2.17275 )
+    [1.84009 0.265569; 0.265569 2.17275])
 
 
 
-Fisher scoring (`mle_fs!`) uses either [Ipopt.jl](https://github.com/JuliaOpt/Ipopt.jl) (keyword `solver=:Ipopt`) or [KNITRO.jl](https://github.com/JuliaOpt/KNITRO.jl) (keyword `solver=:Knitro`) as the backend solver. Ipopt is open source and installation of [Ipopt.jl](https://github.com/JuliaOpt/Ipopt.jl) package alone is sufficient. Knitro is a commercial software and users need to follow instructions at [KNITRO.jl](https://github.com/JuliaOpt/KNITRO.jl) for proper functioning.
+Fisher scoring (`mle_fs!`) uses either [Ipopt.jl](https://github.com/JuliaOpt/Ipopt.jl) (keyword `solver=:Ipopt`) or [KNITRO.jl](https://github.com/JuliaOpt/KNITRO.jl) (keyword `solver=:Knitro`) as the backend solver. Ipopt is open source and installation of [Ipopt.jl](https://github.com/JuliaOpt/Ipopt.jl) package alone is sufficient.
 
 
 ```julia
@@ -580,16 +551,16 @@ vcmodel_ipopt = deepcopy(vcmodel)
     iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
       50  3.8443732e+03 0.00e+00 6.76e-06 -11.0 4.08e-07    -  1.00e+00 1.00e+00f  1 MaxSA
       55  3.8443732e+03 0.00e+00 1.83e-06 -11.0 1.11e-07    -  1.00e+00 1.00e+00f  1 MaxSA
-      60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00h  1 MaxSA
+      60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00f  1 MaxSA
     
     Number of Iterations....: 63
     
                                        (scaled)                 (unscaled)
-    Objective...............:   3.4496886481727671e+02    3.8443731733053760e+03
-    Dual infeasibility......:   2.2693632135739328e-07    2.5290047736252332e-06
+    Objective...............:   3.4496886481728075e+02    3.8443731733053696e+03
+    Dual infeasibility......:   2.2693631692678575e-07    2.5290047242499938e-06
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   2.2693632135739328e-07    2.5290047736252332e-06
+    Overall NLP error.......:   2.2693631692678575e-07    2.5290047242499938e-06
     
     
     Number of objective function evaluations             = 64
@@ -599,11 +570,11 @@ vcmodel_ipopt = deepcopy(vcmodel)
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.019
-    Total CPU secs in NLP function evaluations           =      0.263
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.018
+    Total CPU secs in NLP function evaluations           =      0.244
     
     EXIT: Solved To Acceptable Level.
-      0.314060 seconds (110.60 k allocations: 6.978 MB)
+      0.285427 seconds (104.32 k allocations: 7.336 MB)
 
 
 
@@ -615,7 +586,7 @@ vcmodel_ipopt.B
 
 
 
-    2x2 Array{Float64,2}:
+    2×2 Array{Float64,2}:
      1.092     1.04727
      0.955346  1.01632
 
@@ -631,129 +602,26 @@ vcmodel_ipopt.Σ
 
 
     (
-    2x2 Array{Float64,2}:
-      0.380552  -0.305594
-     -0.305594   4.52106 ,
+    [0.380552 -0.305594; -0.305594 4.52106],
     
-    2x2 Array{Float64,2}:
-     1.84008   0.265385
-     0.265385  2.17287 )
+    [1.84008 0.265385; 0.265385 2.17287])
 
 
 
-
+Knitro is a commercial software and users need to follow instructions at [KNITRO.jl](https://github.com/JuliaOpt/KNITRO.jl) for proper functioning. Following code invoke Knitro as the backend optimization solver.
 ```julia
+using KNITRO
+
 # Fisher scoring using Knitro
 vcmodel_knitro = deepcopy(vcmodel)
 @time mle_fs!(vcmodel_knitro, vcdatarot; solver=:Knitro, maxiter=1000, verbose=true);
-```
 
-    
-    Knitro 10.1.0 STUDENT LICENSE (problem size limit = 300)
-    
-    =======================================
-                Student License
-           (NOT FOR COMMERCIAL USE)
-             Artelys Knitro 10.1.0
-    =======================================
-    
-    Knitro presolve eliminated 0 variables and 0 constraints.
-    
-    The problem is identified as unconstrained.
-    Knitro changing algorithm from AUTO to 1.
-    Knitro changing bar_initpt from AUTO to 3.
-    Knitro changing bar_murule from AUTO to 4.
-    Knitro changing bar_penaltycons from AUTO to 1.
-    Knitro changing bar_penaltyrule from AUTO to 2.
-    Knitro changing bar_switchrule from AUTO to 1.
-    Knitro changing linsolver from AUTO to 2.
-    
-    Problem Characteristics                    ( Presolved)
-    -----------------------
-    Objective goal:  Maximize
-    Number of variables:                     6 (         6)
-        bounded below:                       0 (         0)
-        bounded above:                       0 (         0)
-        bounded below and above:             0 (         0)
-        fixed:                               0 (         0)
-        free:                                6 (         6)
-    Number of constraints:                   0 (         0)
-        linear equalities:                   0 (         0)
-        nonlinear equalities:                0 (         0)
-        linear inequalities:                 0 (         0)
-        nonlinear inequalities:              0 (         0)
-        range:                               0 (         0)
-    Number of nonzeros in Jacobian:          0 (         0)
-    Number of nonzeros in Hessian:          21 (        21)
-    
-      Iter      Objective      FeasError   OptError    ||Step||    CGits 
-    --------  --------------  ----------  ----------  ----------  -------
-           0   -4.210942e+03   0.000e+00
-          10   -3.844387e+03   0.000e+00   2.254e-01   1.390e-02        0
-          20   -3.844373e+03   0.000e+00   1.698e-02   1.034e-03        0
-          30   -3.844373e+03   0.000e+00   1.250e-03   7.606e-05        0
-          40   -3.844373e+03   0.000e+00   9.191e-05   5.591e-06        0
-    
-    EXIT: Locally optimal solution found.
-    
-    Final Statistics
-    ----------------
-    Final objective value               =  -3.84437317330763e+03
-    Final feasibility error (abs / rel) =   0.00e+00 / 0.00e+00
-    Final optimality error  (abs / rel) =   9.19e-05 / 9.19e-07
-    # of iterations                     =         40 
-    # of CG iterations                  =          0 
-    # of function evaluations           =         42
-    # of gradient evaluations           =         42
-    # of Hessian evaluations            =         40
-    Total program time (secs)           =       0.18812 (     0.188 CPU time)
-    Time spent in evaluations (secs)    =       0.18277
-    
-    ===============================================================================
-    
-      0.191113 seconds (73.31 k allocations: 4.642 MB)
-
-
-    ### Could not find a valid license.
-        Your machine ID is 1f-aa-f6-5b-46.
-        Please contact licensing@artelys.com or your local distributor to obtain a license.
-        If you already have a license, please execute `get_machine_ID -v` and send the output to support.
-
-
-
-```julia
 # Knitro estimates
 vcmodel_knitro.B
-```
 
-
-
-
-    2x2 Array{Float64,2}:
-     1.092     1.04727
-     0.955346  1.01632
-
-
-
-
-```julia
 # Knitro estimates
 vcmodel_knitro.Σ
 ```
-
-
-
-
-    (
-    2x2 Array{Float64,2}:
-      0.380552  -0.305582
-     -0.305582   4.52106 ,
-    
-    2x2 Array{Float64,2}:
-     1.84008   0.265385
-     0.265385  2.17287 )
-
-
 
 ## Starting point
 
@@ -782,17 +650,10 @@ vcmodel_constr
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
-     0.0  0.0
-     0.0  0.0,(
-    2x2 Array{Float64,2}:
-     1.0  0.0
-     0.0  1.0,
+    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0],(
+    [1.0 0.0; 0.0 1.0],
     
-    2x2 Array{Float64,2}:
-     1.0  0.0
-     0.0  1.0),1x4 Array{Float64,2}:
-     1.0  0.0  -1.0  0.0,'=',0.0,0.0,2.0)
+    [1.0 0.0; 0.0 1.0]),[1.0 0.0 -1.0 0.0],'=',0.0,0.0,2.0)
 
 
 
@@ -820,7 +681,7 @@ We first try the MM algorithm.
            9  -3.844650e+03
           10  -3.844650e+03
     
-      0.095903 seconds (34.73 k allocations: 1.715 MB)
+      0.045048 seconds (11.02 k allocations: 743.094 KB)
 
 
 
@@ -850,7 +711,7 @@ vcmodel_constr.B
 
 
 
-    2x2 Array{Float64,2}:
+    2×2 Array{Float64,2}:
      1.07177   1.07177
      0.955683  1.01591
 
@@ -865,13 +726,9 @@ vcmodel_constr.Σ
 
 
     (
-    2x2 Array{Float64,2}:
-      0.380624  -0.305498
-     -0.305498   4.51948 ,
+    [0.380624 -0.305498; -0.305498 4.51948],
     
-    2x2 Array{Float64,2}:
-     1.84051   0.265065
-     0.265065  2.17336 )
+    [1.84051 0.265065; 0.265065 2.17336])
 
 
 
@@ -926,11 +783,11 @@ vcmodel_constr
     Number of Iterations....: 63
     
                                        (scaled)                 (unscaled)
-    Objective...............:   3.4484507551948582e+02    3.8446498170293421e+03
-    Dual infeasibility......:   2.2694405419276139e-07    2.5301808793809917e-06
+    Objective...............:   3.4484507551949008e+02    3.8446498170293403e+03
+    Dual infeasibility......:   2.2694405349430929e-07    2.5301808715939735e-06
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   2.2694405419276139e-07    2.5301808793809917e-06
+    Overall NLP error.......:   2.2694405349430929e-07    2.5301808715939735e-06
     
     
     Number of objective function evaluations             = 64
@@ -940,11 +797,11 @@ vcmodel_constr
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.021
-    Total CPU secs in NLP function evaluations           =      0.650
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.019
+    Total CPU secs in NLP function evaluations           =      0.481
     
     EXIT: Solved To Acceptable Level.
-      0.748622 seconds (160.13 k allocations: 8.986 MB, 17.15% gc time)
+      0.557942 seconds (126.13 k allocations: 8.715 MB)
 
 
 
@@ -955,7 +812,7 @@ vcmodel_constr.B
 
 
 
-    2x2 Array{Float64,2}:
+    2×2 Array{Float64,2}:
      1.07177   1.07177
      0.955683  1.01591
 
@@ -970,12 +827,13 @@ vcmodel_constr.Σ
 
 
     (
-    2x2 Array{Float64,2}:
-      0.380539  -0.305626
-     -0.305626   4.52116 ,
+    [0.380539 -0.305626; -0.305626 4.52116],
     
-    2x2 Array{Float64,2}:
-     1.8405    0.264881
-     0.264881  2.17348 )
+    [1.8405 0.264881; 0.264881 2.17348])
 
 
+
+
+```julia
+
+```
