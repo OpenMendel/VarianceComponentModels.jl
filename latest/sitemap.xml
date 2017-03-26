@@ -3,8 +3,8 @@
 
     
     <url>
-     <loc>None/</loc>
-     <lastmod>2016-09-26</lastmod>
+     <loc>/</loc>
+     <lastmod>2017-03-26</lastmod>
      <changefreq>daily</changefreq>
     </url>
     
@@ -12,14 +12,14 @@
     
         
     <url>
-     <loc>None/man/mle_reml/</loc>
-     <lastmod>2016-09-26</lastmod>
+     <loc>/man/mle_reml/</loc>
+     <lastmod>2017-03-26</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
     <url>
-     <loc>None/man/heritability/</loc>
-     <lastmod>2016-09-26</lastmod>
+     <loc>/man/heritability/</loc>
+     <lastmod>2017-03-26</lastmod>
      <changefreq>daily</changefreq>
     </url>
         
@@ -27,8 +27,8 @@
 
     
     <url>
-     <loc>None/man/api/</loc>
-     <lastmod>2016-09-26</lastmod>
+     <loc>/man/api/</loc>
+     <lastmod>2017-03-26</lastmod>
      <changefreq>daily</changefreq>
     </url>
     

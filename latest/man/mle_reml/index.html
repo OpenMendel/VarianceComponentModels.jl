@@ -1,274 +1,417 @@
+
 <!DOCTYPE html>
-<!--[if lt IE 7 ]><html class="no-js ie6"><![endif]-->
-<!--[if IE 7 ]><html class="no-js ie7"><![endif]-->
-<!--[if IE 8 ]><html class="no-js ie8"><![endif]-->
-<!--[if IE 9 ]><html class="no-js ie9"><![endif]-->
-<!--[if (gt IE 9)|!(IE)]><!--> <html class="no-js"> <!--<![endif]-->
+<html class="no-js">
   <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,user-scalable=no,initial-scale=1,maximum-scale=1">
     
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <title>MLE/REML - VarianceComponentModels.jl</title>
-      
+        <meta name="description" content="Utilities for fitting and testing variance component models">
       
       
       
         <meta name="author" content="Hua Zhou">
       
-    
-    <meta property="og:url" content="None">
-    <meta property="og:title" content="VarianceComponentModels.jl">
-    <meta property="og:image" content="None/../../">
-    <meta name="apple-mobile-web-app-title" content="VarianceComponentModels.jl">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    
-    
-    <link rel="shortcut icon" type="image/x-icon" href="../../assets/images/favicon-e565ddfa3b.ico">
-    <link rel="icon" type="image/x-icon" href="../../assets/images/favicon-e565ddfa3b.ico">
-    <style>
-      @font-face {
-      	font-family: 'Icon';
-      	src: url('../../assets/fonts/icon.eot?52m981');
-      	src: url('../../assets/fonts/icon.eot?#iefix52m981')
-               format('embedded-opentype'),
-      		   url('../../assets/fonts/icon.woff?52m981')
-               format('woff'),
-      		   url('../../assets/fonts/icon.ttf?52m981')
-               format('truetype'),
-      		   url('../../assets/fonts/icon.svg?52m981#icon')
-               format('svg');
-      	font-weight: normal;
-      	font-style: normal;
-      }
-    </style>
-    <link rel="stylesheet" href="../../assets/stylesheets/application-a422ff04cc.css">
-    
-      <link rel="stylesheet" href="../../assets/stylesheets/palettes-05ab2406df.css">
+      
+        <link rel="shortcut icon" href="../../assets/images/favicon.png">
+      
+      <meta name="generator" content="mkdocs-0.16.2, mkdocs-material-1.5.0">
     
     
       
+        <title>MLE/REML - VarianceComponentModels.jl</title>
       
+    
+    
+      <script src="../../assets/javascripts/modernizr-56ade86843.js"></script>
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/application-d848f886dc.css">
       
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Ubuntu:400,700|Ubuntu+Mono">
-      <style>
-        body, input {
-          font-family: 'Ubuntu', Helvetica, Arial, sans-serif;
-        }
-        pre, code {
-          font-family: 'Ubuntu Mono', 'Courier New', 'Courier', monospace;
-        }
-      </style>
+        <link rel="stylesheet" href="../../assets/stylesheets/application-66fa0d9bba.palette.css">
+      
+    
+    
+      
+        
+        
+        
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     
     
       <link rel="stylesheet" href="../../assets/Documenter.css">
     
-    <script src="../../assets/javascripts/modernizr-4ab42b99fd.js"></script>
     
   </head>
   
   
   
-  <body class="palette-primary-indigo palette-accent-blue">
-    
-      
-      
-    
-    <div class="backdrop">
-      <div class="backdrop-paper"></div>
-    </div>
-    <input class="toggle" type="checkbox" id="toggle-drawer">
-    <input class="toggle" type="checkbox" id="toggle-search">
-    <label class="toggle-button overlay" for="toggle-drawer"></label>
-    <header class="header">
-      <nav aria-label="Header">
-  <div class="bar default">
-    <div class="button button-menu" role="button" aria-label="Menu">
-      <label class="toggle-button icon icon-menu" for="toggle-drawer">
-        <span></span>
-      </label>
-    </div>
-    <div class="stretch">
-      <div class="title">
-        
-          <span class="path">
-            
-              
-                Manual <i class="icon icon-link"></i>
-              
-            
-          </span>
-        
-        MLE/REML
-      </div>
-    </div>
-    
-    
-    <div class="button button-search" role="button" aria-label="Search">
-      <label class="toggle-button icon icon-search" title="Search" for="toggle-search"></label>
-    </div>
-  </div>
-  <div class="bar search">
-    <div class="button button-close" role="button" aria-label="Close">
-      <label class="toggle-button icon icon-back" for="toggle-search"></label>
-    </div>
-    <div class="stretch">
-      <div class="field">
-        <input class="query" type="text" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck>
-      </div>
-    </div>
-    <div class="button button-reset" role="button" aria-label="Search">
-      <button class="toggle-button icon icon-close" id="reset-search"></button>
-    </div>
-  </div>
-</nav>
-    </header>
-    <main class="main">
-      
-      <div class="drawer">
-        <nav aria-label="Navigation">
   
-  <a href="https://github.com/OpenMendel/VarianceComponentModels.jl" class="project">
-    <div class="banner">
-      
-      <div class="name">
-        <strong>
-          VarianceComponentModels.jl
-          <span class="version">
-            
-          </span>
-        </strong>
+    <body data-md-color-primary="indigo" data-md-color-accent="blue">
+  
+    <svg class="md-svg">
+      <defs>
         
-          <br>
-          OpenMendel/VarianceComponentModels.jl
+        
+          <svg xmlns="http://www.w3.org/2000/svg" width="416" height="448" viewBox="0 0 416 448" id="github"><path fill="currentColor" d="M160 304q0 10-3.125 20.5t-10.75 19T128 352t-18.125-8.5-10.75-19T96 304t3.125-20.5 10.75-19T128 256t18.125 8.5 10.75 19T160 304zm160 0q0 10-3.125 20.5t-10.75 19T288 352t-18.125-8.5-10.75-19T256 304t3.125-20.5 10.75-19T288 256t18.125 8.5 10.75 19T320 304zm40 0q0-30-17.25-51T296 232q-10.25 0-48.75 5.25Q229.5 240 208 240t-39.25-2.75Q130.75 232 120 232q-29.5 0-46.75 21T56 304q0 22 8 38.375t20.25 25.75 30.5 15 35 7.375 37.25 1.75h42q20.5 0 37.25-1.75t35-7.375 30.5-15 20.25-25.75T360 304zm56-44q0 51.75-15.25 82.75-9.5 19.25-26.375 33.25t-35.25 21.5-42.5 11.875-42.875 5.5T212 416q-19.5 0-35.5-.75t-36.875-3.125-38.125-7.5-34.25-12.875T37 371.5t-21.5-28.75Q0 312 0 260q0-59.25 34-99-6.75-20.5-6.75-42.5 0-29 12.75-54.5 27 0 47.5 9.875t47.25 30.875Q171.5 96 212 96q37 0 70 8 26.25-20.5 46.75-30.25T376 64q12.75 25.5 12.75 54.5 0 21.75-6.75 42 34 40 34 99.5z"/></svg>
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="drawer">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="search">
+    <label class="md-overlay" data-md-component="overlay" for="drawer"></label>
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <a href="../.." title="VarianceComponentModels.jl" class="md-icon md-icon--home md-header-nav__button">
+          </a>
         
       </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button" for="drawer"></label>
+      </div>
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <span class="md-flex__ellipsis md-header-nav__title">
+          
+            
+              
+                <span class="md-header-nav__parent">
+                  Manual
+                </span>
+              
+            
+            MLE/REML
+          
+        </span>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          <label class="md-icon md-icon--search md-header-nav__button" for="search"></label>
+          
+<div class="md-search" data-md-component="search">
+  <div class="md-search__overlay"></div>
+  <div class="md-search__inner">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" required placeholder="Search" accesskey="s" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query">
+      <label class="md-icon md-search__icon" for="search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset">close</button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta" data-md-lang-result-none="No matching documents" data-md-lang-result-one="1 matching document" data-md-lang-result-other="# matching documents">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+        
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <div class="md-header-nav__source">
+          
+            
+
+
+  
+
+
+  <a href="https://github.com/OpenMendel/VarianceComponentModels.jl" title="Go to repository" class="md-source" data-md-source="github">
+    
+      <div class="md-source__icon">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <use xlink:href="#github" width="24" height="24"></use>
+        </svg>
+      </div>
+    
+    <div class="md-source__repository">
+      GitHub
     </div>
   </a>
-  <div class="scrollable">
-    <div class="wrapper">
-      
-        <ul class="repo">
-          <li class="repo-download">
-            
-            <a href="https://github.com/OpenMendel/VarianceComponentModels.jl/archive/master.zip" target="_blank" title="Download" data-action="download">
-              <i class="icon icon-download"></i> Download
-            </a>
-          </li>
-          <li class="repo-stars">
-            <a href="https://github.com/OpenMendel/VarianceComponentModels.jl/stargazers" target="_blank" title="Stargazers" data-action="star">
-              <i class="icon icon-star"></i> Stars
-              <span class="count">&ndash;</span>
-            </a>
-          </li>
-        </ul>
-        <hr>
-      
-      <div class="toc">
-        <ul>
-          
-            
-  <li>
-    <a class="" title="Home" href="../..">
-      Home
-    </a>
-    
-  </li>
 
           
-            
-  <li>
-    <span class="section">Manual</span>
-    <ul>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
       
+      
+      <main class="md-main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="drawer">
+    
+      <i class="md-icon md-icon--home md-nav__button"></i>
+    
+    VarianceComponentModels.jl
+  </label>
+  
+    <div class="md-nav__source">
+      
+
+
+  
+
+
+  <a href="https://github.com/OpenMendel/VarianceComponentModels.jl" title="Go to repository" class="md-source" data-md-source="github">
+    
+      <div class="md-source__icon">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <use xlink:href="#github" width="24" height="24"></use>
+        </svg>
+      </div>
+    
+    <div class="md-source__repository">
+      GitHub
+    </div>
+  </a>
+
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../.." title="Home" class="md-nav__link">
+      Home
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2" checked>
+    
+    <label class="md-nav__link" for="nav-2">
+      Manual
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-2">
+        Manual
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
         
-  <li>
-    <a class="current" title="MLE/REML" href="./">
+        
+          
+          
+          
+
+  
+
+
+  <li class="md-nav__item md-nav__item--active">
+    
+    <input class="md-toggle md-nav__toggle" data-md-toggle="toc" type="checkbox" id="toc">
+    
+      
+    
+    
+      <label class="md-nav__link md-nav__link--active" for="toc">
+        MLE/REML
+      </label>
+    
+    <a href="./" title="MLE/REML" class="md-nav__link md-nav__link--active">
       MLE/REML
     </a>
     
       
-        
-      
-      
-        <ul>
-          
-            <li class="anchor">
-              <a title="Demo data" href="#demo-data">
-                Demo data
-              </a>
-            </li>
-          
-            <li class="anchor">
-              <a title="Maximum likelihood estimation (MLE)" href="#maximum-likelihood-estimation-mle">
-                Maximum likelihood estimation (MLE)
-              </a>
-            </li>
-          
-            <li class="anchor">
-              <a title="Restricted maximum likelihood estimation (REML)" href="#restricted-maximum-likelihood-estimation-reml">
-                Restricted maximum likelihood estimation (REML)
-              </a>
-            </li>
-          
-            <li class="anchor">
-              <a title="Optimization algorithms" href="#optimization-algorithms">
-                Optimization algorithms
-              </a>
-            </li>
-          
-            <li class="anchor">
-              <a title="Starting point" href="#starting-point">
-                Starting point
-              </a>
-            </li>
-          
-            <li class="anchor">
-              <a title="Constrained estimation of B" href="#constrained-estimation-of-b">
-                Constrained estimation of B
-              </a>
-            </li>
-          
-        </ul>
-      
+<nav class="md-nav md-nav--secondary">
+  
+  
     
-  </li>
-
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
       
-        
-  <li>
-    <a class="" title="Heritability" href="../heritability/">
-      Heritability
-    </a>
-    
-  </li>
-
+        <li class="md-nav__item">
+  <a href="#demo-data" title="Demo data" class="md-nav__link">
+    Demo data
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maximum-likelihood-estimation-mle" title="Maximum likelihood estimation (MLE)" class="md-nav__link">
+    Maximum likelihood estimation (MLE)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restricted-maximum-likelihood-estimation-reml" title="Restricted maximum likelihood estimation (REML)" class="md-nav__link">
+    Restricted maximum likelihood estimation (REML)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optimization-algorithms" title="Optimization algorithms" class="md-nav__link">
+    Optimization algorithms
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#starting-point" title="Starting point" class="md-nav__link">
+    Starting point
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#constrained-estimation-of-b" title="Constrained estimation of B" class="md-nav__link">
+    Constrained estimation of B
+  </a>
+  
+</li>
+      
+      
       
     </ul>
-  </li>
-
-          
-            
-  <li>
-    <a class="" title="API" href="../api/">
-      API
-    </a>
+  
+</nav>
     
   </li>
 
-          
-        </ul>
         
-      </div>
-    </div>
-  </div>
-</nav>
-      </div>
-      <article class="article">
-        <div class="wrapper">
           
-          <p><a id='MLE-and-REML-1'></a></p>
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../heritability/" title="Heritability" class="md-nav__link">
+      Heritability
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../api/" title="API" class="md-nav__link">
+      API
+    </a>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="toc">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+<nav class="md-nav md-nav--secondary">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="toc">Table of contents</label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#demo-data" title="Demo data" class="md-nav__link">
+    Demo data
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#maximum-likelihood-estimation-mle" title="Maximum likelihood estimation (MLE)" class="md-nav__link">
+    Maximum likelihood estimation (MLE)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restricted-maximum-likelihood-estimation-reml" title="Restricted maximum likelihood estimation (REML)" class="md-nav__link">
+    Restricted maximum likelihood estimation (REML)
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optimization-algorithms" title="Optimization algorithms" class="md-nav__link">
+    Optimization algorithms
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#starting-point" title="Starting point" class="md-nav__link">
+    Starting point
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#constrained-estimation-of-b" title="Constrained estimation of B" class="md-nav__link">
+    Constrained estimation of B
+  </a>
+  
+</li>
+      
+      
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                  <a href="https://github.com/OpenMendel/VarianceComponentModels.jl/edit/master/docs/man/mle_reml.md" title="Edit this page" class="md-icon md-content__icon">edit</a>
+                
+                
+                <p><a id='MLE-and-REML-1'></a></p>
 <h1 id="mle-and-reml">MLE and REML</h1>
 <p><a id='Demo-data-1'></a></p>
 <h2 id="demo-data">Demo data</h2>
@@ -284,26 +427,26 @@
 <span class="c"># p-by-d mean component regression coefficient</span>
 <span class="n">B</span> <span class="o">=</span> <span class="n">ones</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>  
 <span class="c"># a tuple of m covariance matrices</span>
-<span class="n">V</span> <span class="o">=</span> <span class="nb">ntuple</span><span class="p">(</span><span class="n">x</span> <span class="o">-&gt;</span> <span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">m</span><span class="p">)</span> 
-<span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span>
+<span class="n">V</span> <span class="o">=</span> <span class="n">ntuple</span><span class="p">(</span><span class="n">x</span> <span class="o">-&gt;</span> <span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span> <span class="n">m</span><span class="p">)</span> 
+<span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="o">:</span><span class="n">m</span><span class="o">-</span><span class="mi">1</span>
   <span class="n">Vi</span> <span class="o">=</span> <span class="n">randn</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
   <span class="n">copy!</span><span class="p">(</span><span class="n">V</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">Vi</span> <span class="o">*</span> <span class="n">Vi</span><span class="o">&#39;</span><span class="p">)</span>
 <span class="k">end</span>
 <span class="n">copy!</span><span class="p">(</span><span class="n">V</span><span class="p">[</span><span class="n">m</span><span class="p">],</span> <span class="n">eye</span><span class="p">(</span><span class="n">n</span><span class="p">))</span> <span class="c"># last covarianec matrix is idendity</span>
 <span class="c"># a tuple of m d-by-d variance component parameters</span>
-<span class="n">Σ</span> <span class="o">=</span> <span class="nb">ntuple</span><span class="p">(</span><span class="n">x</span> <span class="o">-&gt;</span> <span class="n">zeros</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">m</span><span class="p">)</span> 
-<span class="k">for</span> <span class="n">i</span> <span class="k">in</span> <span class="mi">1</span><span class="p">:</span><span class="n">m</span>
+<span class="n">Σ</span> <span class="o">=</span> <span class="n">ntuple</span><span class="p">(</span><span class="n">x</span> <span class="o">-&gt;</span> <span class="n">zeros</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">),</span> <span class="n">m</span><span class="p">)</span> 
+<span class="k">for</span> <span class="n">i</span> <span class="kp">in</span> <span class="mi">1</span><span class="o">:</span><span class="n">m</span>
   <span class="n">Σi</span> <span class="o">=</span> <span class="n">randn</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
   <span class="n">copy!</span><span class="p">(</span><span class="n">Σ</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">Σi</span><span class="o">&#39;</span> <span class="o">*</span> <span class="n">Σi</span><span class="p">)</span>
 <span class="k">end</span>
 <span class="c"># form overall nd-by-nd covariance matrix Ω</span>
 <span class="n">Ω</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="n">n</span> <span class="o">*</span> <span class="n">d</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">d</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="p">:</span><span class="n">m</span>
+<span class="k">for</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span><span class="o">:</span><span class="n">m</span>
   <span class="n">Ω</span> <span class="o">+=</span> <span class="n">kron</span><span class="p">(</span><span class="n">Σ</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">V</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
 <span class="k">end</span>
 <span class="n">Ωchol</span> <span class="o">=</span> <span class="n">cholfact</span><span class="p">(</span><span class="n">Ω</span><span class="p">)</span>
 <span class="c"># n-by-d responses</span>
-<span class="n">Y</span> <span class="o">=</span> <span class="n">X</span> <span class="o">*</span> <span class="n">B</span> <span class="o">+</span> <span class="n">reshape</span><span class="p">(</span><span class="n">Ωchol</span><span class="p">[:</span><span class="n">L</span><span class="p">]</span> <span class="o">*</span> <span class="n">randn</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">d</span><span class="p">),</span> <span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="p">);</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">X</span> <span class="o">*</span> <span class="n">B</span> <span class="o">+</span> <span class="n">reshape</span><span class="p">(</span><span class="n">Ωchol</span><span class="p">[</span><span class="o">:</span><span class="n">L</span><span class="p">]</span> <span class="o">*</span> <span class="n">randn</span><span class="p">(</span><span class="n">n</span><span class="o">*</span><span class="n">d</span><span class="p">),</span> <span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="p">);</span>
 </pre></div>
 
 
@@ -312,9 +455,9 @@
 <p>To find the MLE of parameters $(B,\Sigma_1,\ldots,\Sigma_m)$, we take 3 steps:  </p>
 <p><strong>Step 1 (Construct data)</strong>. Construct an instance of <code>VarianceComponentVariate</code>, which consists fields  </p>
 <ul>
-<li><code>Y</code>: $n$-by-$d$ responses  </li>
-<li><code>X</code>: $n$-by-$p$ covariate matrix  </li>
-<li><code>V=(V[1],...,V[m])</code>: a tuple of $n$-by-$n$ covariance matrices. The last covariance matrix must be positive definite and usually is the identity matrix. </li>
+<li><code>Y</code>: $n$-by-$d$ responses</li>
+<li><code>X</code>: $n$-by-$p$ covariate matrix</li>
+<li><code>V=(V[1],...,V[m])</code>: a tuple of $n$-by-$n$ covariance matrices. The last covariance matrix must be positive definite and usually is the identity matrix.</li>
 </ul>
 <div class="codehilite"><pre><span></span><span class="k">using</span> <span class="n">VarianceComponentModels</span>
 <span class="n">vcdata</span> <span class="o">=</span> <span class="n">VarianceComponentVariate</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">V</span><span class="p">)</span>
@@ -332,8 +475,8 @@
 <p>In the absence of covariates $X$, we can simply initialize by <code>vcdata = VarianceComponentVariate(Y, V)</code>.</p>
 <p><strong>Step 2 (Construct a model)</strong>. Construct an instance of <code>VarianceComponentModel</code>, which consists of fields  </p>
 <ul>
-<li><code>B</code>: $n$-by-$p$ mean regression coefficients  </li>
-<li><code>Σ=(Σ[1],...,Σ[m])</code>: variane component parameters respectively. </li>
+<li><code>B</code>: $n$-by-$p$ mean regression coefficients</li>
+<li><code>Σ=(Σ[1],...,Σ[m])</code>: variane component parameters respectively.</li>
 </ul>
 <p>When constructed from a <code>VarianceComponentVariate</code> instance, the mean parameters $B$ are initialized to be zero and the tuple of variance component parameters $\Sigma$ to be <code>(eye(d),...,eye(d))</code>.</p>
 <div class="codehilite"><pre><span></span><span class="n">vcmodel</span> <span class="o">=</span> <span class="n">VarianceComponentModel</span><span class="p">(</span><span class="n">vcdata</span><span class="p">)</span>
@@ -356,27 +499,29 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
- 0.0  0.0
- 0.0  0.0,(
-2x2 Array{Float64,2}:
- 1.0  0.0
- 0.0  1.0,
+<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0],(
+[1.0 0.0; 0.0 1.0],
 
-2x2 Array{Float64,2}:
- 1.0  0.0
- 0.0  1.0),0x4 Array{Float64,2},Char[],Float64[],-Inf,Inf)
+[1.0 0.0; 0.0 1.0]),,Char[],Float64[],-Inf,Inf)
 </pre></div>
 
 
 <p>The remaining fields <code>A</code>, <code>sense</code>, <code>b</code>, <code>lb</code>, <code>ub</code> specify (optional) constraints on the mean parameters <code>B</code>:</p>
-<p>$A * \text{vec}(B) \,\, =(\text{or } \ge \text{or } \le) \,\, b$</p>
-<p>$lb \le \text{vec}(B) \le ub$</p>
+<p>
+<script type="math/tex; mode=display">
+A * \text{vec}(B) \,\, =(\text{or } \ge \text{or } \le) \,\, b
+</script>
+</p>
+<p>
+<script type="math/tex; mode=display">
+lb \le \text{vec}(B) \le ub
+</script>
+</p>
 <p><code>A</code> is an constraint matrix with $pd$ columns, <code>sense</code> is a vector of charaters taking values <code>'&lt;'</code>, <code>'='</code> or <code>'&gt;'</code>, and <code>lb</code> and <code>ub</code> are the lower and upper bounds for <code>vec(B)</code>. By default, <code>A</code>, <code>sense</code>, <code>b</code> are empty, <code>lb</code> is <code>-Inf</code>, and <code>ub</code> is <code>Inf</code>. If any constraits are non-trivial, final estimates of <code>B</code> are enforced to satisfy them.</p>
 <p>When a better initial guess is available, we can initialize by calling <code>vcmodel=VarianceComponentModel(B0, Σ0)</code> directly.</p>
 <p><strong>Step 3 (Fit model)</strong>. Call optmization routine <code>fit_mle!</code>. The keywork <code>algo</code> dictates the optimization algorithm: <code>:MM</code> (minorization-maximization algorithm) or <code>:FS</code> (Fisher scoring algorithm).</p>
 <div class="codehilite"><pre><span></span><span class="n">vcmodel_mle</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">vcmodel</span><span class="p">)</span>
-<span class="p">@</span><span class="n">time</span> <span class="n">logl</span><span class="p">,</span> <span class="n">vcmodel_mle</span><span class="p">,</span> <span class="n">Σse</span><span class="p">,</span> <span class="n">Σcov</span><span class="p">,</span> <span class="n">Bse</span><span class="p">,</span> <span class="n">Bcov</span> <span class="o">=</span> <span class="n">fit_mle!</span><span class="p">(</span><span class="n">vcmodel_mle</span><span class="p">,</span> <span class="n">vcdata</span><span class="p">;</span> <span class="n">algo</span> <span class="o">=</span> <span class="p">:</span><span class="n">MM</span><span class="p">);</span>
+<span class="nd">@time</span> <span class="n">logl</span><span class="p">,</span> <span class="n">vcmodel_mle</span><span class="p">,</span> <span class="n">Σse</span><span class="p">,</span> <span class="n">Σcov</span><span class="p">,</span> <span class="n">Bse</span><span class="p">,</span> <span class="n">Bcov</span> <span class="o">=</span> <span class="n">fit_mle!</span><span class="p">(</span><span class="n">vcmodel_mle</span><span class="p">,</span> <span class="n">vcdata</span><span class="p">;</span> <span class="n">algo</span> <span class="o">=</span> <span class="o">:</span><span class="n">MM</span><span class="p">);</span>
 </pre></div>
 
 
@@ -395,19 +540,19 @@
        9  -3.844374e+03
       10  -3.844373e+03
 
-  0.369037 seconds (13.81 k allocations: 23.961 MB, 1.31% gc time)
+  0.234076 seconds (9.71 k allocations: 23.934 MB, 1.82% gc time)
 </pre></div>
 
 
 <p>The output of <code>fit_mle!</code> contains  </p>
 <ul>
-<li>final log-likelihood  </li>
+<li>final log-likelihood</li>
 </ul>
 <div class="codehilite"><pre><span></span><span class="n">logl</span>
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>-3844.373181418088
+<div class="codehilite"><pre><span></span>-3844.3731814180805
 </pre></div>
 
 
@@ -433,16 +578,10 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
- 1.092     1.04727
- 0.955346  1.01632,(
-2x2 Array{Float64,2}:
-  0.380637  -0.305465
- -0.305465   4.51938 ,
+<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632],(
+[0.380637 -0.305465; -0.305465 4.51938],
 
-2x2 Array{Float64,2}:
- 1.84009   0.265569
- 0.265569  2.17275 ),0x4 Array{Float64,2},Char[],Float64[],-Inf,Inf)
+[1.84009 0.265569; 0.265569 2.17275]),,Char[],Float64[],-Inf,Inf)
 </pre></div>
 
 
@@ -454,13 +593,9 @@
 
 
 <div class="codehilite"><pre><span></span>(
-2x2 Array{Float64,2}:
- 0.0765136  0.263047
- 0.263047   0.904332,
+[0.0765136 0.263047; 0.263047 0.904332],
 
-2x2 Array{Float64,2}:
- 0.0844292  0.0917441
- 0.0917441  0.0996927)
+[0.0844292 0.0917441; 0.0917441 0.0996927])
 </pre></div>
 
 
@@ -471,7 +606,7 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>8x8 Array{Float64,2}:
+<div class="codehilite"><pre><span></span>8×8 Array{Float64,2}:
   0.00585433  -0.00467019  -0.00467019  …  -1.07903e-6   -1.557e-7   
  -0.00467019   0.0691937    0.00372555     -1.557e-7     -1.27444e-6 
  -0.00467019   0.00372555   0.0691937      -8.83212e-6   -1.27444e-6 
@@ -490,9 +625,9 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>2x2 Array{Float64,2}:
- 0.042556   0.0483538
- 0.0430622  0.0495727
+<div class="codehilite"><pre><span></span>2×2 Array{Float64,2}:
+ 0.042559   0.0487086
+ 0.0430588  0.049178
 </pre></div>
 
 
@@ -503,11 +638,11 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>4x4 Array{Float64,2}:
-  0.00181101   -1.98163e-5    0.000243689  -2.44708e-6 
- -1.98163e-5    0.00185435   -2.44708e-6    0.000243907
-  0.000243689  -2.44708e-6    0.00233809   -2.80614e-5 
- -2.44708e-6    0.000243907  -2.80614e-5    0.00245745
+<div class="codehilite"><pre><span></span>4×4 Array{Float64,2}:
+  0.00181127   -1.98035e-5    0.000240705  -2.59506e-6 
+ -1.98035e-5    0.00185406   -2.59506e-6    0.000247285
+  0.000240705  -2.59506e-6    0.00237252   -2.63542e-5 
+ -2.59506e-6    0.000247285  -2.63542e-5    0.00241848
 </pre></div>
 
 
@@ -516,7 +651,7 @@
 <p><a href="https://en.wikipedia.org/wiki/Restricted_maximum_likelihood">REML (restricted maximum likelihood estimation)</a> is a popular alternative to the MLE. To find the REML of a variane component model, we replace the above step 3 by  </p>
 <p><strong>Step 3</strong>. Call optmization routine <code>fit_reml!</code>.</p>
 <div class="codehilite"><pre><span></span><span class="n">vcmodel_reml</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">vcmodel</span><span class="p">)</span>
-<span class="p">@</span><span class="n">time</span> <span class="n">logl</span><span class="p">,</span> <span class="n">vcmodel_reml</span><span class="p">,</span> <span class="n">Σse</span><span class="p">,</span> <span class="n">Σcov</span><span class="p">,</span> <span class="n">Bse</span><span class="p">,</span> <span class="n">Bcov</span> <span class="o">=</span> <span class="n">fit_reml!</span><span class="p">(</span><span class="n">vcmodel_reml</span><span class="p">,</span> <span class="n">vcdata</span><span class="p">;</span> <span class="n">algo</span> <span class="o">=</span> <span class="p">:</span><span class="n">MM</span><span class="p">);</span>
+<span class="nd">@time</span> <span class="n">logl</span><span class="p">,</span> <span class="n">vcmodel_reml</span><span class="p">,</span> <span class="n">Σse</span><span class="p">,</span> <span class="n">Σcov</span><span class="p">,</span> <span class="n">Bse</span><span class="p">,</span> <span class="n">Bcov</span> <span class="o">=</span> <span class="n">fit_reml!</span><span class="p">(</span><span class="n">vcmodel_reml</span><span class="p">,</span> <span class="n">vcdata</span><span class="p">;</span> <span class="n">algo</span> <span class="o">=</span> <span class="o">:</span><span class="n">MM</span><span class="p">);</span>
 </pre></div>
 
 
@@ -535,7 +670,7 @@
        9  -3.846631e+03
       10  -3.846630e+03
 
-  0.677764 seconds (16.35 k allocations: 62.680 MB, 1.06% gc time)
+  0.448162 seconds (10.73 k allocations: 62.676 MB, 2.12% gc time)
 </pre></div>
 
 
@@ -547,7 +682,7 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>-3844.377717902519
+<div class="codehilite"><pre><span></span>-3844.3777179025096
 </pre></div>
 
 
@@ -573,16 +708,10 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
- 1.092     1.04727
- 0.955345  1.01632,(
-2x2 Array{Float64,2}:
-  0.380594  -0.305485
- -0.305485   4.51994 ,
+<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632],(
+[0.380594 -0.305485; -0.305485 4.51994],
 
-2x2 Array{Float64,2}:
- 1.84285   0.261963
- 0.261963  2.17842 ),0x4 Array{Float64,2},Char[],Float64[],-Inf,Inf)
+[1.84285 0.261963; 0.261963 2.17842]),,Char[],Float64[],-Inf,Inf)
 </pre></div>
 
 
@@ -594,13 +723,9 @@
 
 
 <div class="codehilite"><pre><span></span>(
-2x2 Array{Float64,2}:
- 0.0765055  0.26305 
- 0.26305    0.904446,
+[0.0765055 0.26305; 0.26305 0.904446],
 
-2x2 Array{Float64,2}:
- 0.0845559  0.0919325
- 0.0919325  0.0999526)
+[0.0845559 0.0919325; 0.0919325 0.0999526])
 </pre></div>
 
 
@@ -611,7 +736,7 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>8x8 Array{Float64,2}:
+<div class="codehilite"><pre><span></span>8×8 Array{Float64,2}:
   0.0058531   -0.00467005  -0.00467005  …  -1.06597e-6   -1.51499e-7 
  -0.00467005   0.0691951    0.00372613     -1.51499e-7   -1.26041e-6 
  -0.00467005   0.00372613   0.0691951      -8.86843e-6   -1.26041e-6 
@@ -630,9 +755,9 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>2x2 Array{Float64,2}:
- 0.0425878  0.0484189
- 0.0430944  0.04964
+<div class="codehilite"><pre><span></span>2×2 Array{Float64,2}:
+ 0.0425909  0.0487744
+ 0.043091   0.0492444
 </pre></div>
 
 
@@ -643,11 +768,11 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>4x4 Array{Float64,2}:
-  0.00181372   -1.9846e-5    0.000240116  -2.40768e-6
- -1.9846e-5     0.00185713  -2.40768e-6    0.00024024
-  0.000240116  -2.40768e-6   0.00234439   -2.81393e-5
- -2.40768e-6    0.00024024  -2.81393e-5    0.00246413
+<div class="codehilite"><pre><span></span>4×4 Array{Float64,2}:
+  0.00181398   -1.98331e-5    0.000237127  -2.55589e-6 
+ -1.98331e-5    0.00185683   -2.55589e-6    0.000243624
+  0.000237127  -2.55589e-6    0.00237894   -2.6426e-5  
+ -2.55589e-6    0.000243624  -2.6426e-5     0.00242501
 </pre></div>
 
 
@@ -660,17 +785,18 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>4-element Array{Symbol,1}:
+<div class="codehilite"><pre><span></span>5-element Array{Symbol,1}:
  :Yrot    
  :Xrot    
  :eigval  
+ :eigvec  
  :logdetV2
 </pre></div>
 
 
 <p>Two optimization algorithms are implemented: <a href="https://books.google.com/books?id=QYqeYTftPNwC&amp;lpg=PP1&amp;pg=PA142#v=onepage&amp;q&amp;f=false">Fisher scoring</a> (<code>mle_fs!</code>) and the <a href="http://arxiv.org/abs/1509.07426">minorization-maximization (MM) algorithm</a> (<code>mle_mm!</code>). Both take the rotated data as input. These two functions give finer control of the optimization algorithms. Generally speaking, MM algorithm is more stable while Fisher scoring (if it converges) yields more accurate answer.</p>
 <div class="codehilite"><pre><span></span><span class="n">vcmodel_mm</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">vcmodel</span><span class="p">)</span>
-<span class="p">@</span><span class="n">time</span> <span class="n">mle_mm!</span><span class="p">(</span><span class="n">vcmodel_mm</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">funtol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="n">true</span><span class="p">);</span>
+<span class="nd">@time</span> <span class="n">mle_mm!</span><span class="p">(</span><span class="n">vcmodel_mm</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">funtol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="kc">true</span><span class="p">);</span>
 </pre></div>
 
 
@@ -689,7 +815,7 @@
        9  -3.844374e+03
       10  -3.844373e+03
 
-  0.021236 seconds (9.75 k allocations: 619.875 KB)
+  0.022691 seconds (9.67 k allocations: 655.344 KB)
 </pre></div>
 
 
@@ -698,7 +824,7 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>2x2 Array{Float64,2}:
+<div class="codehilite"><pre><span></span>2×2 Array{Float64,2}:
  1.092     1.04727
  0.955346  1.01632
 </pre></div>
@@ -710,20 +836,16 @@
 
 
 <div class="codehilite"><pre><span></span>(
-2x2 Array{Float64,2}:
-  0.380637  -0.305465
- -0.305465   4.51938 ,
+[0.380637 -0.305465; -0.305465 4.51938],
 
-2x2 Array{Float64,2}:
- 1.84009   0.265569
- 0.265569  2.17275 )
+[1.84009 0.265569; 0.265569 2.17275])
 </pre></div>
 
 
-<p>Fisher scoring (<code>mle_fs!</code>) uses either <a href="https://github.com/JuliaOpt/Ipopt.jl">Ipopt.jl</a> (keyword <code>solver=:Ipopt</code>) or <a href="https://github.com/JuliaOpt/KNITRO.jl">KNITRO.jl</a> (keyword <code>solver=:Knitro</code>) as the backend solver. Ipopt is open source and installation of <a href="https://github.com/JuliaOpt/Ipopt.jl">Ipopt.jl</a> package alone is sufficient. Knitro is a commercial software and users need to follow instructions at <a href="https://github.com/JuliaOpt/KNITRO.jl">KNITRO.jl</a> for proper functioning.</p>
+<p>Fisher scoring (<code>mle_fs!</code>) uses either <a href="https://github.com/JuliaOpt/Ipopt.jl">Ipopt.jl</a> (keyword <code>solver=:Ipopt</code>) or <a href="https://github.com/JuliaOpt/KNITRO.jl">KNITRO.jl</a> (keyword <code>solver=:Knitro</code>) as the backend solver. Ipopt is open source and installation of <a href="https://github.com/JuliaOpt/Ipopt.jl">Ipopt.jl</a> package alone is sufficient.</p>
 <div class="codehilite"><pre><span></span><span class="c"># Fisher scoring using Ipopt</span>
 <span class="n">vcmodel_ipopt</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">vcmodel</span><span class="p">)</span>
-<span class="p">@</span><span class="n">time</span> <span class="n">mle_fs!</span><span class="p">(</span><span class="n">vcmodel_ipopt</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">solver</span><span class="o">=</span><span class="p">:</span><span class="n">Ipopt</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">true</span><span class="p">);</span>
+<span class="nd">@time</span> <span class="n">mle_fs!</span><span class="p">(</span><span class="n">vcmodel_ipopt</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">solver</span><span class="o">=:</span><span class="n">Ipopt</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">true</span><span class="p">);</span>
 </pre></div>
 
 
@@ -758,16 +880,16 @@ iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
 iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
   50  3.8443732e+03 0.00e+00 6.76e-06 -11.0 4.08e-07    -  1.00e+00 1.00e+00f  1 MaxSA
   55  3.8443732e+03 0.00e+00 1.83e-06 -11.0 1.11e-07    -  1.00e+00 1.00e+00f  1 MaxSA
-  60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00h  1 MaxSA
+  60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00f  1 MaxSA
 
 Number of Iterations....: 63
 
                                    (scaled)                 (unscaled)
-Objective...............:   3.4496886481727671e+02    3.8443731733053760e+03
-Dual infeasibility......:   2.2693632135739328e-07    2.5290047736252332e-06
+Objective...............:   3.4496886481728075e+02    3.8443731733053696e+03
+Dual infeasibility......:   2.2693631692678575e-07    2.5290047242499938e-06
 Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
 Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-Overall NLP error.......:   2.2693632135739328e-07    2.5290047736252332e-06
+Overall NLP error.......:   2.2693631692678575e-07    2.5290047242499938e-06
 
 
 Number of objective function evaluations             = 64
@@ -777,11 +899,11 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 63
-Total CPU secs in IPOPT (w/o function evaluations)   =      0.019
-Total CPU secs in NLP function evaluations           =      0.263
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.018
+Total CPU secs in NLP function evaluations           =      0.244
 
 EXIT: Solved To Acceptable Level.
-  0.314060 seconds (110.60 k allocations: 6.978 MB)
+  0.285427 seconds (104.32 k allocations: 7.336 MB)
 </pre></div>
 
 
@@ -790,7 +912,7 @@ EXIT: Solved To Acceptable Level.
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>2x2 Array{Float64,2}:
+<div class="codehilite"><pre><span></span>2×2 Array{Float64,2}:
  1.092     1.04727
  0.955346  1.01632
 </pre></div>
@@ -802,118 +924,24 @@ EXIT: Solved To Acceptable Level.
 
 
 <div class="codehilite"><pre><span></span>(
-2x2 Array{Float64,2}:
-  0.380552  -0.305594
- -0.305594   4.52106 ,
+[0.380552 -0.305594; -0.305594 4.52106],
 
-2x2 Array{Float64,2}:
- 1.84008   0.265385
- 0.265385  2.17287 )
+[1.84008 0.265385; 0.265385 2.17287])
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span><span class="c"># Fisher scoring using Knitro</span>
+<p>Knitro is a commercial software and users need to follow instructions at <a href="https://github.com/JuliaOpt/KNITRO.jl">KNITRO.jl</a> for proper functioning. Following code invoke Knitro as the backend optimization solver.</p>
+<div class="codehilite"><pre><span></span><span class="k">using</span> <span class="n">KNITRO</span>
+
+<span class="c"># Fisher scoring using Knitro</span>
 <span class="n">vcmodel_knitro</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">vcmodel</span><span class="p">)</span>
-<span class="p">@</span><span class="n">time</span> <span class="n">mle_fs!</span><span class="p">(</span><span class="n">vcmodel_knitro</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">solver</span><span class="o">=</span><span class="p">:</span><span class="n">Knitro</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">true</span><span class="p">);</span>
-</pre></div>
+<span class="nd">@time</span> <span class="n">mle_fs!</span><span class="p">(</span><span class="n">vcmodel_knitro</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">solver</span><span class="o">=:</span><span class="n">Knitro</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">true</span><span class="p">);</span>
 
-
-<div class="codehilite"><pre><span></span>Knitro 10.1.0 STUDENT LICENSE (problem size limit = 300)
-
-=======================================
-            Student License
-       (NOT FOR COMMERCIAL USE)
-         Artelys Knitro 10.1.0
-=======================================
-
-Knitro presolve eliminated 0 variables and 0 constraints.
-
-The problem is identified as unconstrained.
-Knitro changing algorithm from AUTO to 1.
-Knitro changing bar_initpt from AUTO to 3.
-Knitro changing bar_murule from AUTO to 4.
-Knitro changing bar_penaltycons from AUTO to 1.
-Knitro changing bar_penaltyrule from AUTO to 2.
-Knitro changing bar_switchrule from AUTO to 1.
-Knitro changing linsolver from AUTO to 2.
-
-Problem Characteristics                    ( Presolved)
------------------------
-Objective goal:  Maximize
-Number of variables:                     6 (         6)
-    bounded below:                       0 (         0)
-    bounded above:                       0 (         0)
-    bounded below and above:             0 (         0)
-    fixed:                               0 (         0)
-    free:                                6 (         6)
-Number of constraints:                   0 (         0)
-    linear equalities:                   0 (         0)
-    nonlinear equalities:                0 (         0)
-    linear inequalities:                 0 (         0)
-    nonlinear inequalities:              0 (         0)
-    range:                               0 (         0)
-Number of nonzeros in Jacobian:          0 (         0)
-Number of nonzeros in Hessian:          21 (        21)
-
-  Iter      Objective      FeasError   OptError    ||Step||    CGits 
---------  --------------  ----------  ----------  ----------  -------
-       0   -4.210942e+03   0.000e+00
-      10   -3.844387e+03   0.000e+00   2.254e-01   1.390e-02        0
-      20   -3.844373e+03   0.000e+00   1.698e-02   1.034e-03        0
-      30   -3.844373e+03   0.000e+00   1.250e-03   7.606e-05        0
-      40   -3.844373e+03   0.000e+00   9.191e-05   5.591e-06        0
-
-EXIT: Locally optimal solution found.
-
-Final Statistics
-----------------
-Final objective value               =  -3.84437317330763e+03
-Final feasibility error (abs / rel) =   0.00e+00 / 0.00e+00
-Final optimality error  (abs / rel) =   9.19e-05 / 9.19e-07
-# of iterations                     =         40 
-# of CG iterations                  =          0 
-# of function evaluations           =         42
-# of gradient evaluations           =         42
-# of Hessian evaluations            =         40
-Total program time (secs)           =       0.18812 (     0.188 CPU time)
-Time spent in evaluations (secs)    =       0.18277
-
-===============================================================================
-
-  0.191113 seconds (73.31 k allocations: 4.642 MB)
-
-
-### Could not find a valid license.
-    Your machine ID is 1f-aa-f6-5b-46.
-    Please contact licensing@artelys.com or your local distributor to obtain a license.
-    If you already have a license, please execute `get_machine_ID -v` and send the output to support.
-</pre></div>
-
-
-<div class="codehilite"><pre><span></span><span class="c"># Knitro estimates</span>
+<span class="c"># Knitro estimates</span>
 <span class="n">vcmodel_knitro</span><span class="o">.</span><span class="n">B</span>
-</pre></div>
 
-
-<div class="codehilite"><pre><span></span>2x2 Array{Float64,2}:
- 1.092     1.04727
- 0.955346  1.01632
-</pre></div>
-
-
-<div class="codehilite"><pre><span></span><span class="c"># Knitro estimates</span>
+<span class="c"># Knitro estimates</span>
 <span class="n">vcmodel_knitro</span><span class="o">.</span><span class="n">Σ</span>
-</pre></div>
-
-
-<div class="codehilite"><pre><span></span>(
-2x2 Array{Float64,2}:
-  0.380552  -0.305582
- -0.305582   4.52106 ,
-
-2x2 Array{Float64,2}:
- 1.84008   0.265385
- 0.265385  2.17287 )
 </pre></div>
 
 
@@ -921,8 +949,8 @@ Time spent in evaluations (secs)    =       0.18277
 <h2 id="starting-point">Starting point</h2>
 <p>Here are a few strategies for successful optimization. </p>
 <ul>
-<li>For $d&gt;1$ (multivariate response), initialize $B, \Sigma$ from univariate estimates.  </li>
-<li>Use REML estimate as starting point for MLE.  </li>
+<li>For $d&gt;1$ (multivariate response), initialize $B, \Sigma$ from univariate estimates.</li>
+<li>Use REML estimate as starting point for MLE.</li>
 <li>When there are only $m=2$ variance components, pre-compute <code>TwoVarCompVariateRotate</code> and use it for optimization.</li>
 </ul>
 <p><a id='Constrained-estimation-of-B-1'></a></p>
@@ -939,23 +967,16 @@ Time spent in evaluations (secs)    =       0.18277
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(2x2 Array{Float64,2}:
- 0.0  0.0
- 0.0  0.0,(
-2x2 Array{Float64,2}:
- 1.0  0.0
- 0.0  1.0,
+<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0],(
+[1.0 0.0; 0.0 1.0],
 
-2x2 Array{Float64,2}:
- 1.0  0.0
- 0.0  1.0),1x4 Array{Float64,2}:
- 1.0  0.0  -1.0  0.0,&#39;=&#39;,0.0,0.0,2.0)
+[1.0 0.0; 0.0 1.0]),[1.0 0.0 -1.0 0.0],&#39;=&#39;,0.0,0.0,2.0)
 </pre></div>
 
 
 <p>We first try the MM algorithm.</p>
 <div class="codehilite"><pre><span></span><span class="c"># MM algorithm for constrained estimation of B</span>
-<span class="p">@</span><span class="n">time</span> <span class="n">mle_mm!</span><span class="p">(</span><span class="n">vcmodel_constr</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">funtol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="n">true</span><span class="p">);</span>
+<span class="nd">@time</span> <span class="n">mle_mm!</span><span class="p">(</span><span class="n">vcmodel_constr</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">funtol</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">verbose</span> <span class="o">=</span> <span class="kc">true</span><span class="p">);</span>
 </pre></div>
 
 
@@ -974,7 +995,7 @@ Time spent in evaluations (secs)    =       0.18277
        9  -3.844650e+03
       10  -3.844650e+03
 
-  0.095903 seconds (34.73 k allocations: 1.715 MB)
+  0.045048 seconds (11.02 k allocations: 743.094 KB)
 </pre></div>
 
 
@@ -997,7 +1018,7 @@ Time spent in evaluations (secs)    =       0.18277
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>2x2 Array{Float64,2}:
+<div class="codehilite"><pre><span></span>2×2 Array{Float64,2}:
  1.07177   1.07177
  0.955683  1.01591
 </pre></div>
@@ -1008,13 +1029,9 @@ Time spent in evaluations (secs)    =       0.18277
 
 
 <div class="codehilite"><pre><span></span>(
-2x2 Array{Float64,2}:
-  0.380624  -0.305498
- -0.305498   4.51948 ,
+[0.380624 -0.305498; -0.305498 4.51948],
 
-2x2 Array{Float64,2}:
- 1.84051   0.265065
- 0.265065  2.17336 )
+[1.84051 0.265065; 0.265065 2.17336])
 </pre></div>
 
 
@@ -1027,7 +1044,7 @@ Time spent in evaluations (secs)    =       0.18277
 <span class="n">vcmodel_constr</span><span class="o">.</span><span class="n">lb</span> <span class="o">=</span> <span class="mf">0.0</span>
 <span class="n">vcmodel_constr</span><span class="o">.</span><span class="n">ub</span> <span class="o">=</span> <span class="mf">2.0</span>
 <span class="n">vcmodel_constr</span>
-<span class="p">@</span><span class="n">time</span> <span class="n">mle_fs!</span><span class="p">(</span><span class="n">vcmodel_constr</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">solver</span><span class="o">=</span><span class="p">:</span><span class="n">Ipopt</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="n">true</span><span class="p">);</span>
+<span class="nd">@time</span> <span class="n">mle_fs!</span><span class="p">(</span><span class="n">vcmodel_constr</span><span class="p">,</span> <span class="n">vcdatarot</span><span class="p">;</span> <span class="n">solver</span><span class="o">=:</span><span class="n">Ipopt</span><span class="p">,</span> <span class="n">maxiter</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">true</span><span class="p">);</span>
 </pre></div>
 
 
@@ -1067,11 +1084,11 @@ iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
 Number of Iterations....: 63
 
                                    (scaled)                 (unscaled)
-Objective...............:   3.4484507551948582e+02    3.8446498170293421e+03
-Dual infeasibility......:   2.2694405419276139e-07    2.5301808793809917e-06
+Objective...............:   3.4484507551949008e+02    3.8446498170293403e+03
+Dual infeasibility......:   2.2694405349430929e-07    2.5301808715939735e-06
 Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
 Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-Overall NLP error.......:   2.2694405419276139e-07    2.5301808793809917e-06
+Overall NLP error.......:   2.2694405349430929e-07    2.5301808715939735e-06
 
 
 Number of objective function evaluations             = 64
@@ -1081,11 +1098,11 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 63
-Total CPU secs in IPOPT (w/o function evaluations)   =      0.021
-Total CPU secs in NLP function evaluations           =      0.650
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.019
+Total CPU secs in NLP function evaluations           =      0.481
 
 EXIT: Solved To Acceptable Level.
-  0.748622 seconds (160.13 k allocations: 8.986 MB, 17.15% gc time)
+  0.557942 seconds (126.13 k allocations: 8.715 MB)
 </pre></div>
 
 
@@ -1093,7 +1110,7 @@ EXIT: Solved To Acceptable Level.
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>2x2 Array{Float64,2}:
+<div class="codehilite"><pre><span></span>2×2 Array{Float64,2}:
  1.07177   1.07177
  0.955683  1.01591
 </pre></div>
@@ -1104,91 +1121,93 @@ EXIT: Solved To Acceptable Level.
 
 
 <div class="codehilite"><pre><span></span>(
-2x2 Array{Float64,2}:
-  0.380539  -0.305626
- -0.305626   4.52116 ,
+[0.380539 -0.305626; -0.305626 4.52116],
 
-2x2 Array{Float64,2}:
- 1.8405    0.264881
- 0.264881  2.17348 )
+[1.8405 0.264881; 0.264881 2.17348])
 </pre></div>
-          <aside class="copyright" role="note">
-            
-            Documentation built with
-            <a href="http://www.mkdocs.org" target="_blank">MkDocs</a>
-            using the
-            <a href="http://squidfunk.github.io/mkdocs-material/" target="_blank">
-              Material
-            </a>
-            theme.
-          </aside>
-          
-            <footer class="footer">
-              
-  <nav class="pagination" aria-label="Footer">
-    <div class="previous">
-      
-        <a href="../.." title="Home">
-          <span class="direction">
-            Previous
-          </span>
-          <div class="page">
-            <div class="button button-previous" role="button" aria-label="Previous">
-              <i class="icon icon-back"></i>
-            </div>
-            <div class="stretch">
-              <div class="title">
-                Home
-              </div>
-            </div>
-          </div>
-        </a>
-      
-    </div>
-    <div class="next">
-      
-        <a href="../heritability/" title="Heritability">
-          <span class="direction">
-            Next
-          </span>
-          <div class="page">
-            <div class="stretch">
-              <div class="title">
-                Heritability
-              </div>
-            </div>
-            <div class="button button-next" role="button" aria-label="Next">
-              <i class="icon icon-forward"></i>
-            </div>
-          </div>
-        </a>
-      
-    </div>
-  </nav>
 
-            </footer>
-          
-        </div>
-      </article>
-      <div class="results" role="status" aria-live="polite">
-        <div class="scrollable">
-          <div class="wrapper">
-            <div class="meta"></div>
-            <div class="list"></div>
+
+<div class="codehilite"><pre><span></span>
+</pre></div>
+                
+                  
+                
+              
+              
+                
+              
+            </article>
           </div>
         </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+    <div class="md-footer-nav">
+      <nav class="md-footer-nav__inner md-grid">
+        
+          <a href="../.." title="Home" class="md-flex md-footer-nav__link md-footer-nav__link--prev" rel="prev">
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-back md-footer-nav__button"></i>
+            </div>
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Previous
+                </span>
+                Home
+              </span>
+            </div>
+          </a>
+        
+        
+          <a href="../heritability/" title="Heritability" class="md-flex md-footer-nav__link md-footer-nav__link--next" rel="next">
+            <div class="md-flex__cell md-flex__cell--stretch md-footer-nav__title">
+              <span class="md-flex__ellipsis">
+                <span class="md-footer-nav__direction">
+                  Next
+                </span>
+                Heritability
+              </span>
+            </div>
+            <div class="md-flex__cell md-flex__cell--shrink">
+              <i class="md-icon md-icon--arrow-forward md-footer-nav__button"></i>
+            </div>
+          </a>
+        
+      </nav>
+    </div>
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        powered by
+        <a href="http://www.mkdocs.org" title="MkDocs">MkDocs</a>
+        and
+        <a href="http://squidfunk.github.io/mkdocs-material/" title="Material for MkDocs">
+          Material for MkDocs</a>
       </div>
-    </main>
-    <script>
-      var base_url = '../..';
-      var repo_id  = 'OpenMendel/VarianceComponentModels.jl';
-    </script>
-    <script src="../../assets/javascripts/application-997097ee0c.js"></script>
+      
+        
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
     
-      <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+      <script src="../../assets/javascripts/application-c6f9af8d0c.js"></script>
+      <script>app.initialize({url:{base:"../.."}})</script>
+      
+        <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+      
+        <script src="../../assets/mathjaxhelper.js"></script>
+      
     
-      <script src="../../assets/mathjaxhelper.js"></script>
     
+      
     
   </body>
 </html>
