@@ -3,4 +3,3 @@ julia 0.4
 Compat
 MathProgBase
 Ipopt
-KNITRO
