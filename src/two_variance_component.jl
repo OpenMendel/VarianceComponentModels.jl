@@ -904,11 +904,11 @@ function mle_fs!{T1<:VarianceComponentModel, T2<:TwoVarCompVariateRotate}(
   Bcov = zeros(T, nmean, nmean)
   Bcov = pinv(fisher_B(vcmodel, vcdatarot, dd.vcaux))
   Bse = similar(vcmodel.B)
-  copy!(Bse, sqrt(diag(Bcov)))
+  copy!(Bse, sqrt.(diag(Bcov)))
   Σcov = pinv(fisher_Σ(vcmodel, vcdatarot))
   Σse = (zeros(T, d, d), zeros(T, d, d))
-  copy!(Σse[1], sqrt(diag(view(Σcov, 1:d^2, 1:d^2))))
-  copy!(Σse[2], sqrt(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+  copy!(Σse[1], sqrt.(diag(view(Σcov, 1:d^2, 1:d^2))))
+  copy!(Σse[2], sqrt.(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
   maxlogl, vcmodel, Σse, Σcov, Bse, Bcov
@@ -1105,11 +1105,11 @@ function mle_mm!{T1 <: VarianceComponentModel, T2 <: TwoVarCompVariateRotate}(
   # standard errors
   Bcov = pinv(fisher_B(vcm, vcdatarot, vcaux))
   Bse = similar(vcm.B)
-  copy!(Bse, sqrt(diag(Bcov)))
+  copy!(Bse, sqrt.(diag(Bcov)))
   Σcov = pinv(fisher_Σ(vcm, vcdatarot))
   Σse = (zeros(T, d, d), zeros(T, d, d))
-  copy!(Σse[1], sqrt(diag(view(Σcov, 1:d^2, 1:d^2))))
-  copy!(Σse[2], sqrt(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+  copy!(Σse[1], sqrt.(diag(view(Σcov, 1:d^2, 1:d^2))))
+  copy!(Σse[2], sqrt.(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
   logl, vcm, Σse, Σcov, Bse, Bcov
@@ -1240,7 +1240,7 @@ function fit_reml!{
   # standard errors and covariance of mean parameters
   Bcov = inv(fisher_B(vcmodel, vcdatarot, vcaux))
   Bse = similar(vcmodel.B)
-  copy!(Bse, sqrt(diag(Bcov)))
+  copy!(Bse, sqrt.(diag(Bcov)))
 
   # output
   logpdf(vcmodel, vcdatarot), vcmodel, Σse, Σcov, Bse, Bcov

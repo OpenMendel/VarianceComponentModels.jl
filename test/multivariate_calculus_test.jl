@@ -1,7 +1,6 @@
 module MultivariateCalculusTest
 
-using VarianceComponentModels
-using BaseTestNext
+using VarianceComponentModels, Base.Test
 
 srand(123)
 
@@ -102,7 +101,7 @@ end
       dX2[i, j] = vecdot(Y, M[(i-1)*p+1:i*p, (j-1)*r+1:j*r])
     end
   end
-  @test_approx_eq_eps vecnorm(dX1 - vec(dX2)) 0.0 1.0e-8
+  @test vecnorm(dX1 - vec(dX2)) < 1e-8
 end
 
 # test duplication

@@ -122,7 +122,7 @@ function TwoVarCompModelRotate{T, BT, ΣT}(
   λ = convert(Vector{T}, F.values)
   Φ = convert(Matrix{T}, F.vectors)
   # correct negative eigenvalues due to roundoff
-  map!(x -> max(x, zero(T)), λ)
+  @compat map!(x -> max(x, zero(T)), λ, λ)
   Brot = isempty(vcm.B) ? Array{T}(size(vcm.B)) : vcm.B * Φ
   logdetΣ2 = convert(T, logdet(vcm.Σ[2]))
   TwoVarCompModelRotate{T, BT}(Brot, λ, Φ, logdetΣ2)

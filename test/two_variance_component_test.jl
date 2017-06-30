@@ -1,7 +1,6 @@
 module TwoVarianceComponentTest
 
-using VarianceComponentModels, MathProgBase, Ipopt
-using BaseTestNext
+using VarianceComponentModels, MathProgBase, Ipopt, Base.Test
 
 srand(123)
 
