@@ -1,6 +1,25 @@
 
 # MLE and REML
 
+Machine information
+
+
+```julia
+versioninfo()
+```
+
+    Julia Version 0.6.0
+    Commit 903644385b (2017-06-19 13:05 UTC)
+    Platform Info:
+      OS: macOS (x86_64-apple-darwin13.4.0)
+      CPU: Intel(R) Core(TM) i7-4790K CPU @ 4.00GHz
+      WORD_SIZE: 64
+      BLAS: libopenblas (USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell)
+      LAPACK: libopenblas64_
+      LIBM: libopenlibm
+      LLVM: libLLVM-3.9.1 (ORCJIT, haswell)
+
+
 ## Demo data
 
 For demonstration, we generate a random data set.
@@ -104,10 +123,7 @@ vcmodel
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0],(
-    [1.0 0.0; 0.0 1.0],
-    
-    [1.0 0.0; 0.0 1.0]),,Char[],Float64[],-Inf,Inf)
+    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 
 
 
@@ -145,7 +161,7 @@ vcmodel_mle = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.234076 seconds (9.71 k allocations: 23.934 MB, 1.82% gc time)
+      0.290970 seconds (10.45 k allocations: 24.036 MiB, 4.73% gc time)
 
 
 The output of `fit_mle!` contains  
@@ -193,10 +209,7 @@ vcmodel_mle
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632],(
-    [0.380637 -0.305465; -0.305465 4.51938],
-    
-    [1.84009 0.265569; 0.265569 2.17275]),,Char[],Float64[],-Inf,Inf)
+    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632], ([0.380637 -0.305465; -0.305465 4.51938], [1.84009 0.265569; 0.265569 2.17275]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 
 
 
@@ -210,10 +223,7 @@ vcmodel_mle
 
 
 
-    (
-    [0.0765136 0.263047; 0.263047 0.904332],
-    
-    [0.0844292 0.0917441; 0.0917441 0.0996927])
+    ([0.0765136 0.263047; 0.263047 0.904332], [0.0844292 0.0917441; 0.0917441 0.0996927])
 
 
 
@@ -301,8 +311,7 @@ vcmodel_reml = deepcopy(vcmodel)
            9  -3.846631e+03
           10  -3.846630e+03
     
-      0.448162 seconds (10.73 k allocations: 62.676 MB, 2.12% gc time)
-
+      0
 
 The output of `fit_reml!` contains
 
@@ -349,10 +358,7 @@ vcmodel_reml
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632],(
-    [0.380594 -0.305485; -0.305485 4.51994],
-    
-    [1.84285 0.261963; 0.261963 2.17842]),,Char[],Float64[],-Inf,Inf)
+    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632], ([0.380594 -0.305485; -0.305485 4.51994], [1.84285 0.261963; 0.261963 2.17842]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 
 
 
@@ -366,10 +372,7 @@ vcmodel_reml
 
 
 
-    (
-    [0.0765055 0.26305; 0.26305 0.904446],
-    
-    [0.0845559 0.0919325; 0.0919325 0.0999526])
+    ([0.0765055 0.26305; 0.26305 0.904446], [0.0845559 0.0919325; 0.0919325 0.0999526])
 
 
 
@@ -477,7 +480,7 @@ vcmodel_mm = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.022691 seconds (9.67 k allocations: 655.344 KB)
+      0.018754 seconds (9.15 k allocations: 680.172 KiB)
 
 
 
@@ -504,10 +507,7 @@ vcmodel_mm.Σ
 
 
 
-    (
-    [0.380637 -0.305465; -0.305465 4.51938],
-    
-    [1.84009 0.265569; 0.265569 2.17275])
+    ([0.380637 -0.305465; -0.305465 4.51938], [1.84009 0.265569; 0.265569 2.17275])
 
 
 
@@ -570,12 +570,11 @@ vcmodel_ipopt = deepcopy(vcmodel)
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.018
-    Total CPU secs in NLP function evaluations           =      0.244
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.020
+    Total CPU secs in NLP function evaluations           =      0.256
     
     EXIT: Solved To Acceptable Level.
-      0.285427 seconds (104.32 k allocations: 7.336 MB)
-
+      
 
 
 ```julia
@@ -601,14 +600,11 @@ vcmodel_ipopt.Σ
 
 
 
-    (
-    [0.380552 -0.305594; -0.305594 4.52106],
-    
-    [1.84008 0.265385; 0.265385 2.17287])
+    ([0.380552 -0.305594; -0.305594 4.52106], [1.84008 0.265385; 0.265385 2.17287])
 
 
 
-Knitro is a commercial software and users need to follow instructions at [KNITRO.jl](https://github.com/JuliaOpt/KNITRO.jl) for proper functioning. Following code invoke Knitro as the backend optimization solver.
+Knitro is a commercial software and users need to follow instructions at [KNITRO.jl](https://github.com/JuliaOpt/KNITRO.jl) for proper functioning. Following code invokes Knitro as the backend optimization solver.
 ```julia
 using KNITRO
 
@@ -650,10 +646,7 @@ vcmodel_constr
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0],(
-    [1.0 0.0; 0.0 1.0],
-    
-    [1.0 0.0; 0.0 1.0]),[1.0 0.0 -1.0 0.0],'=',0.0,0.0,2.0)
+    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), [1.0 0.0 -1.0 0.0], '=', 0.0, 0.0, 2.0)
 
 
 
@@ -681,7 +674,7 @@ We first try the MM algorithm.
            9  -3.844650e+03
           10  -3.844650e+03
     
-      0.045048 seconds (11.02 k allocations: 743.094 KB)
+      0.031954 seconds (10.70 k allocations: 781.828 KiB)
 
 
 
@@ -725,10 +718,7 @@ vcmodel_constr.Σ
 
 
 
-    (
-    [0.380624 -0.305498; -0.305498 4.51948],
-    
-    [1.84051 0.265065; 0.265065 2.17336])
+    ([0.380624 -0.305498; -0.305498 4.51948], [1.84051 0.265065; 0.265065 2.17336])
 
 
 
@@ -797,12 +787,11 @@ vcmodel_constr
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.019
-    Total CPU secs in NLP function evaluations           =      0.481
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.016
+    Total CPU secs in NLP function evaluations           =      0.417
     
     EXIT: Solved To Acceptable Level.
-      0.557942 seconds (126.13 k allocations: 8.715 MB)
-
+      
 
 
 ```julia
@@ -826,14 +815,6 @@ vcmodel_constr.Σ
 
 
 
-    (
-    [0.380539 -0.305626; -0.305626 4.52116],
-    
-    [1.8405 0.264881; 0.264881 2.17348])
+    ([0.380539 -0.305626; -0.305626 4.52116], [1.8405 0.264881; 0.264881 2.17348])
 
 
-
-
-```julia
-
-```
