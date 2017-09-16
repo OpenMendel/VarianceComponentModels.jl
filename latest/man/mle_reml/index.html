@@ -16,7 +16,7 @@
       
         <link rel="shortcut icon" href="../../assets/images/favicon.png">
       
-      <meta name="generator" content="mkdocs-0.16.3, mkdocs-material-1.8.1">
+      <meta name="generator" content="mkdocs-0.16.3, mkdocs-material-1.10.1">
     
     
       
@@ -24,12 +24,12 @@
       
     
     
-      <script src="../../assets/javascripts/modernizr-1df76c4e58.js"></script>
+      <script src="../../assets/javascripts/modernizr-e826f8942a.js"></script>
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/application-bfecc7305d.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/application-a20f419c8e.css">
       
-        <link rel="stylesheet" href="../../assets/stylesheets/application-02c2a4388f.palette.css">
+        <link rel="stylesheet" href="../../assets/stylesheets/application-23f75ab9c7.palette.css">
       
     
     
@@ -69,10 +69,11 @@
   <nav class="md-header-nav md-grid">
     <div class="md-flex">
       <div class="md-flex__cell md-flex__cell--shrink">
-        
-          <a href="../.." title="VarianceComponentModels.jl" class="md-icon md-icon--home md-header-nav__button">
-          </a>
-        
+        <a href="../.." title="VarianceComponentModels.jl" class="md-header-nav__button md-logo">
+          
+            <i class="md-icon md-icon--home"></i>
+          
+        </a>
       </div>
       <div class="md-flex__cell md-flex__cell--shrink">
         <label class="md-icon md-icon--menu md-header-nav__button" for="drawer"></label>
@@ -101,7 +102,7 @@
     <form class="md-search__form" name="search">
       <input type="text" class="md-search__input" name="query" required placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query">
       <label class="md-icon md-search__icon" for="search"></label>
-      <button type="reset" class="md-icon md-search__icon" data-md-component="reset">close</button>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset">&#xE5CD;</button>
     </form>
     <div class="md-search__output">
       <div class="md-search__scrollwrap" data-md-scrollfix>
@@ -158,9 +159,11 @@
                   <div class="md-sidebar__inner">
                     <nav class="md-nav md-nav--primary" data-md-level="0">
   <label class="md-nav__title md-nav__title--site" for="drawer">
-    
-      <i class="md-icon md-icon--home md-nav__button"></i>
-    
+    <div class="md-nav__button md-logo">
+      
+        <i class="md-icon md-icon--home"></i>
+      
+    </div>
     VarianceComponentModels.jl
   </label>
   
@@ -409,11 +412,29 @@
             <article class="md-content__inner md-typeset">
               
                 
-                  <a href="https://github.com/OpenMendel/VarianceComponentModels.jl/edit/master/docs/man/mle_reml.md" title="Edit this page" class="md-icon md-content__icon">edit</a>
+                  <a href="https://github.com/OpenMendel/VarianceComponentModels.jl/edit/master/docs/man/mle_reml.md" title="Edit this page" class="md-icon md-content__icon">&#xE3C9;</a>
                 
                 
                 <p><a id='MLE-and-REML-1'></a></p>
 <h1 id="mle-and-reml">MLE and REML</h1>
+<p>Machine information</p>
+<div class="codehilite"><pre><span></span><span class="n">versioninfo</span><span class="p">()</span>
+</pre></div>
+
+
+<div class="codehilite"><pre><span></span>Julia Version 0.6.0
+Commit 903644385b (2017-06-19 13:05 UTC)
+Platform Info:
+  OS: macOS (x86_64-apple-darwin13.4.0)
+  CPU: Intel(R) Core(TM) i7-4790K CPU @ 4.00GHz
+  WORD_SIZE: 64
+  BLAS: libopenblas (USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell)
+  LAPACK: libopenblas64_
+  LIBM: libopenlibm
+  LLVM: libLLVM-3.9.1 (ORCJIT, haswell)
+</pre></div>
+
+
 <p><a id='Demo-data-1'></a></p>
 <h2 id="demo-data">Demo data</h2>
 <p>For demonstration, we generate a random data set.</p>
@@ -500,10 +521,7 @@
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0],(
-[1.0 0.0; 0.0 1.0],
-
-[1.0 0.0; 0.0 1.0]),,Char[],Float64[],-Inf,Inf)
+<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 </pre></div>
 
 
@@ -541,7 +559,7 @@ lb \le \text{vec}(B) \le ub
        9  -3.844374e+03
       10  -3.844373e+03
 
-  0.234076 seconds (9.71 k allocations: 23.934 MB, 1.82% gc time)
+  0.290970 seconds (10.45 k allocations: 24.036 MiB, 4.73% gc time)
 </pre></div>
 
 
@@ -579,10 +597,7 @@ lb \le \text{vec}(B) \le ub
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632],(
-[0.380637 -0.305465; -0.305465 4.51938],
-
-[1.84009 0.265569; 0.265569 2.17275]),,Char[],Float64[],-Inf,Inf)
+<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632], ([0.380637 -0.305465; -0.305465 4.51938], [1.84009 0.265569; 0.265569 2.17275]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 </pre></div>
 
 
@@ -593,10 +608,7 @@ lb \le \text{vec}(B) \le ub
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>(
-[0.0765136 0.263047; 0.263047 0.904332],
-
-[0.0844292 0.0917441; 0.0917441 0.0996927])
+<div class="codehilite"><pre><span></span>([0.0765136 0.263047; 0.263047 0.904332], [0.0844292 0.0917441; 0.0917441 0.0996927])
 </pre></div>
 
 
@@ -671,7 +683,7 @@ lb \le \text{vec}(B) \le ub
        9  -3.846631e+03
       10  -3.846630e+03
 
-  0.448162 seconds (10.73 k allocations: 62.676 MB, 2.12% gc time)
+  0
 </pre></div>
 
 
@@ -709,10 +721,7 @@ lb \le \text{vec}(B) \le ub
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632],(
-[0.380594 -0.305485; -0.305485 4.51994],
-
-[1.84285 0.261963; 0.261963 2.17842]),,Char[],Float64[],-Inf,Inf)
+<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632], ([0.380594 -0.305485; -0.305485 4.51994], [1.84285 0.261963; 0.261963 2.17842]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 </pre></div>
 
 
@@ -723,10 +732,7 @@ lb \le \text{vec}(B) \le ub
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>(
-[0.0765055 0.26305; 0.26305 0.904446],
-
-[0.0845559 0.0919325; 0.0919325 0.0999526])
+<div class="codehilite"><pre><span></span>([0.0765055 0.26305; 0.26305 0.904446], [0.0845559 0.0919325; 0.0919325 0.0999526])
 </pre></div>
 
 
@@ -816,7 +822,7 @@ lb \le \text{vec}(B) \le ub
        9  -3.844374e+03
       10  -3.844373e+03
 
-  0.022691 seconds (9.67 k allocations: 655.344 KB)
+  0.018754 seconds (9.15 k allocations: 680.172 KiB)
 </pre></div>
 
 
@@ -836,10 +842,7 @@ lb \le \text{vec}(B) \le ub
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>(
-[0.380637 -0.305465; -0.305465 4.51938],
-
-[1.84009 0.265569; 0.265569 2.17275])
+<div class="codehilite"><pre><span></span>([0.380637 -0.305465; -0.305465 4.51938], [1.84009 0.265569; 0.265569 2.17275])
 </pre></div>
 
 
@@ -900,11 +903,10 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 63
-Total CPU secs in IPOPT (w/o function evaluations)   =      0.018
-Total CPU secs in NLP function evaluations           =      0.244
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.020
+Total CPU secs in NLP function evaluations           =      0.256
 
 EXIT: Solved To Acceptable Level.
-  0.285427 seconds (104.32 k allocations: 7.336 MB)
 </pre></div>
 
 
@@ -924,14 +926,11 @@ EXIT: Solved To Acceptable Level.
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>(
-[0.380552 -0.305594; -0.305594 4.52106],
-
-[1.84008 0.265385; 0.265385 2.17287])
+<div class="codehilite"><pre><span></span>([0.380552 -0.305594; -0.305594 4.52106], [1.84008 0.265385; 0.265385 2.17287])
 </pre></div>
 
 
-<p>Knitro is a commercial software and users need to follow instructions at <a href="https://github.com/JuliaOpt/KNITRO.jl">KNITRO.jl</a> for proper functioning. Following code invoke Knitro as the backend optimization solver.</p>
+<p>Knitro is a commercial software and users need to follow instructions at <a href="https://github.com/JuliaOpt/KNITRO.jl">KNITRO.jl</a> for proper functioning. Following code invokes Knitro as the backend optimization solver.</p>
 <div class="codehilite"><pre><span></span><span class="k">using</span> <span class="n">KNITRO</span>
 
 <span class="c"># Fisher scoring using Knitro</span>
@@ -968,10 +967,7 @@ EXIT: Solved To Acceptable Level.
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0],(
-[1.0 0.0; 0.0 1.0],
-
-[1.0 0.0; 0.0 1.0]),[1.0 0.0 -1.0 0.0],&#39;=&#39;,0.0,0.0,2.0)
+<div class="codehilite"><pre><span></span>VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), [1.0 0.0 -1.0 0.0], &#39;=&#39;, 0.0, 0.0, 2.0)
 </pre></div>
 
 
@@ -996,7 +992,7 @@ EXIT: Solved To Acceptable Level.
        9  -3.844650e+03
       10  -3.844650e+03
 
-  0.045048 seconds (11.02 k allocations: 743.094 KB)
+  0.031954 seconds (10.70 k allocations: 781.828 KiB)
 </pre></div>
 
 
@@ -1029,10 +1025,7 @@ EXIT: Solved To Acceptable Level.
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>(
-[0.380624 -0.305498; -0.305498 4.51948],
-
-[1.84051 0.265065; 0.265065 2.17336])
+<div class="codehilite"><pre><span></span>([0.380624 -0.305498; -0.305498 4.51948], [1.84051 0.265065; 0.265065 2.17336])
 </pre></div>
 
 
@@ -1099,11 +1092,10 @@ Number of inequality constraint evaluations          = 0
 Number of equality constraint Jacobian evaluations   = 0
 Number of inequality constraint Jacobian evaluations = 0
 Number of Lagrangian Hessian evaluations             = 63
-Total CPU secs in IPOPT (w/o function evaluations)   =      0.019
-Total CPU secs in NLP function evaluations           =      0.481
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.016
+Total CPU secs in NLP function evaluations           =      0.417
 
 EXIT: Solved To Acceptable Level.
-  0.557942 seconds (126.13 k allocations: 8.715 MB)
 </pre></div>
 
 
@@ -1121,14 +1113,7 @@ EXIT: Solved To Acceptable Level.
 </pre></div>
 
 
-<div class="codehilite"><pre><span></span>(
-[0.380539 -0.305626; -0.305626 4.52116],
-
-[1.8405 0.264881; 0.264881 2.17348])
-</pre></div>
-
-
-<div class="codehilite"><pre><span></span>
+<div class="codehilite"><pre><span></span>([0.380539 -0.305626; -0.305626 4.52116], [1.8405 0.264881; 0.264881 2.17348])
 </pre></div>
                 
                   
@@ -1199,7 +1184,7 @@ EXIT: Solved To Acceptable Level.
       
     </div>
     
-      <script src="../../assets/javascripts/application-6940329b9f.js"></script>
+      <script src="../../assets/javascripts/application-f3ab9e5ff8.js"></script>
       
       
       <script>app.initialize({url:{base:"../.."}})</script>
