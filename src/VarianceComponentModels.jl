@@ -140,11 +140,11 @@ end
 
 Default constructor of [`VarianceComponentVariate`](@ref) type.
 """
-function VarianceComponentVariate{M}(
+function VarianceComponentVariate(
   Y::AbstractVecOrMat,
   X::AbstractVecOrMat,
   V::NTuple{M, AbstractMatrix}
-  )
+  ) where {M}
 
   VarianceComponentVariate{eltype(Y), M, typeof(Y), typeof(X), eltype(V)}(Y, X, V)
 end
@@ -155,10 +155,10 @@ end
 Constructor of a [`VarianceComponentVariate`](@ref) instance from `Y` and `V`
 alone. `X` is created empty.
 """
-function VarianceComponentVariate{M}(
+function VarianceComponentVariate(
   Y::AbstractVecOrMat,
   V::NTuple{M, AbstractMatrix}
-  )
+  ) where {M}
 
   X = zeros(eltype(Y), size(Y, 1), 0)
   VarianceComponentVariate{eltype(Y), M, typeof(Y), typeof(X), eltype(V)}(Y, X, V)
