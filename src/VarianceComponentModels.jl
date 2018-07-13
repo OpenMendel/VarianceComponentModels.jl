@@ -23,7 +23,7 @@ model.
 - `lb`: lower bounds for `vec(B)`
 - `ub`: upper bounds for `vec(B)`
 """
-type VarianceComponentModel{T <: AbstractFloat, M,
+mutable struct VarianceComponentModel{T <: AbstractFloat, M,
   BT <: AbstractVecOrMat, ΣT <: AbstractMatrix}
   # model parameters
   B::BT
@@ -34,12 +34,6 @@ type VarianceComponentModel{T <: AbstractFloat, M,
   b::Union{T, Vector{T}}
   lb::Union{T, Vector{T}}
   ub::Union{T, Vector{T}}
-  # inner constructor
-  function VarianceComponentModel(B::AbstractVecOrMat{T},
-    Σ::NTuple{M, AbstractMatrix{T}}, A::Matrix{T}, sense::Union{Char, Vector{Char}},
-    b::Union{T, Vector{T}}, lb::Union{T, Vector{T}}, ub::Union{T, Vector{T}})
-    new(B, Σ, A, sense, b, lb, ub)
-  end
 end
 
 """
@@ -48,7 +42,7 @@ end
 
 Default constructor of [`VarianceComponentModel`](@ref) type.
 """
-function VarianceComponentModel{M}(
+function VarianceComponentModel(
   B::AbstractVecOrMat,
   Σ::NTuple{M, AbstractMatrix},
   A::Matrix = zeros(eltype(B), 0, length(B)),
@@ -56,7 +50,7 @@ function VarianceComponentModel{M}(
   b::Union{Number, Vector} = zeros(eltype(B), 0),
   lb::Union{Number, Vector} = convert(eltype(B), -Inf),
   ub::Union{Number, Vector} = convert(eltype(B), Inf),
-  )
+  ) where {M}
 
   VarianceComponentModel{eltype(B), M, typeof(B), eltype(Σ)}(B, Σ, A, sense, b,
     lb, ub)
@@ -67,7 +61,7 @@ end
 
 Construct [`VarianceComponentModel`](@ref) from `Σ` alone. `B` is treated empty.
 """
-function VarianceComponentModel{M}(Σ::NTuple{M, AbstractMatrix})
+function VarianceComponentModel(Σ::NTuple{M, AbstractMatrix}) where {M}
   B = zeros(eltype(Σ[1]), 0, size(Σ[1], 1))
   VarianceComponentModel(B, Σ)
 end
@@ -81,15 +75,11 @@ end
 - `eigvec`: eigenvectors of `eig(Σ[1], Σ[2])`
 - `logdetΣ2`: log-determinant of `Σ[2]`
 """
-immutable TwoVarCompModelRotate{T <: AbstractFloat, BT <: AbstractVecOrMat}
+struct TwoVarCompModelRotate{T <: AbstractFloat, BT <: AbstractVecOrMat}
   Brot::BT
   eigval::Vector{T}
   eigvec::Matrix{T}
   logdetΣ2::T
-  function TwoVarCompModelRotate(Brot::AbstractVecOrMat{T},
-    eigval::Vector{T}, eigvec::Matrix{T}, logdetΣ2::T)
-    new(Brot, eigval, eigvec, logdetΣ2)
-  end
 end
 
 """
@@ -137,17 +127,12 @@ model.
 - `X`: `n x p` predictors
 - `V`: tuple of `n x n` covariance matrices
 """
-type VarianceComponentVariate{T <: AbstractFloat, M,
+mutable struct VarianceComponentVariate{T <: AbstractFloat, M,
   YT <: AbstractVecOrMat, XT <: AbstractVecOrMat, VT <: AbstractMatrix}
   # data
   Y::YT
   X::XT
   V::NTuple{M, VT}
-  # inner constructor
-  function VarianceComponentVariate(Y::AbstractVecOrMat{T},
-    X::AbstractVecOrMat{T}, V::NTuple{M, AbstractMatrix{T}})
-    new(Y, X, V)
-  end
 end
 
 """
@@ -189,7 +174,7 @@ end
 - `eigvec`: eigenvectors of `eig(V[1], V[2])`
 - `logdetV2`: log-determinant of `V[2]`
 """
-immutable TwoVarCompVariateRotate{T <: AbstractFloat, YT <: AbstractVecOrMat,
+struct TwoVarCompVariateRotate{T <: AbstractFloat, YT <: AbstractVecOrMat,
   XT <: AbstractVecOrMat}
   # data
   Yrot::YT
@@ -197,12 +182,6 @@ immutable TwoVarCompVariateRotate{T <: AbstractFloat, YT <: AbstractVecOrMat,
   eigval::Vector{T}
   eigvec::Matrix{T}
   logdetV2::T
-
-  # inner constructor
-  function TwoVarCompVariateRotate(Yrot::AbstractVecOrMat{T},
-    Xrot::AbstractVecOrMat{T}, eigval::Vector{T}, eigvec::Matrix{T}, logdetV2::T)
-    new(Yrot, Xrot, eigval, eigvec, logdetV2)
-  end
 end
 
 """
@@ -268,7 +247,7 @@ Construct a [`VarianceComponentModel`](@ref) instance from a [`VarianceComponent
 instance. `B` is initialized to zero; `Σ` is initialized to a tupe of identity
 matrices.
 """
-function VarianceComponentModel{T, M}(vcobs::VarianceComponentVariate{T, M})
+function VarianceComponentModel(vcobs::VarianceComponentVariate{T, M}) where {T, M}
 
   p, d, m = size(vcobs.X, 2), size(vcobs.Y, 2), length(vcobs.V)
   B = zeros(T, p, d)
@@ -295,7 +274,7 @@ end
 Auxillary data for variance component model. This can be used as pre-allocated
 intermediate variable in iterative algorithm.
 """
-immutable VarianceComponentAuxData{
+struct VarianceComponentAuxData{
   T1 <: AbstractMatrix,
   T2 <: AbstractVector
   }
@@ -485,10 +464,10 @@ function residual(vcm::VarianceComponentModel, vcobs::VarianceComponentVariate)
   return isempty(vcobs.X)? vcobs.Y : vcobs.Y - vcobs.X * vcm.B
 end
 
-function residual{T1 <: VarianceComponentModel, T2 <: VarianceComponentVariate}(
+function residual(
   vcm::T1,
   vcdata::Array{T2}
-  )
+  ) where {T1 <: VarianceComponentModel, T2 <: VarianceComponentVariate}
 
   map(x -> residual(vcm, x), vcdata)
 end
@@ -509,11 +488,11 @@ function residual!(
   resid
 end
 
-function residual!{T1 <: VarianceComponentModel, T2 <: VarianceComponentVariate}(
+function residual!(
   resid::AbstractArray,
   vcm::T1,
   vcdata::Array{T2}
-  )
+  ) where {T1 <: VarianceComponentModel, T2 <: VarianceComponentVariate}
 
   map(x -> residual!(x[1], vcm, x[2]), zip(resid, vcdata))
 end
@@ -531,10 +510,10 @@ function residual(vcmrot::TwoVarCompModelRotate, vcobsrot::TwoVarCompVariateRota
   end
 end
 
-function residual{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
+function residual(
   vcmrot::T1,
   vcdatarot::Array{T2}
-  )
+  ) where {T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}
 
   map(x -> residual(vcmrot, x), vcdatarot)
 end
@@ -556,10 +535,10 @@ function residual!(
   resid
 end
 
-function residual!{T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}(
+function residual!(
   resid::Array{AbstractMatrix},
   vcmrot::T1,
-  vcdatarot::Array{T2})
+  vcdatarot::Array{T2}) where {T1 <: TwoVarCompModelRotate, T2 <: TwoVarCompVariateRotate}
 
   map!(x -> residual(vcmrot, x), resid, vcdatarot)
 end

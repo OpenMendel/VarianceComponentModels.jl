@@ -115,14 +115,14 @@ duplication(M::AbstractMatrix) = duplication(eltype(M), size(M, 1))
 Compute the gradient `d / d vec(X)` from a vector of derivatives `dM` where
 `M=X⊗Y`, `n, q = size(X)`, and `p, r = size(Y)`.
 """
-function kron_gradient!{T <: Real}(g::VecOrMat{T}, dM::VecOrMat{T},
-  Y::Matrix{T}, n::Integer, q::Integer)
+function kron_gradient!(g::VecOrMat{T}, dM::VecOrMat{T},
+  Y::Matrix{T}, n::Integer, q::Integer) where {T <: Real}
   p, r = size(Y)
   A_mul_B!(g, kron(speye(n * q), vec(Y)'),
     (kron(speye(q), spcommutation(n, r), speye(p)) * dM))
 end
-function kron_gradient{T <: Real}(dM::VecOrMat{T}, Y::Matrix{T},
-  n::Integer, q::Integer)
+function kron_gradient(dM::VecOrMat{T}, Y::Matrix{T},
+  n::Integer, q::Integer) where {T <: Real}
   if ndims(dM) == 1
     g = zeros(T, n * q)
   else
@@ -138,13 +138,13 @@ Compute the gradient `d / d vech(L)` from a vector of derivatives `dM` where
 `M=L*L'`.
 # TODO make it more memory efficient
 """
-function chol_gradient!{T <: Real}(g::AbstractVecOrMat{T},
-  dM::AbstractVecOrMat{T}, L::AbstractMatrix{T})
+function chol_gradient!(g::AbstractVecOrMat{T},
+  dM::AbstractVecOrMat{T}, L::AbstractMatrix{T}) where {T <: Real}
   n = size(L, 1)
   At_mul_B!(g, spduplication(n),
     kron(L', speye(n)) * (dM + spcommutation(n) * dM))
 end
-function chol_gradient{T <: Real}(dM::AbstractVecOrMat{T}, L::AbstractMatrix{T})
+function chol_gradient(dM::AbstractVecOrMat{T}, L::AbstractMatrix{T}) where {T <: Real}
   n = size(L, 1)
   if ndims(dM) == 1 # vector
     g = zeros(T, binomial(n + 1, 2))
@@ -159,8 +159,8 @@ end
 
 Overwrites `Y` with `A ⊗ X + Y`. Same as `Y += kron(A, X)` but more efficient.
 """
-function kronaxpy!{T <: Real}(A::AbstractVecOrMat{T},
-  X::AbstractVecOrMat{T}, Y::AbstractVecOrMat{T})
+function kronaxpy!(A::AbstractVecOrMat{T},
+  X::AbstractVecOrMat{T}, Y::AbstractVecOrMat{T}) where {T <: Real}
 
   # retrieve matrix sizes
   m, n = size(A, 1), size(A, 2)
@@ -182,7 +182,7 @@ end
 """
 Add `ϵ` to the diagonal entries of matrix `A`.
 """
-function bump_diagonal!{T}(A::Matrix{T}, ϵ::T)
+function bump_diagonal!(A::Matrix{T}, ϵ::T) where {T}
   @inbounds @simd for i in 1:minimum(size(A))
     A[i, i] += ϵ
   end
@@ -192,7 +192,7 @@ end
 """
 Clamp the diagonal entries of matrix `A` to `[lo, hi]`.
 """
-function clamp_diagonal!{T}(A::Matrix{T}, lo::T, hi::T)
+function clamp_diagonal!(A::Matrix{T}, lo::T, hi::T) where {T}
   @inbounds @simd for i in 1:minimum(size(A))
     A[i, i] = clamp(A[i, i], lo, hi)
   end
