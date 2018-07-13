@@ -447,7 +447,7 @@
 <li><code>lb</code>: lower bounds for <code>vec(B)</code></li>
 <li><code>ub</code>: upper bounds for <code>vec(B)</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/1bdbd7b68c271badd4bc1327237b8d8e0325d233/src/VarianceComponentModels.jl#L13-L25' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/b683f68d0cc18b2e3b1a7d1d8021796fd6e3ced0/src/VarianceComponentModels.jl#L13-L25' class='documenter-source'>source</a><br></p>
 <p><a id='VarianceComponentModels.VarianceComponentVariate' href='#VarianceComponentModels.VarianceComponentVariate'>#</a>
 <strong><code>VarianceComponentModels.VarianceComponentVariate</code></strong> &mdash; <em>Type</em>.</p>
 <p><code>VarianceComponentVariate</code> stores the data of a variance component model.</p>
@@ -457,7 +457,7 @@
 <li><code>X</code>: <code>n x p</code> predictors</li>
 <li><code>V</code>: tuple of <code>n x n</code> covariance matrices</li>
 </ul>
-<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/1bdbd7b68c271badd4bc1327237b8d8e0325d233/src/VarianceComponentModels.jl#L121-L129' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/b683f68d0cc18b2e3b1a7d1d8021796fd6e3ced0/src/VarianceComponentModels.jl#L121-L129' class='documenter-source'>source</a><br></p>
 <p><a id='VarianceComponentModels.TwoVarCompModelRotate' href='#VarianceComponentModels.TwoVarCompModelRotate'>#</a>
 <strong><code>VarianceComponentModels.TwoVarCompModelRotate</code></strong> &mdash; <em>Type</em>.</p>
 <p><code>TwoVarCompModelRotate</code> stores the rotated two variance component model.</p>
@@ -468,7 +468,7 @@
 <li><code>eigvec</code>: eigenvectors of <code>eig(Σ[1], Σ[2])</code></li>
 <li><code>logdetΣ2</code>: log-determinant of <code>Σ[2]</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/1bdbd7b68c271badd4bc1327237b8d8e0325d233/src/VarianceComponentModels.jl#L69-L77' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/b683f68d0cc18b2e3b1a7d1d8021796fd6e3ced0/src/VarianceComponentModels.jl#L69-L77' class='documenter-source'>source</a><br></p>
 <p><a id='VarianceComponentModels.TwoVarCompVariateRotate' href='#VarianceComponentModels.TwoVarCompVariateRotate'>#</a>
 <strong><code>VarianceComponentModels.TwoVarCompVariateRotate</code></strong> &mdash; <em>Type</em>.</p>
 <p><code>TwoVarCompVariateRotate</code> stores the rotated two variance component data.</p>
@@ -480,7 +480,7 @@
 <li><code>eigvec</code>: eigenvectors of <code>eig(V[1], V[2])</code></li>
 <li><code>logdetV2</code>: log-determinant of <code>V[2]</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/1bdbd7b68c271badd4bc1327237b8d8e0325d233/src/VarianceComponentModels.jl#L167-L176' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/b683f68d0cc18b2e3b1a7d1d8021796fd6e3ced0/src/VarianceComponentModels.jl#L167-L176' class='documenter-source'>source</a><br></p>
 <p><a id='Functions-1'></a></p>
 <h2 id="functions">Functions</h2>
 <p><a id='VarianceComponentModels.mle_fs!' href='#VarianceComponentModels.mle_fs!'>#</a>
@@ -514,7 +514,7 @@
 <li><code>Bse</code>: standard errors of estimate <code>B</code></li>
 <li><code>Bcov</code>: covariance of estimate <code>B</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/1bdbd7b68c271badd4bc1327237b8d8e0325d233/src/two_variance_component.jl#L768-L791' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/b683f68d0cc18b2e3b1a7d1d8021796fd6e3ced0/src/two_variance_component.jl#L768-L791' class='documenter-source'>source</a><br></p>
 <p><a id='VarianceComponentModels.mle_mm!' href='#VarianceComponentModels.mle_mm!'>#</a>
 <strong><code>VarianceComponentModels.mle_mm!</code></strong> &mdash; <em>Function</em>.</p>
 <div class="codehilite"><pre><span></span>mle_mm!(vcmodel, vcdatarot; maxiter, qpsolver, verbose)
@@ -549,7 +549,7 @@
 <ul>
 <li>H. Zhou, L. Hu, J. Zhou, and K. Lange (2015) MM algorithms for variance components models. <a href="http://arxiv.org/abs/1509.07426">http://arxiv.org/abs/1509.07426</a></li>
 </ul>
-<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/1bdbd7b68c271badd4bc1327237b8d8e0325d233/src/two_variance_component.jl#L1021-L1048' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/b683f68d0cc18b2e3b1a7d1d8021796fd6e3ced0/src/two_variance_component.jl#L1021-L1048' class='documenter-source'>source</a><br></p>
 <p><a id='VarianceComponentModels.fit_mle!' href='#VarianceComponentModels.fit_mle!'>#</a>
 <strong><code>VarianceComponentModels.fit_mle!</code></strong> &mdash; <em>Function</em>.</p>
 <div class="codehilite"><pre><span></span>fit_mle!(vcmodel, vcdata; algo)
@@ -579,7 +579,7 @@
 <li><code>Bse</code>: standard errors of estimate <code>B</code></li>
 <li><code>Bcov</code>: covariance of estimate <code>B</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/1bdbd7b68c271badd4bc1327237b8d8e0325d233/src/two_variance_component.jl#L1122-L1143' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/b683f68d0cc18b2e3b1a7d1d8021796fd6e3ced0/src/two_variance_component.jl#L1122-L1143' class='documenter-source'>source</a><br></p>
 <p><a id='VarianceComponentModels.fit_reml!' href='#VarianceComponentModels.fit_reml!'>#</a>
 <strong><code>VarianceComponentModels.fit_reml!</code></strong> &mdash; <em>Function</em>.</p>
 <div class="codehilite"><pre><span></span>fit_reml!(vcmodel, vcdata; algo)
@@ -609,7 +609,7 @@
 <li><code>Bse</code>: standard errors of estimate <code>B</code></li>
 <li><code>Bcov</code>: covariance of estimate <code>B</code></li>
 </ul>
-<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/1bdbd7b68c271badd4bc1327237b8d8e0325d233/src/two_variance_component.jl#L1159-L1180' class='documenter-source'>source</a><br></p>
+<p><a target='_blank' href='https://github.com/OpenMendel/VarianceComponentModels.jl/blob/b683f68d0cc18b2e3b1a7d1d8021796fd6e3ced0/src/two_variance_component.jl#L1159-L1180' class='documenter-source'>source</a><br></p>
                 
                   
                 
