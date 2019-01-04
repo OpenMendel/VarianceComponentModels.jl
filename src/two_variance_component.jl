@@ -1,4 +1,4 @@
-import Base.gradient
+import LinearAlgebra, Printf
 
 export heritability,
   logpdf,
@@ -123,7 +123,7 @@ function gradient!(
   end
   #A_mul_Bt!(N, N, vcmrot.eigvec), A_mul_B!(N, vcmrot.eigvec, N)
   N = vcmrot.eigvec * N * vcmrot.eigvec'
-  copy!(∇, d^2 + 1, N, 1, d^2)
+  copyto!(∇, d^2 + 1, N, 1, d^2)
   # gradient wrt Σ[1]
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
@@ -827,7 +827,7 @@ function mle_fs!(
       acceptable_tol = 1.0e-5, # default is 1.0e-6
       max_iter = maxiter, # default is 3000
       print_frequency_iter = 5, # default is 1
-      print_level = verbose? 5 : 0,
+      print_level = verbose ? 5 : 0,
       print_info_string = "yes",
       #nlp_scaling_method = "none",
       #derivative_test = "second-order",
@@ -840,7 +840,7 @@ function mle_fs!(
     solver = MosekSolver(
       MSK_IPAR_INTPNT_MAX_ITERATIONS = maxiter,
       MSK_DPAR_INTPNT_NL_TOL_REL_GAP = 1.0e-8,
-      MSK_IPAR_LOG = verbose? 10 : 0, # deafult value is 10
+      MSK_IPAR_LOG = verbose ? 10 : 0, # deafult value is 10
       #MSK_IPAR_OPTIMIZER = MSK_OPTIMIZER_NONCONVEX,
       #MSK_IPAR_LOG_NONCONVEX = 20,
       #MSK_IPAR_NONCONVEX_MAX_ITERATIONS = 100,
@@ -852,7 +852,7 @@ function mle_fs!(
     # see https://www.artelys.com/tools/knitro_doc/3_referenceManual/userOptions.html for Mosek options
     solver = KnitroSolver(
       KTR_PARAM_ALG = 0,
-      KTR_PARAM_OUTLEV = verbose? 2 : 0,
+      KTR_PARAM_OUTLEV = verbose ? 2 : 0,
       #KTR_PARAM_MAXCGIT = 5,
       #KTR_PARAM_SCALE = 0,
       #KTR_PARAM_HONORBNDS = 1,
@@ -1073,7 +1073,7 @@ function mle_mm!(
     println("     MM Algorithm")
     println("  Iter      Objective  ")
     println("--------  -------------")
-    @printf("%8.d  %13.e\n", 0, logl)
+    Printf.@printf("%8.d  %13.e\n", 0, logl)
   end
 
   # MM loop
@@ -1093,7 +1093,7 @@ function mle_mm!(
     logl    = logpdf(vcm, vcdatarot, vcaux)
     if verbose
       if (iter <= 10) || (iter > 10 && iter % 10 == 0)
-        @printf("%8.d  %13.e\n", iter, logl)
+        Printf.@printf("%8.d  %13.e\n", iter, logl)
       end
     end
     if abs(logl - loglold) < funtol * (abs(logl) + one(T))
@@ -1198,10 +1198,10 @@ function fit_reml!(
     qs = MosekSolver(MSK_IPAR_LOG = 0)
   end
   if typeof(vcdata) <: AbstractArray
-    Q = kron(eye(T, d), mapreduce(x -> At_mul_B(x.X, x.X), +, vcdata))
+    Q = kron(Matrix{T}(I, d, d), mapreduce(x -> At_mul_B(x.X, x.X), +, vcdata))
     c = vec(mapreduce(x -> At_mul_B(x.X, x.Y), +, vcdata))
   else
-    Q = kron(eye(T, d), At_mul_B(vcdata.X, vcdata.X))
+    Q = kron(Matrix{T}(I, d, d), At_mul_B(vcdata.X, vcdata.X))
     c = vec(At_mul_B(vcdata.X, vcdata.Y))
   end
   qpsol = quadprog(-c, Q, vcmodel.A, vcmodel.sense, vcmodel.b,

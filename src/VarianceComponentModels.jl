@@ -3,12 +3,17 @@ module VarianceComponentModels
 using Compat
 import Compat.view
 
-using MathProgBase, Ipopt#, KNITRO#, Mosek#, Gurobi
-import Base: eltype, length, size, mean, mean!, cov, +
+using LinearAlgebra, Statistics, MathProgBase, Ipopt#, KNITRO#, Mosek#, Gurobi
+import Base: eltype, length, size, +
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, VarianceComponentAuxData,
-  residual, residual!, nvarcomps, nmeanparams, nvarparams, nparams,
-  mean!, mean, cov!, cov
+  residual, residual!, nvarcomps, nmeanparams, nvarparams, nparams
+
+# import Base: eltype, length, size, mean, mean!, cov, +
+# export VarianceComponentModel, VarianceComponentVariate,
+#   TwoVarCompModelRotate, TwoVarCompVariateRotate, VarianceComponentAuxData,
+#   residual, residual!, nvarcomps, nmeanparams, nvarparams, nparams,
+#   mean!, mean, cov!, cov
 
 """
 `VarianceComponentModel` stores the model parameters of a variance component
@@ -46,7 +51,7 @@ function VarianceComponentModel(
   B::AbstractVecOrMat,
   Σ::NTuple{M, AbstractMatrix},
   A::Matrix = zeros(eltype(B), 0, length(B)),
-  sense::Union{Char, Vector{Char}} = Array{Char}(0),
+  sense::Union{Char, Vector{Char}} = Array{Char}(undef, 0),
   b::Union{Number, Vector} = zeros(eltype(B), 0),
   lb::Union{Number, Vector} = convert(eltype(B), -Inf),
   ub::Union{Number, Vector} = convert(eltype(B), Inf),
@@ -103,19 +108,18 @@ end
 Constructor of a [`TwoVarCompModelRotate`](@ref) instance from a
 [`VarianceComponentModel`](@ref) instance.
 """
-function TwoVarCompModelRotate{T, BT, ΣT}(
-  vcm::VarianceComponentModel{T, 2, BT, ΣT}
-  )
+function TwoVarCompModelRotate(vcm::VarianceComponentModel{T, 2, BT, ΣT}) where {T, BT, ΣT}
 
   # generalized eigenvalue decomposition of (Σ1, Σ2)
-  F = eigfact(Symmetric(vcm.Σ[1]), Symmetric(vcm.Σ[2])) # output is of BlasFloat type
+  F = eigen(Symmetric(vcm.Σ[1]), Symmetric(vcm.Σ[2])) # output is of BlasFloat type
   λ = convert(Vector{T}, F.values)
   Φ = convert(Matrix{T}, F.vectors)
   # correct negative eigenvalues due to roundoff
   @compat map!(x -> max(x, zero(T)), λ, λ)
-  Brot = isempty(vcm.B) ? Array{T}(size(vcm.B)) : vcm.B * Φ
+  Brot = isempty(vcm.B) ? Array{T}(undef, size(vcm.B)) : vcm.B * Φ
   logdetΣ2 = convert(T, logdet(vcm.Σ[2]))
   TwoVarCompModelRotate{T, BT}(Brot, λ, Φ, logdetΣ2)
+  #TwoVarCompModelRotate(Brot, λ, Φ, logdetΣ2) where {T, BT}
 end
 
 """
@@ -207,20 +211,18 @@ end
 Constructor of a [`TwoVarCompVariateRotate`](@ref) instance from a
 [`VarianceComponentVariate`](@ref) instance.
 """
-function TwoVarCompVariateRotate{T <: AbstractFloat}(
-  vcobs::VarianceComponentVariate{T, 2}
-  )
+function TwoVarCompVariateRotate(vcobs::VarianceComponentVariate{T, 2}) where T <: AbstractFloat
 
   zeroT = zero(T)
   # (generalized)-eigendecomposition of (V1, V2)
   if isa(vcobs.V[2], UniformScaling) ||
-    (isdiag(vcobs.V[2]) && vecnorm(diag(vcobs.V[2]) - one(T)) < 1.0e-8)
-    F = eigfact(Symmetric(vcobs.V[1]))
+    (isdiag(vcobs.V[2]) && norm(diag(vcobs.V[2]) .- one(T)) < 1.0e-8)
+    F = eigen(Symmetric(vcobs.V[1]))
     deval = convert(Vector{T}, F.values)
     U = convert(Matrix{T}, F.vectors)
     logdetV2 = zero(T)
   else
-    F = eigfact(Symmetric(vcobs.V[1]), Symmetric(vcobs.V[2]))
+    F = eigen(Symmetric(vcobs.V[1]), Symmetric(vcobs.V[2]))
     deval = convert(Vector{T}, F.values)
     U = convert(Matrix{T}, F.vectors)
     logdetV2 = convert(T, logdet(vcobs.V[2]))
@@ -230,13 +232,13 @@ function TwoVarCompVariateRotate{T <: AbstractFloat}(
     deval[i] = deval[i] > zeroT ? deval[i] : zeroT
   end
   # rotate responses
-  Yrot = At_mul_B(U, vcobs.Y)
-  Xrot = isempty(vcobs.X) ? Array{T}(size(Yrot, 1), 0) : At_mul_B(U, vcobs.X)
+  Yrot = transpose(U) * vcobs.Y
+  Xrot = isempty(vcobs.X) ? Array{T}(size(Yrot, 1), 0) : transpose(U) * vcobs.X 
   # output
   TwoVarCompVariateRotate(Yrot, Xrot, deval, U, logdetV2)
 end
 
-function TwoVarCompVariateRotate{T <: VarianceComponentVariate}(vcdata::Array{T})
+function TwoVarCompVariateRotate(vcdata::Array{T}) where T <: VarianceComponentVariate
   map(x -> TwoVarCompVariateRotate(x), vcdata)
 end
 
@@ -251,7 +253,7 @@ function VarianceComponentModel(vcobs::VarianceComponentVariate{T, M}) where {T,
 
   p, d, m = size(vcobs.X, 2), size(vcobs.Y, 2), length(vcobs.V)
   B = zeros(T, p, d)
-  Σ = ntuple(x -> eye(T, d), m)::NTuple{M, Matrix{T}}
+  Σ = ntuple(x -> Matrix(I, T, d), m)::NTuple{M, Matrix{T}}
   VarianceComponentModel(B, Σ)
 end
 
@@ -266,7 +268,7 @@ function VarianceComponentModel(vcobsrot::TwoVarCompVariateRotate)
   p, d = size(vcobsrot.Xrot, 2), size(vcobsrot.Yrot, 2)
   T = eltype(vcobsrot)
   B = zeros(T, p, d)
-  Σ = (eye(T, d), eye(T, d))
+  Σ = (Matrix(I, T, d), Matrix(I, T, d))
   VarianceComponentModel(B, Σ)
 end
 
@@ -305,10 +307,8 @@ function VarianceComponentAuxData(vcobsrot::TwoVarCompVariateRotate)
     Xwork, ywork, obswt)
 end
 
-function VarianceComponentAuxData{
-  T <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}(
-  vcdata::Array{T}
-  )
+function VarianceComponentAuxData(vcdata::Array{T}) where 
+  T <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}
 
   map(x -> VarianceComponentAuxData(x), vcdata)
 end
@@ -461,7 +461,7 @@ end
 Residual of [`VarianceComponentVariate`](@ref) under [`VarianceComponentModel`](@ref).
 """
 function residual(vcm::VarianceComponentModel, vcobs::VarianceComponentVariate)
-  return isempty(vcobs.X)? vcobs.Y : vcobs.Y - vcobs.X * vcm.B
+  return isempty(vcobs.X) ? vcobs.Y : vcobs.Y - vcobs.X * vcm.B
 end
 
 function residual(
@@ -479,10 +479,10 @@ function residual!(
   )
 
   if isempty(vcobs.X)
-    copy!(resid, vcobs.Y)
+    copyto!(resid, vcobs.Y)
   else
     oneT = one(eltype(vcm))
-    copy!(resid, vcobs.Y)
+    copyto!(resid, vcobs.Y)
     LinAlg.BLAS.gemm!('N', 'N', -oneT, vcobs.X, vcm.B, oneT, resid)
   end
   resid
