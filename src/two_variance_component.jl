@@ -117,7 +117,7 @@ function gradient!(
       dg[j] += tmp
     end
   end
-  N = At_mul_B(vcaux.res, vcaux.res)
+  N = transpose(vcaux.res) * vcaux.res
   @inbounds for j in 1:d
     N[j, j] -= dg[j]
   end
@@ -134,15 +134,15 @@ function gradient!(
       dg[j] += tmp / (tmp * λj + oneT)
     end
   end
-  At_mul_B!(N, vcaux.res, vcaux.res)
+  mul!(N, transpose(vcaux.res), vcaux.res)
   @inbounds for j in 1:d
     N[j, j] -= dg[j]
   end
   #A_mul_Bt!(N, N, vcmrot.eigvec), A_mul_B!(N, vcmrot.eigvec, N)
   N = vcmrot.eigvec * N * vcmrot.eigvec'
-  copy!(∇, N)
+  copyto!(∇, N)
   # scale by 0.5
-  scale!(∇, 1//2)
+  rmul!(∇, 1//2)
 end # function gradient!
 
 """
@@ -233,7 +233,7 @@ function gradient!(
     T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
     T3 <: VarianceComponentAuxData}
 
-  copy!(∇, gradient(vcm, vcdata, vcaux))
+  copyto!(∇, gradient(vcm, vcdata, vcaux))
 end
 
 
@@ -290,7 +290,7 @@ function fisher_Σ!(
     end
   end
   LinAlg.copytri!(C, 'L')
-  A_mul_Bt!(view(H, 1:d^2, 1:d^2), Φ2 * Diagonal(vec(C)), Φ2)
+  mul!(view(H, 1:d^2, 1:d^2), Φ2 * Diagonal(vec(C)), transpose(Φ2))
   # (2, 1) block
   fill!(C, zeroT)
   @inbounds for j in 1:d, i in j:d
@@ -301,7 +301,7 @@ function fisher_Σ!(
     end
   end
   LinAlg.copytri!(C, 'L')
-  A_mul_Bt!(view(H, (d^2+1):(2d^2), 1:d^2), Φ2 * Diagonal(vec(C)), Φ2)
+  mul!(view(H, (d^2+1):(2d^2), 1:d^2), Φ2 * Diagonal(vec(C)), transpose(Φ2))
   # d-by-d (2, 2) block
   fill!(C, zeroT)
   @inbounds for j in 1:d, i in j:d
@@ -312,10 +312,10 @@ function fisher_Σ!(
     end
   end
   LinAlg.copytri!(C, 'L')
-  A_mul_Bt!(view(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), Φ2 * Diagonal(vec(C)), Φ2)
+  mul!(view(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), Φ2 * Diagonal(vec(C)), transpose(Φ2))
   # copy to upper triangular part
   LinAlg.copytri!(H, 'L')
-  scale!(H, convert(T, 0.5))
+  rmul!(H, convert(T, 0.5))
   # output
   return H
 end # function fisher!
@@ -355,7 +355,7 @@ function fisher_Σ!(
     T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
     T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate}}
 
-  copy!(H, fisher_Σ(vcm, vcobs))
+  copyto!(H, fisher_Σ(vcm, vcobs))
 end
 
 function fisher_Σ(
@@ -406,8 +406,8 @@ function fisher_B!(
     vcaux.obswt[i] = oneT / √(vcaux.obswt[i] + oneT)
   end
   # weighted least squares
-  scale!(vcaux.obswt, vcaux.Xwork)
-  At_mul_B!(H, vcaux.Xwork, vcaux.Xwork)
+  rmul!(vcaux.obswt, vcaux.Xwork)
+  mul!(H, transpose(vcaux.Xwork), vcaux.Xwork)
 end
 
 function fisher_B(
@@ -453,7 +453,7 @@ function fisher_B!(
     T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
     T3 <: VarianceComponentAuxData}
 
-  copy!(H, fisher_B(vcm, vcdata, vcaux))
+  copyto!(H, fisher_B(vcm, vcdata, vcaux))
 end
 
 function fisher_B(
@@ -491,14 +491,14 @@ function suffstats_for_B(
   # working X
   fill!(vcaux.Xwork, zeroT)
   kronaxpy!(vcmrot.eigvec', vcobsrot.Xrot, vcaux.Xwork)
-  scale!(vcaux.obswt, vcaux.Xwork)
+  rmul!(vcaux.obswt, vcaux.Xwork)
   # working y
-  A_mul_B!(vcaux.res, vcobsrot.Yrot, vcmrot.eigvec)
+  mul!(vcaux.res, vcobsrot.Yrot, vcmrot.eigvec)
   @inbounds @simd for i in eachindex(vcaux.ywork)
     vcaux.ywork[i] = vcaux.res[i] * vcaux.obswt[i]
   end
   # output
-  return At_mul_B(vcaux.Xwork, vcaux.Xwork), At_mul_B(vcaux.Xwork, vcaux.ywork)
+  return transpose(vcaux.Xwork) * vcaux.Xwork, transpose(vcaux.Xwork) * vcaux.ywork
 end
 
 function suffstats_for_B(
@@ -557,7 +557,7 @@ function update_meanparam!(
   if qpsol.status ≠ :Optimal
     println("Error in quadratic programming $(qpsol.status)")
   end
-  copy!(vcm.B, qpsol.sol)
+  copyto!(vcm.B, qpsol.sol)
   return vcm.B
 end
 
@@ -651,8 +651,8 @@ function optimparam_to_vcparam!(dd::TwoVarCompOptProb, x::Vector{T}) where {T}
     dd.L[2][i, i] = exp(dd.L[2][i, i])
   end
   # Σi = Li Li'
-  A_mul_Bt!(dd.vcmodel.Σ[1], dd.L[1], dd.L[1])
-  A_mul_Bt!(dd.vcmodel.Σ[2], dd.L[2], dd.L[2])
+  mul!(dd.vcmodel.Σ[1], dd.L[1], transpose(dd.L[1]))
+  mul!(dd.vcmodel.Σ[2], dd.L[2], transpose(dd.L[2]))
   # make sure the last variance component is pos. def.
   ϵ = convert(T, 1e-8)
   clamp_diagonal!(dd.vcmodel.Σ[2], ϵ, T(Inf))
@@ -761,8 +761,8 @@ function MathProgBase.eval_hesslag(dd::TwoVarCompOptProb, H::Vector{T},
     end
   end
   # output
-  copy!(H, vech(dd.HL))
-  scale!(H, -σ)
+  copyto!(H, vech(dd.HL))
+  rmul!(H, -σ)
 end
 
 """
@@ -880,8 +880,8 @@ function mle_fs!(
   ub = zeros(nvar); fill!(ub,  T(Inf))
   MathProgBase.loadproblem!(m, nvar, 0, lb, ub, T[], T[], :Max, dd)
   # start point
-  copy!(dd.L[1], cholfact(vcmodel.Σ[1], :L, Val{true})[:L].data)
-  copy!(dd.L[2], cholfact(vcmodel.Σ[2], :L, Val{true})[:L].data)
+  copyto!(dd.L[1], cholfact(vcmodel.Σ[1], :L, Val{true})[:L].data)
+  copyto!(dd.L[2], cholfact(vcmodel.Σ[2], :L, Val{true})[:L].data)
   # reparameterize diagonal entries to exponential
   @inbounds @simd for i in 1:d
     dd.L[1][i, i] = log(dd.L[1][i, i] + convert(T, 1e-8))
@@ -904,11 +904,11 @@ function mle_fs!(
   Bcov = zeros(T, nmean, nmean)
   Bcov = pinv(fisher_B(vcmodel, vcdatarot, dd.vcaux))
   Bse = similar(vcmodel.B)
-  copy!(Bse, sqrt.(diag(Bcov)))
+  copyto!(Bse, sqrt.(diag(Bcov)))
   Σcov = pinv(fisher_Σ(vcmodel, vcdatarot))
   Σse = (zeros(T, d, d), zeros(T, d, d))
-  copy!(Σse[1], sqrt.(diag(view(Σcov, 1:d^2, 1:d^2))))
-  copy!(Σse[2], sqrt.(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+  copyto!(Σse[1], sqrt.(diag(view(Σcov, 1:d^2, 1:d^2))))
+  copyto!(Σse[2], sqrt.(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
   maxlogl, vcmodel, Σse, Σcov, Bse, Bcov
@@ -941,7 +941,7 @@ function suffstats_for_Σ!(
       b2[j] += tmp
     end
   end
-  At_mul_B!(A2, vcaux.res, vcaux.res)
+  mul!(A2, transpose(vcaux.res), vcaux.res)
   # sufficient statistics for Σ1
   @inbounds for j in 1:d
     λj = vcmrot.eigval[j]
@@ -951,7 +951,7 @@ function suffstats_for_Σ!(
       b1[j] += tmp / (tmp * λj + oneT)
     end
   end
-  At_mul_B!(A1, vcaux.res, vcaux.res)
+  mul!(A1, transpose(vcaux.res), vcaux.res)
   # output
   return A1, b1, A2, b2
 end
@@ -997,25 +997,25 @@ function mm_update_Σ!(
   end
   Φinv = inv(vcmrot.eigvec)
   # update Σ1
-  scale!(b1, A1), scale!(A1, b1)
+  rmul!(b1, A1), rmul!(A1, b1)
   storage = eigfact!(Symmetric(A1))
   @inbounds for i in 1:d
     storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
-  scale!(storage.vectors, storage.values)
-  scale!(oneT ./ b1, storage.vectors)
-  At_mul_B!(vcm.Σ[1], Φinv, storage.vectors)
-  copy!(vcm.Σ[1], A_mul_Bt(vcm.Σ[1], vcm.Σ[1]))
+  rmul!(storage.vectors, storage.values)
+  rmul!(oneT ./ b1, storage.vectors)
+  mul!(vcm.Σ[1], transpose(Φinv), storage.vectors)
+  copyto!(vcm.Σ[1], vcm.Σ[1] * transpose(vcm.Σ[1]))
   # update Σ2
-  scale!(b2, A2), scale!(A2, b2)
+  rmul!(b2, A2), rmul!(A2, b2)
   storage = eigfact!(Symmetric(A2))
   @inbounds for i in 1:d
     storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
-  scale!(storage.vectors, storage.values)
-  scale!(oneT ./ b2, storage.vectors)
-  At_mul_B!(vcm.Σ[2], Φinv, storage.vectors)
-  copy!(vcm.Σ[2], A_mul_Bt(vcm.Σ[2], vcm.Σ[2]))
+  rmul!(storage.vectors, storage.values)
+  rmul!(oneT ./ b2, storage.vectors)
+  mul!(vcm.Σ[2], transpose(Φinv), storage.vectors)
+  copyto!(vcm.Σ[2], vcm.Σ[2] * transpose(vcm.Σ[2]))
 end
 
 """
@@ -1105,11 +1105,11 @@ function mle_mm!(
   # standard errors
   Bcov = pinv(fisher_B(vcm, vcdatarot, vcaux))
   Bse = similar(vcm.B)
-  copy!(Bse, sqrt.(diag(Bcov)))
+  copyto!(Bse, sqrt.(diag(Bcov)))
   Σcov = pinv(fisher_Σ(vcm, vcdatarot))
   Σse = (zeros(T, d, d), zeros(T, d, d))
-  copy!(Σse[1], sqrt.(diag(view(Σcov, 1:d^2, 1:d^2))))
-  copy!(Σse[2], sqrt.(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
+  copyto!(Σse[1], sqrt.(diag(view(Σcov, 1:d^2, 1:d^2))))
+  copyto!(Σse[2], sqrt.(diag(view(Σcov, d^2+1:2d^2, d^2+1:2d^2))))
 
   # output
   logl, vcm, Σse, Σcov, Bse, Bcov
@@ -1198,18 +1198,18 @@ function fit_reml!(
     qs = MosekSolver(MSK_IPAR_LOG = 0)
   end
   if typeof(vcdata) <: AbstractArray
-    Q = kron(Matrix{T}(I, d, d), mapreduce(x -> At_mul_B(x.X, x.X), +, vcdata))
-    c = vec(mapreduce(x -> At_mul_B(x.X, x.Y), +, vcdata))
+    Q = kron(Matrix{T}(I, d, d), mapreduce(x -> transpose(x.X) * x.X, +, vcdata))
+    c = vec(mapreduce(x -> transpose(x.X) * x.Y, +, vcdata))
   else
-    Q = kron(Matrix{T}(I, d, d), At_mul_B(vcdata.X, vcdata.X))
-    c = vec(At_mul_B(vcdata.X, vcdata.Y))
+    Q = kron(Matrix{T}(I, d, d), transpose(vcdata.X) * vcdata.X)
+    c = vec(transpose(vcdata.X) * vcdata.Y)
   end
   qpsol = quadprog(-c, Q, vcmodel.A, vcmodel.sense, vcmodel.b,
     vcmodel.lb, vcmodel.ub, qs)
   if qpsol.status ≠ :Optimal
     println("Error in quadratic programming $(qpsol.status)")
   end
-  copy!(vcmodel.B, qpsol.sol)
+  copyto!(vcmodel.B, qpsol.sol)
   # use residuals as responses
   resdata = deepcopy(vcdata)
   if typeof(vcdata) <: AbstractArray
@@ -1231,14 +1231,14 @@ function fit_reml!(
   end
 
   # estimate mean parameters from covariance estimate
-  copy!(vcmodel.Σ[1], resmodel.Σ[1]), copy!(vcmodel.Σ[2], resmodel.Σ[2])
+  copyto!(vcmodel.Σ[1], resmodel.Σ[1]), copyto!(vcmodel.Σ[2], resmodel.Σ[2])
   vcdatarot = TwoVarCompVariateRotate(vcdata)
   update_meanparam!(vcmodel, vcdatarot, qs, vcaux)
 
   # standard errors and covariance of mean parameters
   Bcov = inv(fisher_B(vcmodel, vcdatarot, vcaux))
   Bse = similar(vcmodel.B)
-  copy!(Bse, sqrt.(diag(Bcov)))
+  copyto!(Bse, sqrt.(diag(Bcov)))
 
   # output
   logpdf(vcmodel, vcdatarot), vcmodel, Σse, Σcov, Bse, Bcov
