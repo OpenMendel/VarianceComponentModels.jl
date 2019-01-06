@@ -58,7 +58,7 @@ vcdata = VarianceComponentVariate(Y, X, V)
 vcdata = VarianceComponentVariate(Y, X, V)
 #@code_warntype VarianceComponentModel(vcdata)
 @inferred VarianceComponentModel(vcdata)
-vcmodel = VarianceComponentModel(vcdata)
+vcmodel = VarianceComponentModel(vcdata) 
 @test norm(vcmodel.B) ≈ 0.0
 @test norm(vcmodel.Σ[1] - Matrix(I, d, d)) ≈ 0.0
 @test norm(vcmodel.Σ[2] - Matrix(I, d, d)) ≈ 0.0
