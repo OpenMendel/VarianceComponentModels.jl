@@ -4,10 +4,11 @@ using Compat
 import Compat.view
 
 using LinearAlgebra, Statistics, MathProgBase, Ipopt#, KNITRO#, Mosek#, Gurobi
-import Base: eltype, length, size, +
+import Base: eltype, length, size, + 
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, VarianceComponentAuxData,
-  residual, residual!, nvarcomps, nmeanparams, nvarparams, nparams
+  residual, residual!, nvarcomps, nmeanparams, nvarparams, nparams,
+  mean!, mean, cov!, cov
 
 # import Base: eltype, length, size, mean, mean!, cov, +
 # export VarianceComponentModel, VarianceComponentVariate,
@@ -239,8 +240,10 @@ function TwoVarCompVariateRotate(vcobs::VarianceComponentVariate{T, 2}) where T 
 end
 
 function TwoVarCompVariateRotate(vcdata::Array{T}) where T <: VarianceComponentVariate
+
   map(x -> TwoVarCompVariateRotate(x), vcdata)
 end
+
 
 """
     VarianceComponentModel(vcobs)
@@ -253,7 +256,7 @@ function VarianceComponentModel(vcobs::VarianceComponentVariate{T, M}) where {T,
 
   p, d, m = size(vcobs.X, 2), size(vcobs.Y, 2), length(vcobs.V)
   B = zeros(T, p, d)
-  Σ = ntuple(x -> Matrix(I, T, d), m)::NTuple{M, Matrix{T}}
+  Σ = ntuple(x -> Matrix{T}(I, d, d), m)::NTuple{M, Matrix{T}}
   VarianceComponentModel(B, Σ)
 end
 
@@ -268,7 +271,7 @@ function VarianceComponentModel(vcobsrot::TwoVarCompVariateRotate)
   p, d = size(vcobsrot.Xrot, 2), size(vcobsrot.Yrot, 2)
   T = eltype(vcobsrot)
   B = zeros(T, p, d)
-  Σ = (Matrix(I, T, d), Matrix(I, T, d))
+  Σ = (Matrix{T}(I, d, d), Matrix{T}(I, d, d))
   VarianceComponentModel(B, Σ)
 end
 
@@ -441,7 +444,7 @@ function mean!(
   vcobs::VarianceComponentVariate
   )
 
-  A_mul_B!(μ, vcobs.X, vcm.B)
+  mul!(μ, vcobs.X, vcm.B)
 end
 
 """
@@ -525,11 +528,11 @@ function residual!(
   )
 
   if isempty(vcmrot.Brot)
-    A_mul_B!(resid, vcobsrot.Yrot, vcmrot.eigvec)
+    mul!(resid, vcobsrot.Yrot, vcmrot.eigvec)
   else
     #copy!(resid, vcobsrot.Yrot * vcmrot.eigvec - vcobsrot.Xrot * vcmrot.Brot)
     oneT = one(eltype(vcmrot))
-    A_mul_B!(resid, vcobsrot.Yrot, vcmrot.eigvec)
+    mul!(resid, vcobsrot.Yrot, vcmrot.eigvec)
     LinAlg.BLAS.gemm!('N', 'N', -oneT, vcobsrot.Xrot, vcmrot.Brot, oneT, resid)
   end
   resid
