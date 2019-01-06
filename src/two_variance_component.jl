@@ -1,4 +1,5 @@
-import LinearAlgebra, Printf
+using LinearAlgebra 
+import Printf
 
 export heritability,
   logpdf,
@@ -343,7 +344,7 @@ function fisher_Σ(
   vcm::VarianceComponentModel{T, 2},
   vcobsrot::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}}
   ) where {T <: AbstractFloat}
-
+ 
   fisher_Σ(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
 end
 
@@ -406,7 +407,7 @@ function fisher_B!(
     vcaux.obswt[i] = oneT / √(vcaux.obswt[i] + oneT)
   end
   # weighted least squares
-  rmul!(vcaux.obswt, vcaux.Xwork)
+  lmul!(Diagonal(vcaux.obswt), vcaux.Xwork)
   mul!(H, transpose(vcaux.Xwork), vcaux.Xwork)
 end
 
@@ -491,7 +492,7 @@ function suffstats_for_B(
   # working X
   fill!(vcaux.Xwork, zeroT)
   kronaxpy!(vcmrot.eigvec', vcobsrot.Xrot, vcaux.Xwork)
-  rmul!(vcaux.obswt, vcaux.Xwork)
+  lmul!(Diagonal(vcaux.obswt), vcaux.Xwork)
   # working y
   mul!(vcaux.res, vcobsrot.Yrot, vcmrot.eigvec)
   @inbounds @simd for i in eachindex(vcaux.ywork)
@@ -716,7 +717,8 @@ end # function MathProgBase.eval_grad_f
 function MathProgBase.hesslag_structure(dd::TwoVarCompOptProb)
   nvar = nvarparams(dd.vcmodel)
   # linear indices for variance parameters
-  ind2sub((nvar, nvar), trilind(nvar))
+  ## ind2sub((nvar, nvar), trilind(nvar))
+  Tuple(CartesianIndices((nvar, nvar))[trilind(nvar)])
 end # function MathProgBase.hesslag_structure
 
 function MathProgBase.eval_hesslag(dd::TwoVarCompOptProb, H::Vector{T},
@@ -880,8 +882,8 @@ function mle_fs!(
   ub = zeros(nvar); fill!(ub,  T(Inf))
   MathProgBase.loadproblem!(m, nvar, 0, lb, ub, T[], T[], :Max, dd)
   # start point
-  copyto!(dd.L[1], cholfact(vcmodel.Σ[1], :L, Val{true})[:L].data)
-  copyto!(dd.L[2], cholfact(vcmodel.Σ[2], :L, Val{true})[:L].data)
+  copyto!(dd.L[1], cholesky(vcmodel.Σ[1], Val(true)).L.data)
+  copyto!(dd.L[2], cholesky(vcmodel.Σ[2], Val(true)).L.data)
   # reparameterize diagonal entries to exponential
   @inbounds @simd for i in 1:d
     dd.L[1][i, i] = log(dd.L[1][i, i] + convert(T, 1e-8))
@@ -997,23 +999,23 @@ function mm_update_Σ!(
   end
   Φinv = inv(vcmrot.eigvec)
   # update Σ1
-  rmul!(b1, A1), rmul!(A1, b1)
+  lmul!(Diagonal(b1), A1), rmul!(A1, b1)
   storage = eigfact!(Symmetric(A1))
   @inbounds for i in 1:d
     storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
-  rmul!(storage.vectors, storage.values)
-  rmul!(oneT ./ b1, storage.vectors)
+  scale!(storage.vectors, storage.values)
+  scale!(oneT ./ b1, storage.vectors)
   mul!(vcm.Σ[1], transpose(Φinv), storage.vectors)
   copyto!(vcm.Σ[1], vcm.Σ[1] * transpose(vcm.Σ[1]))
   # update Σ2
-  rmul!(b2, A2), rmul!(A2, b2)
+  lmul!(Diagonal(b2), A2), rmul!(A2, b2)
   storage = eigfact!(Symmetric(A2))
   @inbounds for i in 1:d
     storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
-  rmul!(storage.vectors, storage.values)
-  rmul!(oneT ./ b2, storage.vectors)
+  scale!(storage.vectors, storage.values)
+  scale!(oneT ./ b2, storage.vectors)
   mul!(vcm.Σ[2], transpose(Φinv), storage.vectors)
   copyto!(vcm.Σ[2], vcm.Σ[2] * transpose(vcm.Σ[2]))
 end
