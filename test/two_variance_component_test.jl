@@ -1,6 +1,6 @@
 module TwoVarianceComponentTest
 
-using VarianceComponentModels, MathProgBase, Ipopt, Random, LinearAlgebra, Test
+using VarianceComponentModels, MathProgBase, Ipopt, Random, Test, LinearAlgebra
 
 Random.seed!(123)
 
@@ -48,16 +48,27 @@ vcmodelrot = TwoVarCompModelRotate(vcmodel)
 @test (logpdf(vcmodelrot, [vcdatarot vcdatarot; vcdatarot vcdatarot]) -
   logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
 
+# @info "Evaluate gradient"
+# ∇ = zeros(2d^2)
+# #@code_warntype gradient!(∇, vcmodelrot, vcdatarot)
+# @inferred gradient!(∇, vcmodelrot, vcdatarot)
+# @test norm(gradient(vcmodel, vcdata) - gradient(vcmodelrot, vcdatarot)) ≈ 0.0
+# @test norm(gradient(vcmodel, vcdata) - gradient(vcmodel, vcdatarot)) ≈ 0.0
+# @test norm(gradient(vcmodel, [vcdata vcdata]) -
+#   2.0gradient(vcmodel, vcdata)) ≈ 0.0
+# @test norm(gradient(vcmodel, [vcdata vcdata]) -
+#   gradient(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+
 @info "Evaluate gradient"
 ∇ = zeros(2d^2)
 #@code_warntype gradient!(∇, vcmodelrot, vcdatarot)
-@inferred gradient!(∇, vcmodelrot, vcdatarot)
-@test norm(gradient(vcmodel, vcdata) - gradient(vcmodelrot, vcdatarot)) ≈ 0.0
-@test norm(gradient(vcmodel, vcdata) - gradient(vcmodel, vcdatarot)) ≈ 0.0
-@test norm(gradient(vcmodel, [vcdata vcdata]) -
-  2.0gradient(vcmodel, vcdata)) ≈ 0.0
-@test norm(gradient(vcmodel, [vcdata vcdata]) -
-  gradient(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+@inferred VarianceComponentModels.gradient!(∇, vcmodelrot, vcdatarot)
+@test norm(VarianceComponentModels.gradient(vcmodel, vcdata) - VarianceComponentModels.gradient(vcmodelrot, vcdatarot)) ≈ 0.0
+@test norm(VarianceComponentModels.gradient(vcmodel, vcdata) - VarianceComponentModels.gradient(vcmodel, vcdatarot)) ≈ 0.0
+@test norm(VarianceComponentModels.gradient(vcmodel, [vcdata vcdata]) -
+  2.0VarianceComponentModels.gradient(vcmodel, vcdata)) ≈ 0.0
+@test norm(VarianceComponentModels.gradient(vcmodel, [vcdata vcdata]) -
+VarianceComponentModels.gradient(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 @info "Evaluate Fisher information matrix of Σ"
 H = zeros(2d^2, 2d^2)
