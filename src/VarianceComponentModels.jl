@@ -1,7 +1,7 @@
 module VarianceComponentModels
 
-using Compat
-import Compat.view
+#using Compat
+#import Compat.view
 
 using LinearAlgebra, Statistics, MathProgBase, Ipopt#, KNITRO#, Mosek#, Gurobi
 import Base: eltype, length, size, + 
@@ -116,7 +116,7 @@ function TwoVarCompModelRotate(vcm::VarianceComponentModel{T, 2, BT, ΣT}) where
   λ = convert(Vector{T}, F.values)
   Φ = convert(Matrix{T}, F.vectors)
   # correct negative eigenvalues due to roundoff
-  @compat map!(x -> max(x, zero(T)), λ, λ)
+  map!(x -> max(x, zero(T)), λ, λ)
   Brot = isempty(vcm.B) ? Array{T}(undef, size(vcm.B)) : vcm.B * Φ
   logdetΣ2 = convert(T, logdet(vcm.Σ[2]))
   TwoVarCompModelRotate{T, BT}(Brot, λ, Φ, logdetΣ2)
@@ -486,7 +486,7 @@ function residual!(
   else
     oneT = one(eltype(vcm))
     copyto!(resid, vcobs.Y)
-    LinAlg.BLAS.gemm!('N', 'N', -oneT, vcobs.X, vcm.B, oneT, resid)
+    LinearAlgebra.BLAS.gemm!('N', 'N', -oneT, vcobs.X, vcm.B, oneT, resid)
   end
   resid
 end
@@ -533,7 +533,7 @@ function residual!(
     #copy!(resid, vcobsrot.Yrot * vcmrot.eigvec - vcobsrot.Xrot * vcmrot.Brot)
     oneT = one(eltype(vcmrot))
     mul!(resid, vcobsrot.Yrot, vcmrot.eigvec)
-    LinAlg.BLAS.gemm!('N', 'N', -oneT, vcobsrot.Xrot, vcmrot.Brot, oneT, resid)
+    LinearAlgebra.BLAS.gemm!('N', 'N', -oneT, vcobsrot.Xrot, vcmrot.Brot, oneT, resid)
   end
   resid
 end
