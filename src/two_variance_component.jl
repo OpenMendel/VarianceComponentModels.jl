@@ -1,4 +1,3 @@
-using LinearAlgebra 
 import Printf
 
 export heritability,
@@ -57,7 +56,19 @@ function logpdf(
   vcaux::T3 = VarianceComponentAuxData(vcobs)
   ) where {
     T1 <: VarianceComponentModel,
-    T2 <: Union{TwoVarCompVariateRotate, VarianceComponentVariate},
+    T2 <: TwoVarCompVariateRotate, 
+    T3 <: VarianceComponentAuxData}
+
+  logpdf(TwoVarCompModelRotate(vcm), vcobs, vcaux)
+end
+
+function logpdf(
+  vcm::T1,
+  vcobs::T2,
+  vcaux::T3 = VarianceComponentAuxData(vcobs)
+  ) where {
+    T1 <: VarianceComponentModel,
+    T2 <: VarianceComponentVariate,
     T3 <: VarianceComponentAuxData}
 
   logpdf(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
@@ -192,7 +203,17 @@ Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
 function gradient!(
   ∇::AbstractVector{T},
   vcm::VarianceComponentModel{T, 2},
-  vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
+  vcobs::TwoVarCompVariateRotate{T},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
+  ) where {T <: AbstractFloat}
+
+  gradient!(∇, TwoVarCompModelRotate(vcm), vcobs, vcaux)
+end
+
+function gradient!(
+  ∇::AbstractVector{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2},
   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   ) where {T <: AbstractFloat}
 
@@ -217,7 +238,16 @@ Evaluate gradient of `Σ` at `vcmrot.Σ` and overwrite `∇`.
 """
 function gradient(
   vcm::VarianceComponentModel{T, 2},
-  vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
+  vcobs::TwoVarCompVariateRotate, 
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
+  ) where {T <: AbstractFloat}
+
+  gradient(TwoVarCompModelRotate(vcm), vcobs, vcaux)
+end
+
+function gradient(
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2},
   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   ) where {T <: AbstractFloat}
 
@@ -290,7 +320,7 @@ function fisher_Σ!(
       C[i, j] += deval * deval / (λi * deval + oneT) / (λj * deval + oneT)
     end
   end
-  LinAlg.copytri!(C, 'L')
+  LinearAlgebra.copytri!(C, 'L')
   mul!(view(H, 1:d^2, 1:d^2), Φ2 * Diagonal(vec(C)), transpose(Φ2))
   # (2, 1) block
   fill!(C, zeroT)
@@ -301,7 +331,7 @@ function fisher_Σ!(
       C[i, j] += deval / (λi * deval + oneT) / (λj * deval + oneT)
     end
   end
-  LinAlg.copytri!(C, 'L')
+  LinearAlgebra.copytri!(C, 'L')
   mul!(view(H, (d^2+1):(2d^2), 1:d^2), Φ2 * Diagonal(vec(C)), transpose(Φ2))
   # d-by-d (2, 2) block
   fill!(C, zeroT)
@@ -312,10 +342,10 @@ function fisher_Σ!(
       C[i, j] += oneT / (λi * deval + oneT) / (λj * deval + oneT)
     end
   end
-  LinAlg.copytri!(C, 'L')
+  LinearAlgebra.copytri!(C, 'L')
   mul!(view(H, (d^2+1):(2d^2), (d^2+1):(2d^2)), Φ2 * Diagonal(vec(C)), transpose(Φ2))
   # copy to upper triangular part
-  LinAlg.copytri!(H, 'L')
+  LinearAlgebra.copytri!(H, 'L')
   rmul!(H, convert(T, 0.5))
   # output
   return H
@@ -334,7 +364,16 @@ end
 function fisher_Σ!(
   H::AbstractMatrix{T},
   vcm::VarianceComponentModel{T, 2},
-  vcobsrot::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}}
+  vcobsrot::TwoVarCompVariateRotate{T}
+  ) where {T <: AbstractFloat}
+
+  fisher_Σ!(H, TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+function fisher_Σ!(
+  H::AbstractMatrix{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::VarianceComponentVariate{T, 2}
   ) where {T <: AbstractFloat}
 
   fisher_Σ!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
@@ -342,11 +381,21 @@ end
 
 function fisher_Σ(
   vcm::VarianceComponentModel{T, 2},
-  vcobsrot::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}}
+  vcobsrot::VarianceComponentVariate{T, 2}
   ) where {T <: AbstractFloat}
- 
+
   fisher_Σ(TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobsrot))
 end
+
+function fisher_Σ(
+  vcm::VarianceComponentModel{T, 2},
+  vcobsrot::TwoVarCompVariateRotate{T}
+  ) where {T <: AbstractFloat}
+
+  fisher_Σ(TwoVarCompModelRotate(vcm), vcobsrot)
+end
+
+
 
 function fisher_Σ!(
   H::AbstractMatrix,
@@ -420,14 +469,68 @@ function fisher_B(
   fisher_B!(H, vcmrot, vcobsrot)
 end
 
+# function fisher_B!(
+#   H::AbstractMatrix{T},
+#   vcm::Union{VarianceComponentModel{T, 2}, TwoVarCompVariateRotate{T}},
+#   vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
+#   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
+#   ) where {T <: AbstractFloat}
+
+#   fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
+# end
 
 function fisher_B!(
   H::AbstractMatrix{T},
-  vcm::Union{VarianceComponentModel{T, 2}, TwoVarCompVariateRotate{T}},
-  vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::VarianceComponentVariate{T, 2},
   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   ) where {T <: AbstractFloat}
 
+  println("this one?")
+  fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
+end
+
+function fisher_B!(
+  H::AbstractMatrix{T},
+  vcm::TwoVarCompVariateRotate{T},
+  vcobs::VarianceComponentVariate{T, 2},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
+  ) where {T <: AbstractFloat}
+
+  println("this one?")
+  fisher_B!(H, vcm, TwoVarCompVariateRotate(vcobs), vcaux)
+end
+
+function fisher_B!(
+  H::AbstractMatrix{T},
+  vcm::VarianceComponentModel{T, 2},
+  vcobs::TwoVarCompVariateRotate{T},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
+  ) where {T <: AbstractFloat}
+  println("this two?")
+  fisher_B!(H, TwoVarCompModelRotate(vcm), vcobs, vcaux)
+end
+
+function fisher_B!(
+  H::AbstractMatrix{T},
+  vcm::TwoVarCompVariateRotate{T},
+  vcobs::TwoVarCompVariateRotate{T},
+  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
+  ) where {T <: AbstractFloat}
+  println("this two?")
+  fisher_B!(H, vcm, vcobs, vcaux)
+end
+
+function fisher_B(
+  vcm::T1,
+  vcobs::T2,
+  vcaux::T3 = VarianceComponentAuxData(vcobs)
+  ) where {
+    T1 <: VarianceComponentModel, 
+    T2 <: VarianceComponentVariate,
+    T3 <: VarianceComponentAuxData}
+
+  H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
   fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
@@ -436,13 +539,40 @@ function fisher_B(
   vcobs::T2,
   vcaux::T3 = VarianceComponentAuxData(vcobs)
   ) where {
-    T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
-    T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
+    T1 <: TwoVarCompModelRotate,
+    T2 <: VarianceComponentVariate,
     T3 <: VarianceComponentAuxData}
 
   H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
-  fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
+  fisher_B!(H, vcm, TwoVarCompVariateRotate(vcobs), vcaux)
 end
+
+function fisher_B(
+  vcm::T1,
+  vcobs::T2,
+  vcaux::T3 = VarianceComponentAuxData(vcobs)
+  ) where {
+    T1 <: VarianceComponentModel, 
+    T2 <: TwoVarCompVariateRotate,
+    T3 <: VarianceComponentAuxData}
+
+  H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
+  fisher_B!(H, TwoVarCompModelRotate(vcm), vcobs, vcaux)
+end
+
+function fisher_B(
+  vcm::T1,
+  vcobs::T2,
+  vcaux::T3 = VarianceComponentAuxData(vcobs)
+  ) where {
+    T1 <: TwoVarCompModelRotate,
+    T2 <: TwoVarCompVariateRotate,
+    T3 <: VarianceComponentAuxData}
+
+  H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
+  fisher_B!(H, vcm, vcobs, vcaux)
+end
+
 
 function fisher_B!(
   H::AbstractMatrix,
