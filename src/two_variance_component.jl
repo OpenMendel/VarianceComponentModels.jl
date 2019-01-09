@@ -486,7 +486,6 @@ function fisher_B!(
   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   ) where {T <: AbstractFloat}
 
-  println("this one?")
   fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
@@ -497,7 +496,6 @@ function fisher_B!(
   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   ) where {T <: AbstractFloat}
 
-  println("this one?")
   fisher_B!(H, vcm, TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
@@ -507,7 +505,7 @@ function fisher_B!(
   vcobs::TwoVarCompVariateRotate{T},
   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   ) where {T <: AbstractFloat}
-  println("this two?")
+
   fisher_B!(H, TwoVarCompModelRotate(vcm), vcobs, vcaux)
 end
 
@@ -517,7 +515,7 @@ function fisher_B!(
   vcobs::TwoVarCompVariateRotate{T},
   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   ) where {T <: AbstractFloat}
-  println("this two?")
+  
   fisher_B!(H, vcm, vcobs, vcaux)
 end
 
@@ -746,7 +744,7 @@ function TwoVarCompOptProb(
   ) where {
     T1 <: VarianceComponentModel,
     T2 <: TwoVarCompVariateRotate}
-
+ 
   T = eltype(vcm)
   d, pd = length(vcm), nmeanparams(vcm)
   # number of optimization parameters in variance
@@ -757,6 +755,7 @@ function TwoVarCompOptProb(
   HΣ = zeros(T, 2d^2, 2d^2) # Hessian wrt (Σ1, Σ2)
   HL = zeros(T, nvar, nvar) # Hessian wrt Ls
   vcaux = VarianceComponentAuxData(vcdatarot)
+  
   # constructor
   TwoVarCompOptProb{typeof(vcm), typeof(vcdatarot), typeof(HΣ),
     typeof(∇Σ), typeof(vcaux)}(vcm, vcdatarot, qpsolver, L, ∇Σ, HΣ, HL, vcaux)
@@ -845,10 +844,17 @@ function MathProgBase.eval_grad_f(
 end # function MathProgBase.eval_grad_f
 
 function MathProgBase.hesslag_structure(dd::TwoVarCompOptProb)
+ 
   nvar = nvarparams(dd.vcmodel)
   # linear indices for variance parameters
   ## ind2sub((nvar, nvar), trilind(nvar))
-  Tuple(CartesianIndices((nvar, nvar))[trilind(nvar)])
+  #Tuple(CartesianIndices((nvar, nvar))[trilind(nvar)])
+  arr1, arr2 = Int64[], Int64[]
+  for i in 1:nvar
+    arr1 = vcat(arr1, i:nvar)
+    arr2 = vcat(arr2, fill(i, nvar-i+1))
+  end
+  return (arr1, arr2)
 end # function MathProgBase.hesslag_structure
 
 function MathProgBase.eval_hesslag(dd::TwoVarCompOptProb, H::Vector{T},
@@ -895,6 +901,7 @@ function MathProgBase.eval_hesslag(dd::TwoVarCompOptProb, H::Vector{T},
   # output
   copyto!(H, vech(dd.HL))
   rmul!(H, -σ)
+
 end
 
 """
@@ -949,7 +956,6 @@ function mle_fs!(
     qs = MosekSolver(MSK_IPAR_LOG = 0)
   end
   dd = TwoVarCompOptProb(vcmodel, vcdatarot, qs)
-
   # set up MathProgBase interface
   if solver == :Ipopt
     # see http://www.coin-or.org/Ipopt/documentation/documentation.html for IPOPT
@@ -1129,12 +1135,13 @@ function mm_update_Σ!(
   end
   Φinv = inv(vcmrot.eigvec)
   # update Σ1
-  lmul!(Diagonal(b1), A1), rmul!(A1, b1)
-  storage = eigfact!(Symmetric(A1))
+  lmul!(Diagonal(b1), A1), rmul!(A1, Diagonal(b1))
+  storage = eigen!(Symmetric(A1))
   @inbounds for i in 1:d
     storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
-  scale!(storage.vectors, storage.values)
+  #scale!(storage.vectors, storage.values)
+  rmul!(storage.vectors, Diagonal(storage.values))
   scale!(oneT ./ b1, storage.vectors)
   mul!(vcm.Σ[1], transpose(Φinv), storage.vectors)
   copyto!(vcm.Σ[1], vcm.Σ[1] * transpose(vcm.Σ[1]))
