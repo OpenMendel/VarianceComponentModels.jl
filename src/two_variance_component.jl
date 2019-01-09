@@ -1140,19 +1140,18 @@ function mm_update_Σ!(
   @inbounds for i in 1:d
     storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
-  #scale!(storage.vectors, storage.values)
-  rmul!(storage.vectors, Diagonal(storage.values))
-  scale!(oneT ./ b1, storage.vectors)
+  rmul!(storage.vectors, Diagonal(storage.values)) #scale!(storage.vectors, storage.values)
+  lmul!(Diagonal(oneT ./ b1), storage.vectors) #scale!(storage.vectors, storage.values)
   mul!(vcm.Σ[1], transpose(Φinv), storage.vectors)
   copyto!(vcm.Σ[1], vcm.Σ[1] * transpose(vcm.Σ[1]))
   # update Σ2
-  lmul!(Diagonal(b2), A2), rmul!(A2, b2)
-  storage = eigfact!(Symmetric(A2))
+  lmul!(Diagonal(b2), A2), rmul!(A2, Diagonal(b2))
+  storage = eigen!(Symmetric(A2))
   @inbounds for i in 1:d
     storage.values[i] = storage.values[i] > zeroT ? √√storage.values[i] : zeroT
   end
-  scale!(storage.vectors, storage.values)
-  scale!(oneT ./ b2, storage.vectors)
+  rmul!(storage.vectors, Diagonal(storage.values)) #scale!(storage.vectors, storage.values)
+  lmul!(Diagonal(oneT ./ b2), storage.vectors) #scale!(storage.vectors, storage.values)
   mul!(vcm.Σ[2], transpose(Φinv), storage.vectors)
   copyto!(vcm.Σ[2], vcm.Σ[2] * transpose(vcm.Σ[2]))
 end
