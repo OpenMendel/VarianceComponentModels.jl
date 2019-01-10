@@ -1,10 +1,14 @@
 using Documenter, VarianceComponentModels
 
 ENV["DOCUMENTER_DEBUG"] = "true"
-makedocs()
+
+makedocs(
+    format = :html,
+    sitename = "VarianceComponentModels",
+    modules = [VarianceComponentModels]
+)
+
 deploydocs(
-  deps   = Deps.pip("pygments", "mkdocs", "mkdocs-material", "python-markdown-math"),
-  repo   = "github.com:OpenMendel/VarianceComponentModels.jl.git",
-  julia  = "0.6",
-  osname = "linux"
-  )
+    repo   = "github.com/OpenMendel/VarianceComponentModels.jl.git",
+    target = "build"
+)
