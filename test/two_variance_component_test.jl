@@ -162,12 +162,20 @@ logl_mle, _, _, Σcov_mle, Bse_mle, = fit_mle!(vcmmle, vcdata; algo = :MM)
 
 @info "test fit_reml (FS)"
 vcmreml = deepcopy(vcmodel)
-logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
+println("vcmreml = $vcmreml")
+logl_reml, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
+# logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
 @show vcmreml.B, Bse_reml, B
 
 @info "test fit_reml (MM)"
 vcmreml = deepcopy(vcmodel)
-logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
+#logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
+logl_reml, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
 @show vcmreml.B, Bse_reml, B
+
+## NOTE: 
+## fit_reml! currently returns logpdf(vcmodel, vcdatarot), Σcov, Bse, Bcov
+## as opposed to logpdf(vcmodel, vcdatarot), vcmodel, Σse, Σcov, Bse, Bcov.
+## returning more than 4 values causes segmentation fault for some reason.
 
 end # module VarianceComponentTypeTest
