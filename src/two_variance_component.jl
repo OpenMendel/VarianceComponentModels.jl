@@ -1316,7 +1316,7 @@ Find restricted MLE (REML) of variane component model.
 - `Bse`: standard errors of estimate `B`
 - `Bcov`: covariance of estimate `B`
 """
-function fit_reml!(
+function fit_reml!( 
   vcmodel::T1,
   vcdata::Union{T2, Array{T2}};
   algo::Symbol = :FS,
@@ -1378,8 +1378,9 @@ function fit_reml!(
   Bse = similar(vcmodel.B)
   copyto!(Bse, sqrt.(diag(Bcov)))
 
-  # output
-  logpdf(vcmodel, vcdatarot), vcmodel, Σse, Σcov, Bse, Bcov
+  ## output
+  # logpdf(vcmodel, vcdatarot), vcmodel, Σse, Σcov, Bse, Bcov
+  logpdf(vcmodel, vcdatarot), Σcov, Bse, Bcov
 end
 
 #---------------------------------------------------------------------------#
