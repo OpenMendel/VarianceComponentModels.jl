@@ -234,7 +234,7 @@ function TwoVarCompVariateRotate(vcobs::VarianceComponentVariate{T, 2}) where T 
   end
   # rotate responses
   Yrot = transpose(U) * vcobs.Y
-  Xrot = isempty(vcobs.X) ? Array{T}(size(Yrot, 1), 0) : transpose(U) * vcobs.X 
+  Xrot = isempty(vcobs.X) ? Array{T}(undef, size(Yrot, 1), 0) : transpose(U) * vcobs.X 
   # output
   TwoVarCompVariateRotate(Yrot, Xrot, deval, U, logdetV2)
 end
