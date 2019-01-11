@@ -46,29 +46,20 @@ vcmodelrot = TwoVarCompModelRotate(vcmodel)
 @inferred logpdf(vcmodelrot, vcdatarot)
 @test logpdf(vcmodel, vcdata) == logpdf(vcmodelrot, vcdatarot)
 @test (logpdf(vcmodelrot, [vcdatarot vcdatarot; vcdatarot vcdatarot]) -
-logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
-
-# @info "Evaluate gradient"
-# ∇ = zeros(2d^2)
-# #@code_warntype gradient!(∇, vcmodelrot, vcdatarot)
-# @inferred gradient!(∇, vcmodelrot, vcdatarot)
-# @test norm(gradient(vcmodel, vcdata) - gradient(vcmodelrot, vcdatarot)) ≈ 0.0
-# @test norm(gradient(vcmodel, vcdata) - gradient(vcmodel, vcdatarot)) ≈ 0.0
-# @test norm(gradient(vcmodel, [vcdata vcdata]) -
-#   2.0gradient(vcmodel, vcdata)) ≈ 0.0
-# @test norm(gradient(vcmodel, [vcdata vcdata]) -
-#   gradient(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+    logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
 
 @info "Evaluate gradient"
 ∇ = zeros(2d^2)
 #@code_warntype gradient!(∇, vcmodelrot, vcdatarot)
 @inferred VarianceComponentModels.gradient!(∇, vcmodelrot, vcdatarot)
-@test norm(VarianceComponentModels.gradient(vcmodel, vcdata) - VarianceComponentModels.gradient(vcmodelrot, vcdatarot)) ≈ 0.0
-@test norm(VarianceComponentModels.gradient(vcmodel, vcdata) - VarianceComponentModels.gradient(vcmodel, vcdatarot)) ≈ 0.0
+@test norm(VarianceComponentModels.gradient(vcmodel, vcdata) - 
+    VarianceComponentModels.gradient(vcmodelrot, vcdatarot)) ≈ 0.0
+@test norm(VarianceComponentModels.gradient(vcmodel, vcdata) - 
+    VarianceComponentModels.gradient(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(VarianceComponentModels.gradient(vcmodel, [vcdata vcdata]) -
-2.0VarianceComponentModels.gradient(vcmodel, vcdata)) ≈ 0.0
+  2.0VarianceComponentModels.gradient(vcmodel, vcdata)) ≈ 0.0
 @test norm(VarianceComponentModels.gradient(vcmodel, [vcdata vcdata]) -
-VarianceComponentModels.gradient(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+  VarianceComponentModels.gradient(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 @info "Evaluate Fisher information matrix of Σ"
 H = zeros(2d^2, 2d^2)
@@ -77,10 +68,9 @@ H = zeros(2d^2, 2d^2)
 @test norm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodelrot, vcdatarot)) ≈ 0.0
 @test norm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(fisher_Σ(vcmodel, [vcdata vcdata]) -
-2fisher_Σ(vcmodel, vcdata)) ≈ 0.0
+    2fisher_Σ(vcmodel, vcdata)) ≈ 0.0
 @test norm(fisher_Σ(vcmodel, [vcdata vcdata]) -
-fisher_Σ(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
-
+    fisher_Σ(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 @info "Evaluate Fisher information matrix of B"
 H = zeros(p * d, p * d)
@@ -89,9 +79,9 @@ H = zeros(p * d, p * d)
 @test norm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodelrot, vcdatarot)) ≈ 0.0
 @test norm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(fisher_B(vcmodel, [vcdata vcdata]) -
-2.0fisher_B(vcmodel, vcdata)) ≈ 0.0
+    2.0fisher_B(vcmodel, vcdata)) ≈ 0.0
 @test norm(fisher_B(vcmodel, [vcdata vcdata]) -
-fisher_B(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+    fisher_B(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 @info "Find MLE using Fisher scoring"
 vcmfs = deepcopy(vcmodel)
@@ -123,7 +113,8 @@ vcmfs.sense = '='
 vcmfs.b     = 0.0
 vcmfs.lb    = 0.0
 vcmfs.ub    = 1.0
-logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; solver = :Ipopt, qpsolver = :Ipopt)
+logl_fs, _, _, Σcov_fs, Bse_fs, = mle_fs!(vcmfs, vcdatarot; 
+    solver = :Ipopt, qpsolver = :Ipopt)
 @show vcmfs.B
 @test vcmfs.B[1] ≈ vcmfs.B[2]
 @test all(vcmfs.B .≥ 0.0)
@@ -169,10 +160,5 @@ logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
 vcmreml = deepcopy(vcmodel)
 logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
 @show vcmreml.B, Bse_reml, B
-
-## NOTE: 
-## fit_reml! currently returns logpdf(vcmodel, vcdatarot), Σcov, Bse, Bcov
-## as opposed to logpdf(vcmodel, vcdatarot), vcmodel, Σse, Σcov, Bse, Bcov.
-## returning more than 4 values causes segmentation fault for some reason.
 
 end # module VarianceComponentTypeTest
