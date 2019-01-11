@@ -46,7 +46,7 @@ vcmodelrot = TwoVarCompModelRotate(vcmodel)
 @inferred logpdf(vcmodelrot, vcdatarot)
 @test logpdf(vcmodel, vcdata) == logpdf(vcmodelrot, vcdatarot)
 @test (logpdf(vcmodelrot, [vcdatarot vcdatarot; vcdatarot vcdatarot]) -
-  logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
+logpdf(vcmodel, [vcdata vcdata; vcdata vcdata])) ≈ 0.0
 
 # @info "Evaluate gradient"
 # ∇ = zeros(2d^2)
@@ -66,7 +66,7 @@ vcmodelrot = TwoVarCompModelRotate(vcmodel)
 @test norm(VarianceComponentModels.gradient(vcmodel, vcdata) - VarianceComponentModels.gradient(vcmodelrot, vcdatarot)) ≈ 0.0
 @test norm(VarianceComponentModels.gradient(vcmodel, vcdata) - VarianceComponentModels.gradient(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(VarianceComponentModels.gradient(vcmodel, [vcdata vcdata]) -
-  2.0VarianceComponentModels.gradient(vcmodel, vcdata)) ≈ 0.0
+2.0VarianceComponentModels.gradient(vcmodel, vcdata)) ≈ 0.0
 @test norm(VarianceComponentModels.gradient(vcmodel, [vcdata vcdata]) -
 VarianceComponentModels.gradient(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
@@ -77,9 +77,9 @@ H = zeros(2d^2, 2d^2)
 @test norm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodelrot, vcdatarot)) ≈ 0.0
 @test norm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(fisher_Σ(vcmodel, [vcdata vcdata]) -
-  2fisher_Σ(vcmodel, vcdata)) ≈ 0.0
+2fisher_Σ(vcmodel, vcdata)) ≈ 0.0
 @test norm(fisher_Σ(vcmodel, [vcdata vcdata]) -
-  fisher_Σ(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+fisher_Σ(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 
 @info "Evaluate Fisher information matrix of B"
@@ -89,9 +89,9 @@ H = zeros(p * d, p * d)
 @test norm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodelrot, vcdatarot)) ≈ 0.0
 @test norm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(fisher_B(vcmodel, [vcdata vcdata]) -
-  2.0fisher_B(vcmodel, vcdata)) ≈ 0.0
+2.0fisher_B(vcmodel, vcdata)) ≈ 0.0
 @test norm(fisher_B(vcmodel, [vcdata vcdata]) -
-  fisher_B(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
+fisher_B(vcmodelrot, [vcdatarot vcdatarot])) ≈ 0.0
 
 @info "Find MLE using Fisher scoring"
 vcmfs = deepcopy(vcmodel)
@@ -162,14 +162,12 @@ logl_mle, _, _, Σcov_mle, Bse_mle, = fit_mle!(vcmmle, vcdata; algo = :MM)
 
 @info "test fit_reml (FS)"
 vcmreml = deepcopy(vcmodel)
-logl_reml, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
-# logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
+logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :FS)
 @show vcmreml.B, Bse_reml, B
 
 @info "test fit_reml (MM)"
 vcmreml = deepcopy(vcmodel)
-#logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
-logl_reml, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
+logl_reml, _, _, Σcov_reml, Bse_reml, = fit_reml!(vcmreml, vcdata; algo = :MM)
 @show vcmreml.B, Bse_reml, B
 
 ## NOTE: 
