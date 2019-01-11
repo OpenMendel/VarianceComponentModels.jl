@@ -1379,8 +1379,7 @@ function fit_reml!(
   copyto!(Bse, sqrt.(diag(Bcov)))
 
   ## output
-  # logpdf(vcmodel, vcdatarot), vcmodel, Σse, Σcov, Bse, Bcov
-  logpdf(vcmodel, vcdatarot), Σcov, Bse, Bcov
+  logpdf(vcmodel, vcdatarot), vcmodel, (Σse[1], Σse[2]), Σcov, Bse, Bcov
 end
 
 #---------------------------------------------------------------------------#
