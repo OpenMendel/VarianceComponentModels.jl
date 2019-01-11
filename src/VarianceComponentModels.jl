@@ -1,20 +1,11 @@
 module VarianceComponentModels
 
-#using Compat
-#import Compat.view
-
 using LinearAlgebra, Statistics, MathProgBase, Ipopt#, KNITRO#, Mosek#, Gurobi
 import Base: eltype, length, size, + 
 export VarianceComponentModel, VarianceComponentVariate,
   TwoVarCompModelRotate, TwoVarCompVariateRotate, VarianceComponentAuxData,
   residual, residual!, nvarcomps, nmeanparams, nvarparams, nparams,
   mean!, mean, cov!, cov
-
-# import Base: eltype, length, size, mean, mean!, cov, +
-# export VarianceComponentModel, VarianceComponentVariate,
-#   TwoVarCompModelRotate, TwoVarCompVariateRotate, VarianceComponentAuxData,
-#   residual, residual!, nvarcomps, nmeanparams, nvarparams, nparams,
-#   mean!, mean, cov!, cov
 
 """
 `VarianceComponentModel` stores the model parameters of a variance component
