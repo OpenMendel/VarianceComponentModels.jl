@@ -12,7 +12,7 @@ Within Julia, use the package manager to install VarianceComponentModels:
 
     Pkg.clone("https://github.com/OpenMendel/VarianceComponentModels.jl.git")
 
-This package supports Julia v0.5 and v0.6.
+This package supports Julia v0.7 and v1.0.
 
 ## Citation
 
