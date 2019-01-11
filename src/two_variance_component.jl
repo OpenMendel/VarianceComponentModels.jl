@@ -395,8 +395,6 @@ function fisher_Σ(
   fisher_Σ(TwoVarCompModelRotate(vcm), vcobsrot)
 end
 
-
-
 function fisher_Σ!(
   H::AbstractMatrix,
   vcm::T1,
@@ -468,16 +466,6 @@ function fisher_B(
   H = zeros(T, nmeanparams(vcmrot), nmeanparams(vcmrot))
   fisher_B!(H, vcmrot, vcobsrot)
 end
-
-# function fisher_B!(
-#   H::AbstractMatrix{T},
-#   vcm::Union{VarianceComponentModel{T, 2}, TwoVarCompVariateRotate{T}},
-#   vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
-#   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
-#   ) where {T <: AbstractFloat}
-
-#   fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
-# end
 
 function fisher_B!(
   H::AbstractMatrix{T},
@@ -570,7 +558,6 @@ function fisher_B(
   H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
   fisher_B!(H, vcm, vcobs, vcaux)
 end
-
 
 function fisher_B!(
   H::AbstractMatrix,
