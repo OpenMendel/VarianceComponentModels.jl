@@ -1,9 +1,12 @@
 environment:
   matrix:
-  - JULIAVERSION: "julialang/bin/winnt/x86/0.6/julia-0.6-latest-win32.exe"
-  - JULIAVERSION: "julialang/bin/winnt/x64/0.6/julia-0.6-latest-win64.exe"
-  - JULIAVERSION: "julianightlies/bin/winnt/x86/julia-latest-win32.exe"
-  - JULIAVERSION: "julianightlies/bin/winnt/x64/julia-latest-win64.exe"
+  - julia_version: 0.7
+  - julia_version: 1
+  - julia_version: nightly
+
+platform:
+  - x86 # 32-bit
+  - x64 # 64-bit
 
 branches:
   only:
@@ -22,12 +25,7 @@ notifications:
     on_build_status_changed: false
 
 install:
-# Download most recent Julia Windows binary
-  - ps: (new-object net.webclient).DownloadFile(
-        $("http://s3.amazonaws.com/"+$env:JULIAVERSION),
-        "C:\projects\julia-binary.exe")
-# Run installer silently, output to C:\projects\julia
-  - C:\projects\julia-binary.exe /S /D=C:\projects\julia
+  - ps: iex ((new-object net.webclient).DownloadString("https://raw.githubusercontent.com/JuliaCI/Appveyor.jl/version-1/bin/install.ps1"))
 
 build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
