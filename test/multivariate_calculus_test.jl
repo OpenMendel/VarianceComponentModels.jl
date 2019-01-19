@@ -23,6 +23,7 @@ end
   n = 3
   A = randn(n, n)
   @test norm(vech(A) - A[trilind(A)]) ≈ 0.0
+  @test norm([2, 3, 6] - trilind(A, -1)) ≈ 0.0
 end
 
 # test triuind
