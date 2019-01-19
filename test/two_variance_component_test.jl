@@ -78,18 +78,9 @@ H = zeros(2d^2, 2d^2)
 @info "Evaluate Fisher information matrix of B"
 H = zeros(p * d, p * d)
 #@code_warntype fisher_B!(H, vcmodelrot, vcdatarot)
-# @inferred VarianceComponentVariate(Y, X, V)
-# vcdata  = VarianceComponentVariate(Y, X, V)
-# vcmodel = VarianceComponentModel(vcdata)
-
-# @info "Pre-compute eigen-decomposition and rotate data"
-# vcdatarot  = TwoVarCompVariateRotate(vcdata)
-# vcmodelrot = TwoVarCompModelRotate(vcmodel)
-
 @inferred fisher_B!(H, vcmodelrot, vcdatarot)
 @inferred fisher_B!(H, vcmodel, vcdatarot)
 @inferred fisher_B!(H, vcmodel, vcdata)
-
 @test norm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodelrot, vcdatarot)) ≈ 0.0
 @test norm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(fisher_B(vcmodel, [vcdata vcdata]) -
