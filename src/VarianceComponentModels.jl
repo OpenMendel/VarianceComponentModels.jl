@@ -95,6 +95,19 @@ function TwoVarCompModelRotate(
 end
 
 """
+    TwoVarCompModelRotate(twovarcomp)
+
+Constructor of [`TwoVarCompModelRotate`](@ref) instance from a 
+[`TwoVarCompModelRotate`](@ref) instance itself. 
+"""
+function TwoVarCompModelRotate(
+  twovarcomp::TwoVarCompModelRotate{T}) where T <: AbstractFloat
+
+  ## JK ###
+  twovarcomp
+end 
+
+"""
     TwoVarCompModelRotate(vcmodel)
 
 Constructor of a [`TwoVarCompModelRotate`](@ref) instance from a
@@ -196,6 +209,19 @@ function TwoVarCompVariateRotate(
   TwoVarCompVariateRotate{eltype(Yrot), typeof(Yrot), typeof(Xrot)}(Yrot, Xrot,
     eigval, eigvec, logdetV2)
 end
+
+"""
+    TwoVarCompVariateRotate(twovarcomp)
+
+Constructor of a [`TwoVarCompVariateRotate`](@ref) instance from a
+[`TwoVarCompVariateRotate`](@ref) instance itself.
+"""
+function TwoVarCompVariateRotate(
+  twovarcomp::TwoVarCompVariateRotate{T}) where T <: AbstractFloat
+
+  ## JK ###
+  twovarcomp
+end 
 
 """
     TwoVarCompVariateRotate(vcobs)
