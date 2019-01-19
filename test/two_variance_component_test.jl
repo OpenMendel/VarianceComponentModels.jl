@@ -67,6 +67,7 @@ vcmodelrot = TwoVarCompModelRotate(vcmodel)
 H = zeros(2d^2, 2d^2)
 #@code_warntype fisher!(H, vcmodelrot, vcdatarot)
 @inferred fisher_Σ!(H, vcmodelrot, vcdatarot)
+@inferred fisher_Σ!(H, vcmodel, vcdata)
 @test norm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodelrot, vcdatarot)) ≈ 0.0
 @test norm(fisher_Σ(vcmodel, vcdata) - fisher_Σ(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(fisher_Σ(vcmodel, [vcdata vcdata]) -
@@ -88,6 +89,7 @@ H = zeros(p * d, p * d)
 @inferred fisher_B!(H, vcmodelrot, vcdatarot)
 @inferred fisher_B!(H, vcmodel, vcdatarot)
 @inferred fisher_B!(H, vcmodel, vcdata)
+
 @test norm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodelrot, vcdatarot)) ≈ 0.0
 @test norm(fisher_B(vcmodel, vcdata) - fisher_B(vcmodel, vcdatarot)) ≈ 0.0
 @test norm(fisher_B(vcmodel, [vcdata vcdata]) -
