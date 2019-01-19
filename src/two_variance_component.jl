@@ -469,94 +469,25 @@ end
 
 function fisher_B!(
   H::AbstractMatrix{T},
-  vcm::VarianceComponentModel{T, 2},
-  vcobs::VarianceComponentVariate{T, 2},
+  vcm::Union{VarianceComponentModel{T, 2}, TwoVarCompVariateRotate{T}},
+  vcobs::Union{TwoVarCompVariateRotate{T}, VarianceComponentVariate{T, 2}},
   vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
   ) where {T <: AbstractFloat}
 
   fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
 end
 
-function fisher_B!(
-  H::AbstractMatrix{T},
-  vcm::TwoVarCompVariateRotate{T},
-  vcobs::VarianceComponentVariate{T, 2},
-  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
-  ) where {T <: AbstractFloat}
-
-  fisher_B!(H, vcm, TwoVarCompVariateRotate(vcobs), vcaux)
-end
-
-function fisher_B!(
-  H::AbstractMatrix{T},
-  vcm::VarianceComponentModel{T, 2},
-  vcobs::TwoVarCompVariateRotate{T},
-  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
-  ) where {T <: AbstractFloat}
-
-  fisher_B!(H, TwoVarCompModelRotate(vcm), vcobs, vcaux)
-end
-
-function fisher_B!(
-  H::AbstractMatrix{T},
-  vcm::TwoVarCompVariateRotate{T},
-  vcobs::TwoVarCompVariateRotate{T},
-  vcaux::VarianceComponentAuxData = VarianceComponentAuxData(vcobs)
-  ) where {T <: AbstractFloat}
-  
-  fisher_B!(H, vcm, vcobs, vcaux)
-end
-
 function fisher_B(
   vcm::T1,
   vcobs::T2,
   vcaux::T3 = VarianceComponentAuxData(vcobs)
   ) where {
-    T1 <: VarianceComponentModel, 
-    T2 <: VarianceComponentVariate,
+    T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
+    T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
     T3 <: VarianceComponentAuxData}
 
   H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
   fisher_B!(H, TwoVarCompModelRotate(vcm), TwoVarCompVariateRotate(vcobs), vcaux)
-end
-
-function fisher_B(
-  vcm::T1,
-  vcobs::T2,
-  vcaux::T3 = VarianceComponentAuxData(vcobs)
-  ) where {
-    T1 <: TwoVarCompModelRotate,
-    T2 <: VarianceComponentVariate,
-    T3 <: VarianceComponentAuxData}
-
-  H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
-  fisher_B!(H, vcm, TwoVarCompVariateRotate(vcobs), vcaux)
-end
-
-function fisher_B(
-  vcm::T1,
-  vcobs::T2,
-  vcaux::T3 = VarianceComponentAuxData(vcobs)
-  ) where {
-    T1 <: VarianceComponentModel, 
-    T2 <: TwoVarCompVariateRotate,
-    T3 <: VarianceComponentAuxData}
-
-  H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
-  fisher_B!(H, TwoVarCompModelRotate(vcm), vcobs, vcaux)
-end
-
-function fisher_B(
-  vcm::T1,
-  vcobs::T2,
-  vcaux::T3 = VarianceComponentAuxData(vcobs)
-  ) where {
-    T1 <: TwoVarCompModelRotate,
-    T2 <: TwoVarCompVariateRotate,
-    T3 <: VarianceComponentAuxData}
-
-  H = zeros(eltype(vcm), nmeanparams(vcm), nmeanparams(vcm))
-  fisher_B!(H, vcm, vcobs, vcaux)
 end
 
 function fisher_B!(
