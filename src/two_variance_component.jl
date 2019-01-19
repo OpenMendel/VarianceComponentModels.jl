@@ -258,7 +258,7 @@ function gradient!(
   ∇::AbstractVector,
   vcm::T1,
   vcdata::Array{T2},
-  vcaux::Array{T3} = map(x -> VarianceComponentAuxData(x), vcdata)
+  vcaux::Array{T3} = VarianceComponentAuxData(vcdata)# map(x -> VarianceComponentAuxData(x), vcdata)
   ) where {
     T1 <: Union{VarianceComponentModel, TwoVarCompModelRotate},
     T2 <: Union{VarianceComponentVariate, TwoVarCompVariateRotate},
