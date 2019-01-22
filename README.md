@@ -8,15 +8,20 @@ This [Julia](http://julialang.org/) package provides computational routines for 
 
 ## Installation
 
-Within Julia, use the package manager to install VarianceComponentModels:
+This package requires Julia v0.7.0 or later, which can be obtained from
+https://julialang.org/downloads/ or by building Julia from the sources in the
+https://github.com/JuliaLang/julia repository.
 
-    Pkg.clone("https://github.com/OpenMendel/VarianceComponentModels.jl.git")
-
-This package supports Julia v0.7 and v1.0.
+The package has not yet been registered and must be installed using the repository location.
+Start julia and use the `]` key to switch to the package manager REPL
+```julia
+(v0.7) pkg> add https://github.com/OpenMendel/VarianceComponentModels.jl.git#julia-0.7
+```
+Use the backspace key to return to the Julia REPL.
 
 ## Citation
 
-If you use this analysis package in your research, please cite the following reference in the resulting publications:
+If you use [OpenMendel](https://openmendel.github.io) analysis packages in your research, please cite the following reference in the resulting publications:
 
 *Lange K, Papp JC, Sinsheimer JS, Sripracha R, Zhou H, Sobel EM (2013) Mendel: The Swiss army knife of genetic analysis programs. Bioinformatics 29:1568-1570.*
 
