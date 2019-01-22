@@ -28,11 +28,16 @@ and **parameters** are
 
 ## Installation
 
-Use the Julia package manager to install VarianceComponentModels.jl.
+This package requires Julia v0.7.0 or later, which can be obtained from
+https://julialang.org/downloads/ or by building Julia from the sources in the
+https://github.com/JuliaLang/julia repository.
+
+The package has not yet been registered and must be installed using the repository location.
+Start julia and use the `]` key to switch to the package manager REPL
 ```julia
-Pkg.clone("https://github.com/OpenMendel/VarianceComponentModels.jl.git")
+(v0.7) pkg> add https://github.com/OpenMendel/VarianceComponentModels.jl.git#Julia-0.7
 ```
-This package supports Julia `0.6`.
+Use the backspace key to return to the Julia REPL.
 
 ## Manual Outline
 
