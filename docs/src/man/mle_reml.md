@@ -8,14 +8,14 @@ Machine information
 versioninfo()
 ```
 
-    Julia Version 0.7.0
-    Commit a4cb80f3ed (2018-08-08 06:46 UTC)
+    Julia Version 1.1.0
+    Commit 80516ca202 (2019-01-21 21:24 UTC)
     Platform Info:
       OS: macOS (x86_64-apple-darwin14.5.0)
       CPU: Intel(R) Core(TM) i5-6267U CPU @ 2.90GHz
       WORD_SIZE: 64
       LIBM: libopenlibm
-      LLVM: libLLVM-6.0.0 (ORCJIT, skylake)
+      LLVM: libLLVM-6.0.1 (ORCJIT, skylake)
 
 
 ## Demo data
@@ -157,7 +157,7 @@ vcmodel_mle = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      4.546981 seconds (11.23 M allocations: 566.109 MiB, 5.23% gc time)
+      5.031460 seconds (11.29 M allocations: 568.015 MiB, 4.78% gc time)
 
 
 The output of `fit_mle!` contains  
@@ -172,7 +172,7 @@ logl
 
 
 
-    -3844.3731814180883
+    -3844.3731814180887
 
 
 
@@ -300,7 +300,7 @@ vcmodel_reml = deepcopy(vcmodel)
            9  -3.846631e+03
           10  -3.846630e+03
     
-      0.443964 seconds (8.09 k allocations: 62.532 MiB, 2.39% gc time)
+      0.726373 seconds (388.90 k allocations: 82.673 MiB, 13.22% gc time)
 
 
 The output of `fit_reml!` contains
@@ -315,7 +315,7 @@ logl
 
 
 
-    -3844.3777179025046
+    -3844.3777179025055
 
 
 
@@ -345,7 +345,7 @@ vcmodel_reml
 
 
 
-* standard errors of the estimated varianec component parameters
+* standard errors of the estimated variance component parameters
 
 
 ```julia
@@ -458,7 +458,7 @@ vcmodel_mm = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.042187 seconds (21.56 k allocations: 1.366 MiB)
+      0.055578 seconds (21.91 k allocations: 1.394 MiB)
 
 
 
@@ -529,16 +529,16 @@ vcmodel_ipopt = deepcopy(vcmodel)
     iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
       50  3.8443732e+03 0.00e+00 6.76e-06 -11.0 4.08e-07    -  1.00e+00 1.00e+00f  1 MaxSA
       55  3.8443732e+03 0.00e+00 1.83e-06 -11.0 1.11e-07    -  1.00e+00 1.00e+00f  1 MaxSA
-      60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00f  1 MaxSA
+      60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00h  1 MaxSA
     
     Number of Iterations....: 63
     
                                        (scaled)                 (unscaled)
-    Objective...............:   3.4496886481728779e+02    3.8443731733053728e+03
-    Dual infeasibility......:   2.2693631701157965e-07    2.5290047251948971e-06
+    Objective...............:   3.4496886481728791e+02    3.8443731733053728e+03
+    Dual infeasibility......:   2.2693631660531264e-07    2.5290047206674095e-06
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   2.2693631701157965e-07    2.5290047251948971e-06
+    Overall NLP error.......:   2.2693631660531264e-07    2.5290047206674095e-06
     
     
     Number of objective function evaluations             = 64
@@ -548,11 +548,11 @@ vcmodel_ipopt = deepcopy(vcmodel)
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      1.488
-    Total CPU secs in NLP function evaluations           =      0.375
+    Total CPU secs in IPOPT (w/o function evaluations)   =      1.739
+    Total CPU secs in NLP function evaluations           =      0.293
     
     EXIT: Solved To Acceptable Level.
-      2.486697 seconds (4.13 M allocations: 201.947 MiB, 3.03% gc time)
+      2.745554 seconds (4.30 M allocations: 210.935 MiB, 2.63% gc time)
 
 
 
@@ -600,6 +600,7 @@ vcmodel_knitro.Σ
 
 ## Starting point
 
+
 Here are a few strategies for successful optimization. 
 
 * For $d>1$ (multivariate response), initialize $B, \Sigma$ from univariate estimates.  
@@ -607,6 +608,7 @@ Here are a few strategies for successful optimization.
 * When there are only $m=2$ variance components, pre-compute `TwoVarCompVariateRotate` and use it for optimization.
 
 ## Constrained estimation of `B`
+
 
 
 Many applications invoke constraints on the mean parameters `B`. For demonstration, we enforce `B[1,1]=B[1,2]` and all entries of `B` are within [0, 2].
@@ -654,7 +656,7 @@ We first try the MM algorithm.
            9  -3.844650e+03
           10  -3.844650e+03
     
-      0.170236 seconds (170.93 k allocations: 8.918 MiB)
+      0.185885 seconds (179.51 k allocations: 9.295 MiB)
 
 
 
@@ -740,17 +742,17 @@ vcmodel_constr
       45  3.8446498e+03 0.00e+00 2.49e-05 -11.0 1.51e-06    -  1.00e+00 1.00e+00f  1 MaxS
     iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
       50  3.8446498e+03 0.00e+00 6.76e-06 -11.0 4.08e-07    -  1.00e+00 1.00e+00f  1 MaxSA
-      55  3.8446498e+03 0.00e+00 1.83e-06 -11.0 1.11e-07    -  1.00e+00 1.00e+00h  1 MaxSA
+      55  3.8446498e+03 0.00e+00 1.83e-06 -11.0 1.11e-07    -  1.00e+00 1.00e+00f  1 MaxSA
       60  3.8446498e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00f  1 MaxSA
     
     Number of Iterations....: 63
     
                                        (scaled)                 (unscaled)
-    Objective...............:   3.4484507551949679e+02    3.8446498170293380e+03
-    Dual infeasibility......:   2.2694405212011240e-07    2.5301808562731130e-06
+    Objective...............:   3.4484507551949685e+02    3.8446498170293398e+03
+    Dual infeasibility......:   2.2694405475622814e-07    2.5301808856629548e-06
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   2.2694405212011240e-07    2.5301808562731130e-06
+    Overall NLP error.......:   2.2694405475622814e-07    2.5301808856629548e-06
     
     
     Number of objective function evaluations             = 64
@@ -760,11 +762,11 @@ vcmodel_constr
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.024
-    Total CPU secs in NLP function evaluations           =      0.625
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.028
+    Total CPU secs in NLP function evaluations           =      0.634
     
     EXIT: Solved To Acceptable Level.
-      0.729483 seconds (102.83 k allocations: 8.150 MiB, 0.88% gc time)
+      0.760983 seconds (102.63 k allocations: 8.135 MiB)
 
 
 

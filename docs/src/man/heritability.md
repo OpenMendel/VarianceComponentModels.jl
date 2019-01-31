@@ -1,6 +1,7 @@
 
 # Heritability Analysis
 
+
 As an application of the variance component model, this note demonstrates the workflow for heritability analysis in genetics, using a sample data set `cg10k` with **6,670** individuals and **630,860** SNPs. Person IDs and phenotype names are masked for privacy. `cg10k.bed`, `cg10k.bim`, and `cg10k.fam` is a set of Plink files in binary format. `cg10k_traits.txt` contains 13 phenotypes of the 6,670 individuals.
 
 
@@ -21,14 +22,14 @@ Machine information:
 versioninfo()
 ```
 
-    Julia Version 0.7.0
-    Commit a4cb80f3ed (2018-08-08 06:46 UTC)
+    Julia Version 1.1.0
+    Commit 80516ca202 (2019-01-21 21:24 UTC)
     Platform Info:
       OS: macOS (x86_64-apple-darwin14.5.0)
       CPU: Intel(R) Core(TM) i5-6267U CPU @ 2.90GHz
       WORD_SIZE: 64
       LIBM: libopenlibm
-      LLVM: libLLVM-6.0.0 (ORCJIT, skylake)
+      LLVM: libLLVM-6.0.1 (ORCJIT, skylake)
 
 
 ## Read in binary SNP data
@@ -50,7 +51,7 @@ using SnpArrays
 @time cg10k = SnpArray("cg10k.bed")
 ```
 
-      0.080738 seconds (70.17 k allocations: 23.096 MiB, 12.02% gc time)
+      0.030779 seconds (54 allocations: 19.467 MiB, 28.08% gc time)
 
 
 
@@ -110,7 +111,7 @@ mp = missingpos(cg10k)
 
 
 
-    6670×630860 SparseMatrixCSC{Bool,Int32} with 5524131 stored entries:
+    6670×630860 SparseArrays.SparseMatrixCSC{Bool,Int32} with 5524131 stored entries:
       [5688  ,      1]  =  true
       [6445  ,      1]  =  true
       [109   ,      3]  =  true
@@ -210,8 +211,10 @@ Statistics.quantile(maf_cg10k, [0.0 .25 .5 .75 1.0]), mean(maf_cg10k)
 
 
 ```julia
-# Pkg.add("Plots")
-# Pkg.add("PyPlot")
+#using Pkg
+#pkg "add Plots"
+#pkg"add PyPlot"
+
 using Plots
 gr(size=(600,500), html_output_format=:png)
 histogram(maf_cg10k, xlab = "Minor Allele Frequency (MAF)", label = "MAF")
@@ -220,7 +223,7 @@ histogram(maf_cg10k, xlab = "Minor Allele Frequency (MAF)", label = "MAF")
 
 
 
-![png](heritability_hist1.png)
+![png](fig1_heritability.png)
 
 
 
@@ -262,7 +265,7 @@ Random.seed!(123)
 @time Φgrm = grm(cg10k; method = :GRM)
 ```
 
-    657.345223 seconds (176.95 k allocations: 361.775 MiB, 0.19% gc time)
+    568.176660 seconds (2.91 M allocations: 494.981 MiB, 0.40% gc time)
 
 
 
@@ -344,7 +347,7 @@ histogram(Y, layout = 13)
 
 
 
-![png](heritability_hist2.png)
+![png](fig2_heritability.png)
 
 
 
@@ -389,7 +392,7 @@ Before fitting the variance component model, we pre-compute the eigen-decomposit
 fieldnames(typeof(cg10kdata_rotated))
 ```
 
-     51.732018 seconds (29 allocations: 1021.427 MiB, 0.98% gc time)
+     49.812646 seconds (1.74 M allocations: 1.080 GiB, 0.33% gc time)
 
 
 
@@ -409,8 +412,8 @@ To load workspace
 ```julia
 #pkg"add FileIO JLD2"
 
-using JLD2, FileIO
-save("cg10k.jld2")
+using JLD2
+@save "cg10k.jld2"
 varinfo()
 ```
 
@@ -422,15 +425,16 @@ varinfo()
 | Base              |              | Module                                                                                 |
 | Core              |              | Module                                                                                 |
 | Main              |              | Module                                                                                 |
-| Plots             |   22.448 MiB | Module                                                                                 |
+| Plots             |    2.988 MiB | Module                                                                                 |
+| PyPlot            |  782.799 KiB | Module                                                                                 |
 | Y                 |  677.461 KiB | 6670×13 Array{Float64,2}                                                               |
 | cg10k             | 1022.983 MiB | 6670×630860 SnpArray                                                                   |
-| cg10k_trait       |    1.386 MiB | 6670×15 DataFrame                                                                      |
+| cg10k_trait       |    1.605 MiB | 6670×15 DataFrame                                                                      |
 | cg10kdata         |  679.508 MiB | VarianceComponentVariate{Float64,2,Array{Float64,2},Array{Float64,2},Array{Float64,2}} |
 | cg10kdata_rotated |  340.136 MiB | TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}                     |
 | maf_cg10k         |    4.813 MiB | 630860-element Array{Float64,1}                                                        |
 | missings_by_snp   |    4.813 MiB | 1×630860 Array{Int64,2}                                                                |
-| mp                |   28.748 MiB | 6670×630860 SparseMatrixCSC{Bool,Int32}                                                |
+| mp                |   28.748 MiB | 6670×630860 SparseArrays.SparseMatrixCSC{Bool,Int32}                                   |
 | people            |      8 bytes | Int64                                                                                  |
 | snps              |      8 bytes | Int64                                                                                  |
 | startupfile       |     57 bytes | String                                                                                 |
@@ -441,33 +445,39 @@ varinfo()
 
 
 ```julia
-#using SnpArrays, JLD2, DataFrames, VarianceComponentModels, Plots
-#pyplot()
-load("cg10k.jld")
+using SnpArrays, JLD2, DataFrames, VarianceComponentModels, Plots
+pyplot()
+
+@load "cg10k.jld2"
 varinfo()
 ```
 
+    ┌ Warning: type SparseArrays.SparseMatrixCSC{Bool,Int32} does not exist in workspace; reconstructing
+    └ @ JLD2 /Users/juhyun-kim/.julia/packages/JLD2/KjBIK/src/data.jl:1153
 
 
 
-| name              |         size | summary                                                                                |
-|:----------------- | ------------:|:-------------------------------------------------------------------------------------- |
-| Base              |              | Module                                                                                 |
-| Core              |              | Module                                                                                 |
-| Main              |              | Module                                                                                 |
-| Plots             |   22.448 MiB | Module                                                                                 |
-| Y                 |  677.461 KiB | 6670×13 Array{Float64,2}                                                               |
-| cg10k             | 1022.983 MiB | 6670×630860 SnpArray                                                                   |
-| cg10k_trait       |    1.449 MiB | 6670×15 DataFrame                                                                      |
-| cg10kdata         |  679.508 MiB | VarianceComponentVariate{Float64,2,Array{Float64,2},Array{Float64,2},Array{Float64,2}} |
-| cg10kdata_rotated |  340.136 MiB | TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}                     |
-| maf_cg10k         |    4.813 MiB | 630860-element Array{Float64,1}                                                        |
-| missings_by_snp   |    4.813 MiB | 1×630860 Array{Int64,2}                                                                |
-| mp                |   28.748 MiB | 6670×630860 SparseMatrixCSC{Bool,Int32}                                                |
-| people            |      8 bytes | Int64                                                                                  |
-| snps              |      8 bytes | Int64                                                                                  |
-| startupfile       |     57 bytes | String                                                                                 |
-| Φgrm              |  339.423 MiB | 6670×6670 Array{Float64,2}                                                             |
+
+
+| name              |         size | summary                                                                                     |
+|:----------------- | ------------:|:------------------------------------------------------------------------------------------- |
+| Base              |              | Module                                                                                      |
+| Core              |              | Module                                                                                      |
+| Main              |              | Module                                                                                      |
+| Plots             |    2.988 MiB | Module                                                                                      |
+| PyPlot            |  782.799 KiB | Module                                                                                      |
+| Y                 |  677.461 KiB | 6670×13 Array{Float64,2}                                                                    |
+| cg10k             | 1022.983 MiB | 6670×630860 SnpArray                                                                        |
+| cg10k_trait       |    1.605 MiB | 6670×15 DataFrame                                                                           |
+| cg10kdata         |  679.508 MiB | VarianceComponentVariate{Float64,2,Array{Float64,2},Array{Float64,2},Array{Float64,2}}      |
+| cg10kdata_rotated |  340.136 MiB | TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}                          |
+| maf_cg10k         |    4.813 MiB | 630860-element Array{Float64,1}                                                             |
+| missings_by_snp   |    4.813 MiB | 1×630860 Array{Int64,2}                                                                     |
+| mp                |   28.748 MiB | getfield(JLD2.ReconstructedTypes, Symbol("##SparseArrays.SparseMatrixCSC{Bool,Int32}#386")) |
+| people            |      8 bytes | Int64                                                                                       |
+| snps              |      8 bytes | Int64                                                                                       |
+| startupfile       |     57 bytes | String                                                                                      |
+| Φgrm              |  339.423 MiB | 6670×6670 Array{Float64,2}                                                                  |
 
 
 
@@ -513,32 +523,32 @@ end
              For more information visit http://projects.coin-or.org/Ipopt
     ******************************************************************************
     
-    (σ2a[trait], σ2e[trait]) = (0.25947604776534905, 0.7375938878381869)
+    (σ2a[trait], σ2e[trait]) = (0.2594760477653529, 0.7375938878381831)
     Trait2
-    (σ2a[trait], σ2e[trait]) = (0.18588150448759697, 0.8137880281704691)
+    (σ2a[trait], σ2e[trait]) = (0.18588150448760332, 0.8137880281704619)
     Trait3
-    (σ2a[trait], σ2e[trait]) = (0.3196093756535387, 0.6795300238388639)
+    (σ2a[trait], σ2e[trait]) = (0.31960937565352526, 0.6795300238388766)
     Trait4
-    (σ2a[trait], σ2e[trait]) = (0.2657824469749975, 0.7304994606945179)
+    (σ2a[trait], σ2e[trait]) = (0.26578244697498915, 0.7304994606945259)
     Trait5
-    (σ2a[trait], σ2e[trait]) = (0.28143198005766734, 0.7169747061765026)
+    (σ2a[trait], σ2e[trait]) = (0.28143198005767217, 0.7169747061764987)
     Trait6
-    (σ2a[trait], σ2e[trait]) = (0.28300551312417344, 0.7168800753377119)
+    (σ2a[trait], σ2e[trait]) = (0.2830055131241748, 0.7168800753377107)
     Trait7
-    (σ2a[trait], σ2e[trait]) = (0.21565421413116753, 0.7816910320891622)
+    (σ2a[trait], σ2e[trait]) = (0.2156542141311619, 0.7816910320891676)
     Trait8
-    (σ2a[trait], σ2e[trait]) = (0.19408878271207622, 0.8058201577783586)
+    (σ2a[trait], σ2e[trait]) = (0.19408878271207824, 0.8058201577783562)
     Trait9
-    (σ2a[trait], σ2e[trait]) = (0.24746236011764494, 0.7512222977091667)
+    (σ2a[trait], σ2e[trait]) = (0.24746236011763145, 0.7512222977091793)
     Trait10
-    (σ2a[trait], σ2e[trait]) = (0.0992417256213372, 0.9007769787053679)
+    (σ2a[trait], σ2e[trait]) = (0.0992417256213392, 0.9007769787053657)
     Trait11
-    (σ2a[trait], σ2e[trait]) = (0.16457266481403124, 0.8343110221526249)
+    (σ2a[trait], σ2e[trait]) = (0.1645726648140337, 0.8343110221526228)
     Trait12
-    (σ2a[trait], σ2e[trait]) = (0.08224956591863997, 0.9166483378364418)
+    (σ2a[trait], σ2e[trait]) = (0.0822495659186408, 0.9166483378364408)
     Trait13
-    (σ2a[trait], σ2e[trait]) = (0.05687679106196685, 0.9424058676223442)
-      6.559467 seconds (12.64 M allocations: 611.362 MiB, 11.95% gc time)
+    (σ2a[trait], σ2e[trait]) = (0.05687679106195183, 0.9424058676223598)
+      6.203222 seconds (12.80 M allocations: 621.516 MiB, 7.13% gc time)
 
 
 
@@ -741,7 +751,7 @@ end
     (Σa[i, j], Σe[i, j]) = ([0.164571 -0.00169939; -0.00169939 0.0575331], [0.834326 0.200725; 0.200725 0.941755])
     Trait12Trait13
     (Σa[i, j], Σe[i, j]) = ([0.08398 0.0685417; 0.0685417 0.0559416], [0.91494 0.573206; 0.573206 0.943343])
-      4.258555 seconds (4.55 M allocations: 306.219 MiB, 3.55% gc time)
+      4.430316 seconds (4.62 M allocations: 310.482 MiB, 3.51% gc time)
 
 
 ## 3-trait analysis
@@ -787,18 +797,18 @@ trait57_model
       25  1.4700954e+04 0.00e+00 2.63e-02 -11.0 7.01e-06  -9.2 1.00e+00 1.00e+00f  1 MaxS
       30  1.4700954e+04 0.00e+00 1.09e-03 -11.0 2.90e-07 -11.6 1.00e+00 1.00e+00f  1 MaxS
       35  1.4700954e+04 0.00e+00 4.49e-05 -11.0 1.20e-08 -14.0 1.00e+00 1.00e+00f  1 MaxS
-      40  1.4700954e+04 0.00e+00 1.86e-06 -11.0 4.96e-10 -16.4 1.00e+00 1.00e+00h  1 MaxSA
+      40  1.4700954e+04 0.00e+00 1.86e-06 -11.0 4.96e-10 -16.4 1.00e+00 1.00e+00f  1 MaxSA
       45  1.4700954e+04 0.00e+00 7.67e-08 -11.0 2.05e-11 -18.8 1.00e+00 1.00e+00h  1 MaxSA
     iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
     
     Number of Iterations....: 49
     
                                        (scaled)                 (unscaled)
-    Objective...............:   4.4662368766169078e+02    1.4700954216526392e+04
-    Dual infeasibility......:   5.8683114125458765e-09    1.9315987885869595e-07
+    Objective...............:   4.4662368766169095e+02    1.4700954216526397e+04
+    Dual infeasibility......:   5.8982229663448267e-09    1.9414444012378635e-07
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   5.8683114125458765e-09    1.9315987885869595e-07
+    Overall NLP error.......:   5.8982229663448267e-09    1.9414444012378635e-07
     
     
     Number of objective function evaluations             = 50
@@ -808,11 +818,11 @@ trait57_model
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 49
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.022
-    Total CPU secs in NLP function evaluations           =      0.059
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.019
+    Total CPU secs in NLP function evaluations           =      0.054
     
     EXIT: Optimal Solution Found.
-      0.098447 seconds (46.49 k allocations: 5.053 MiB)
+      0.084479 seconds (46.62 k allocations: 5.057 MiB)
 
 
 
@@ -838,7 +848,7 @@ trait57_model
            0  -1.470095e+04
            1  -1.470095e+04
     
-      0.548238 seconds (1.04 M allocations: 51.897 MiB, 5.51% gc time)
+      0.505115 seconds (1.01 M allocations: 50.370 MiB, 5.09% gc time)
 
 
 
@@ -984,7 +994,7 @@ trait57_model
         1100  -1.470100e+04
         1110  -1.470100e+04
     
-      0.794444 seconds (135.15 k allocations: 13.553 MiB, 1.62% gc time)
+      0.744170 seconds (134.31 k allocations: 13.430 MiB, 1.57% gc time)
 
 
 
@@ -1053,13 +1063,13 @@ traitall_model = VarianceComponentModel(cg10kdata_rotated)
 
     Stacktrace:
 
-     [1] chkposdef at /Users/osx/buildbot/slave/package_osx64/build/usr/share/julia/stdlib/v0.7/LinearAlgebra/src/lapack.jl:50 [inlined]
+     [1] chkposdef at /Users/osx/buildbot/slave/package_osx64/build/usr/share/julia/stdlib/v1.1/LinearAlgebra/src/lapack.jl:50 [inlined]
 
-     [2] sygvd!(::Int64, ::Char, ::Char, ::Array{Float64,2}, ::Array{Float64,2}) at /Users/osx/buildbot/slave/package_osx64/build/usr/share/julia/stdlib/v0.7/LinearAlgebra/src/lapack.jl:5075
+     [2] sygvd!(::Int64, ::Char, ::Char, ::Array{Float64,2}, ::Array{Float64,2}) at /Users/osx/buildbot/slave/package_osx64/build/usr/share/julia/stdlib/v1.1/LinearAlgebra/src/lapack.jl:5075
 
-     [3] eigen! at /Users/osx/buildbot/slave/package_osx64/build/usr/share/julia/stdlib/v0.7/LinearAlgebra/src/symmetric.jl:638 [inlined]
+     [3] eigen! at /Users/osx/buildbot/slave/package_osx64/build/usr/share/julia/stdlib/v1.1/LinearAlgebra/src/symmetric.jl:646 [inlined]
 
-     [4] eigen(::Symmetric{Float64,Array{Float64,2}}, ::Symmetric{Float64,Array{Float64,2}}) at /Users/osx/buildbot/slave/package_osx64/build/usr/share/julia/stdlib/v0.7/LinearAlgebra/src/eigen.jl:383
+     [4] eigen(::Symmetric{Float64,Array{Float64,2}}, ::Symmetric{Float64,Array{Float64,2}}) at /Users/osx/buildbot/slave/package_osx64/build/usr/share/julia/stdlib/v1.1/LinearAlgebra/src/eigen.jl:383
 
      [5] TwoVarCompModelRotate(::VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}) at /Users/juhyun-kim/.julia/packages/VarianceComponentModels/Mh6LK/src/VarianceComponentModels.jl:119
 
@@ -1067,23 +1077,21 @@ traitall_model = VarianceComponentModel(cg10kdata_rotated)
 
      [7] eval_f(::VarianceComponentModels.TwoVarCompOptProb{VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}},TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}},Array{Float64,2},Array{Float64,1},VarianceComponentAuxData{Array{Float64,2},Array{Float64,1}}}, ::Array{Float64,1}) at /Users/juhyun-kim/.julia/packages/VarianceComponentModels/Mh6LK/src/two_variance_component.jl:731
 
-     [8] (::getfield(Ipopt, Symbol("#eval_f_cb#6")){VarianceComponentModels.TwoVarCompOptProb{VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}},TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}},Array{Float64,2},Array{Float64,1},VarianceComponentAuxData{Array{Float64,2},Array{Float64,1}}}})(::Array{Float64,1}) at /Users/juhyun-kim/.julia/packages/Ipopt/vosfb/src/MPB_wrapper.jl:64
+     [8] (::getfield(Ipopt, Symbol("#eval_f_cb#6")){VarianceComponentModels.TwoVarCompOptProb{VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}},TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}},Array{Float64,2},Array{Float64,1},VarianceComponentAuxData{Array{Float64,2},Array{Float64,1}}}})(::Array{Float64,1}) at /Users/juhyun-kim/.julia/packages/Ipopt/f6QJl/src/MPB_wrapper.jl:64
 
-     [9] eval_f_wrapper(::Int32, ::Ptr{Float64}, ::Int32, ::Ptr{Float64}, ::Ptr{Nothing}) at /Users/juhyun-kim/.julia/packages/Ipopt/vosfb/src/Ipopt.jl:128
+     [9] eval_f_wrapper(::Int32, ::Ptr{Float64}, ::Int32, ::Ptr{Float64}, ::Ptr{Nothing}) at /Users/juhyun-kim/.julia/packages/Ipopt/f6QJl/src/Ipopt.jl:128
 
-     [10] solveProblem(::Ipopt.IpoptProblem) at /Users/juhyun-kim/.julia/packages/Ipopt/vosfb/src/Ipopt.jl:346
+     [10] solveProblem(::Ipopt.IpoptProblem) at /Users/juhyun-kim/.julia/packages/Ipopt/f6QJl/src/Ipopt.jl:346
 
-     [11] optimize!(::Ipopt.IpoptMathProgModel) at /Users/juhyun-kim/.julia/packages/Ipopt/vosfb/src/MPB_wrapper.jl:141
+     [11] optimize!(::Ipopt.IpoptMathProgModel) at /Users/juhyun-kim/.julia/packages/Ipopt/f6QJl/src/MPB_wrapper.jl:141
 
-     [12] macro expansion at ./simdloop.jl:67 [inlined]
+     [12] #mle_fs!#27(::Int64, ::Symbol, ::Symbol, ::Bool, ::Function, ::VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}, ::TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}) at /Users/juhyun-kim/.julia/packages/VarianceComponentModels/Mh6LK/src/two_variance_component.jl:949
 
-     [13] #mle_fs!#27(::Int64, ::Symbol, ::Symbol, ::Bool, ::Function, ::VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}, ::TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}) at /Users/juhyun-kim/.julia/packages/VarianceComponentModels/Mh6LK/src/two_variance_component.jl:942
+     [13] (::getfield(VarianceComponentModels, Symbol("#kw##mle_fs!")))(::NamedTuple{(:solver, :verbose),Tuple{Symbol,Bool}}, ::typeof(mle_fs!), ::VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}, ::TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}) at ./none:0
 
-     [14] (::getfield(VarianceComponentModels, Symbol("#kw##mle_fs!")))(::NamedTuple{(:solver, :verbose),Tuple{Symbol,Bool}}, ::typeof(mle_fs!), ::VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}, ::TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}) at ./none:0
+     [14] top-level scope at util.jl:156
 
-     [15] top-level scope at util.jl:156
-
-     [16] top-level scope at In[92]:3
+     [15] top-level scope at In[54]:3
 
 
 From the output we can see the Fisher scoring algorithm ran into some numerical issues. Let's try the **MM algorithm**.
@@ -1219,13 +1227,13 @@ traitall_model = VarianceComponentModel(cg10kdata_rotated)
         1070  -4.435625e+04
         1080  -4.435625e+04
     
-      3.423491 seconds (131.35 k allocations: 65.559 MiB, 0.86% gc time)
+      3.314963 seconds (131.35 k allocations: 65.449 MiB, 0.65% gc time)
 
 
 
 
 
-    (-44356.24416253091, VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(Array{Float64}(0,13), ([0.272112 0.190023 … -0.128464 -0.0976418; 0.190023 0.216814 … -0.0687833 -0.04341; … ; -0.128464 -0.0687833 … 0.116994 0.0900933; -0.0976418 -0.04341 … 0.0900933 0.105876], [0.725183 0.570497 … -0.0589748 -0.125486; 0.570497 0.783023 … 0.0235685 0.0464638; … ; -0.0589748 0.0235685 … 0.882056 0.551829; -0.125486 0.0464638 … 0.551829 0.893642]), Array{Float64}(0,0), Char[], Float64[], -Inf, Inf), ([0.0111615 0.0131072 … 0.0128913 0.0127584; 0.0131071 0.0151656 … 0.017153 0.0171365; … ; 0.0128911 0.017153 … 0.0174174 0.018212; 0.0127593 0.0171355 … 0.0182119 0.0188], [0.0112229 0.0133031 … 0.013004 0.0127777; 0.0133033 0.015806 … 0.0178516 0.0177826; … ; 0.0130042 0.0178517 … 0.0179556 0.0187634; 0.0127776 0.0177822 … 0.0187633 0.0193475]), [0.00012458 7.242e-5 … -3.70019e-7 -1.40553e-5; 7.23929e-5 0.000171795 … -2.04581e-5 -3.19854e-6; … ; -3.8356e-7 -2.04665e-5 … 0.000352066 -1.46068e-5; -1.40476e-5 -3.19013e-6 … -1.46022e-5 0.000374325], Array{Float64}(0,13), Array{Float64}(0,0))
+    (-44356.24416259489, VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}(Array{Float64}(0,13), ([0.272112 0.190023 … -0.128464 -0.0976418; 0.190023 0.216814 … -0.0687833 -0.04341; … ; -0.128464 -0.0687833 … 0.116994 0.0900933; -0.0976418 -0.04341 … 0.0900933 0.105876], [0.725183 0.570497 … -0.0589748 -0.125486; 0.570497 0.783023 … 0.0235685 0.0464638; … ; -0.0589748 0.0235685 … 0.882056 0.551829; -0.125486 0.0464638 … 0.551829 0.893642]), Array{Float64}(0,0), Char[], Float64[], -Inf, Inf), ([0.0111603 0.013107 … 0.0128915 0.0127587; 0.0131027 0.0151631 … 0.017153 0.0171359; … ; 0.0128908 0.017153 … 0.0174176 0.018212; 0.0127586 0.0171361 … 0.0182122 0.0188002], [0.0112235 0.0133041 … 0.0130038 0.0127778; 0.0133005 0.0158053 … 0.0178518 0.0177823; … ; 0.0130043 0.0178518 … 0.0179557 0.0187638; 0.0127775 0.0177823 … 0.0187637 0.0193477]), [0.000124552 7.23469e-5 … -3.6584e-7 -1.40474e-5; 7.23585e-5 0.00017168 … -2.04611e-5 -3.18804e-6; … ; -3.70686e-7 -2.04634e-5 … 0.000352082 -1.46096e-5; -1.4039e-5 -3.1795e-6 … -1.46073e-5 0.000374334], Array{Float64}(0,13), Array{Float64}(0,0))
 
 
 
@@ -1239,42 +1247,3 @@ It converges after ~1000 iterations.
 #save("copd.jld2")
 #varinfo()
 ```
-
-
-
-
-| name              |         size | summary                                                                                |
-|:----------------- | ------------:|:-------------------------------------------------------------------------------------- |
-| Base              |              | Module                                                                                 |
-| Core              |              | Module                                                                                 |
-| Main              |              | Module                                                                                 |
-| Plots             |   22.448 MiB | Module                                                                                 |
-| Y                 |  677.461 KiB | 6670×13 Array{Float64,2}                                                               |
-| _                 |    240 bytes | Tuple{Array{Float64,2},Array{Float64,2}}                                               |
-| cg10k             | 1022.983 MiB | 6670×630860 SnpArray                                                                   |
-| cg10k_trait       |    1.443 MiB | 6670×15 DataFrame                                                                      |
-| cg10kdata         |  679.508 MiB | VarianceComponentVariate{Float64,2,Array{Float64,2},Array{Float64,2},Array{Float64,2}} |
-| cg10kdata_rotated |  340.136 MiB | TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}                     |
-| h                 |     64 bytes | 3-element Array{Float64,1}                                                             |
-| hST               |    144 bytes | 13-element Array{Float64,1}                                                            |
-| hST_se            |    144 bytes | 13-element Array{Float64,1}                                                            |
-| hse               |     64 bytes | 3-element Array{Float64,1}                                                             |
-| maf_cg10k         |    4.813 MiB | 630860-element Array{Float64,1}                                                        |
-| missings_by_snp   |    4.813 MiB | 1×630860 Array{Int64,2}                                                                |
-| mp                |   28.748 MiB | 6670×630860 SparseMatrixCSC{Bool,Int32}                                                |
-| people            |      8 bytes | Int64                                                                                  |
-| snps              |      8 bytes | Int64                                                                                  |
-| startupfile       |     57 bytes | String                                                                                 |
-| trait57_data      |  339.627 MiB | TwoVarCompVariateRotate{Float64,Array{Float64,2},Array{Float64,2}}                     |
-| trait57_model     |    472 bytes | VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}                    |
-| traitall_model    |    2.961 KiB | VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}                    |
-| traitidx          |     16 bytes | 3-element UnitRange{Int64}                                                             |
-| Σa                |    6.844 KiB | 13×13 Array{Array{Float64,2},2}                                                        |
-| Σcov              |    2.570 KiB | 18×18 Array{Float64,2}                                                                 |
-| Σe                |    6.844 KiB | 13×13 Array{Array{Float64,2},2}                                                        |
-| Φgrm              |  339.423 MiB | 6670×6670 Array{Float64,2}                                                             |
-| σ2a               |    144 bytes | 13-element Array{Float64,1}                                                            |
-| σ2e               |    144 bytes | 13-element Array{Float64,1}                                                            |
-
-
-
