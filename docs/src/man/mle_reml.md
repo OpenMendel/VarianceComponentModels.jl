@@ -8,16 +8,14 @@ Machine information
 versioninfo()
 ```
 
-    Julia Version 0.6.0
-    Commit 903644385b (2017-06-19 13:05 UTC)
+    Julia Version 1.1.0
+    Commit 80516ca202 (2019-01-21 21:24 UTC)
     Platform Info:
-      OS: macOS (x86_64-apple-darwin13.4.0)
-      CPU: Intel(R) Core(TM) i7-4790K CPU @ 4.00GHz
+      OS: macOS (x86_64-apple-darwin14.5.0)
+      CPU: Intel(R) Core(TM) i5-6267U CPU @ 2.90GHz
       WORD_SIZE: 64
-      BLAS: libopenblas (USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell)
-      LAPACK: libopenblas64_
       LIBM: libopenlibm
-      LLVM: libLLVM-3.9.1 (ORCJIT, haswell)
+      LLVM: libLLVM-6.0.1 (ORCJIT, skylake)
 
 
 ## Demo data
@@ -27,7 +25,8 @@ For demonstration, we generate a random data set.
 
 ```julia
 # generate data from a d-variate response variane component model
-srand(123)
+using Random, LinearAlgebra
+Random.seed!(123)
 n = 1000   # no. observations
 d = 2      # dimension of responses
 m = 2      # no. variance components
@@ -40,23 +39,23 @@ B = ones(p, d)
 V = ntuple(x -> zeros(n, n), m) 
 for i = 1:m-1
   Vi = randn(n, 50)
-  copy!(V[i], Vi * Vi')
+  copyto!(V[i], Vi * Vi')
 end
-copy!(V[m], eye(n)) # last covarianec matrix is idendity
+copyto!(V[m], Matrix(I, n, n)) # last covarianec matrix is idendity
 # a tuple of m d-by-d variance component parameters
 Σ = ntuple(x -> zeros(d, d), m) 
 for i in 1:m
   Σi = randn(d, d)
-  copy!(Σ[i], Σi' * Σi)
+  copyto!(Σ[i], Σi' * Σi)
 end
 # form overall nd-by-nd covariance matrix Ω
 Ω = zeros(n * d, n * d)
 for i = 1:m
   Ω += kron(Σ[i], V[i])
 end
-Ωchol = cholfact(Ω)
+Ωchol = cholesky(Ω)
 # n-by-d responses
-Y = X * B + reshape(Ωchol[:L] * randn(n*d), n, d);
+Y = X * B + reshape(Ωchol.L * randn(n*d), n, d);
 ```
 
 ## Maximum likelihood estimation (MLE)
@@ -73,16 +72,13 @@ To find the MLE of parameters $(B,\Sigma_1,\ldots,\Sigma_m)$, we take 3 steps:
 ```julia
 using VarianceComponentModels
 vcdata = VarianceComponentVariate(Y, X, V)
-fieldnames(vcdata)
+fieldnames(typeof(vcdata))
 ```
 
 
 
 
-    3-element Array{Symbol,1}:
-     :Y
-     :X
-     :V
+    (:Y, :X, :V)
 
 
 
@@ -98,20 +94,13 @@ When constructed from a `VarianceComponentVariate` instance, the mean parameters
 
 ```julia
 vcmodel = VarianceComponentModel(vcdata)
-fieldnames(vcmodel)
+fieldnames(typeof(vcmodel))
 ```
 
 
 
 
-    7-element Array{Symbol,1}:
-     :B    
-     :Σ    
-     :A    
-     :sense
-     :b    
-     :lb   
-     :ub   
+    (:B, :Σ, :A, :sense, :b, :lb, :ub)
 
 
 
@@ -123,7 +112,7 @@ vcmodel
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
+    VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 
 
 
@@ -150,6 +139,13 @@ vcmodel_mle = deepcopy(vcmodel)
       Iter      Objective  
     --------  -------------
            0  -6.253551e+03
+    
+    ******************************************************************************
+    This program contains Ipopt, a library for large-scale nonlinear optimization.
+     Ipopt is released as open source code under the Eclipse Public License (EPL).
+             For more information visit http://projects.coin-or.org/Ipopt
+    ******************************************************************************
+    
            1  -3.881454e+03
            2  -3.853179e+03
            3  -3.846525e+03
@@ -161,7 +157,7 @@ vcmodel_mle = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.290970 seconds (10.45 k allocations: 24.036 MiB, 4.73% gc time)
+      5.031460 seconds (11.29 M allocations: 568.015 MiB, 4.78% gc time)
 
 
 The output of `fit_mle!` contains  
@@ -176,7 +172,7 @@ logl
 
 
 
-    -3844.3731814180805
+    -3844.3731814180887
 
 
 
@@ -184,20 +180,13 @@ logl
 
 
 ```julia
-fieldnames(vcmodel_mle)
+fieldnames(typeof(vcmodel_mle))
 ```
 
 
 
 
-    7-element Array{Symbol,1}:
-     :B    
-     :Σ    
-     :A    
-     :sense
-     :b    
-     :lb   
-     :ub   
+    (:B, :Σ, :A, :sense, :b, :lb, :ub)
 
 
 
@@ -209,7 +198,7 @@ vcmodel_mle
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632], ([0.380637 -0.305465; -0.305465 4.51938], [1.84009 0.265569; 0.265569 2.17275]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
+    VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632], ([0.380637 -0.305465; -0.305465 4.51938], [1.84009 0.265569; 0.265569 2.17275]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 
 
 
@@ -260,8 +249,8 @@ Bse
 
 
     2×2 Array{Float64,2}:
-     0.042559   0.0487086
-     0.0430588  0.049178 
+     0.0425562  0.0483834
+     0.0430596  0.0492809
 
 
 
@@ -276,10 +265,10 @@ Bcov
 
 
     4×4 Array{Float64,2}:
-      0.00181127   -1.98035e-5    0.000240705  -2.59506e-6 
-     -1.98035e-5    0.00185406   -2.59506e-6    0.000247285
-      0.000240705  -2.59506e-6    0.00237252   -2.63542e-5 
-     -2.59506e-6    0.000247285  -2.63542e-5    0.00241848 
+      0.00181103   -1.96485e-5    0.000243441  -4.38252e-6 
+     -1.96485e-5    0.00185413   -4.38252e-6    0.000246407
+      0.000243441  -4.38252e-6    0.00234096   -5.73331e-6 
+     -4.38252e-6    0.000246407  -5.73331e-6    0.00242861 
 
 
 
@@ -311,7 +300,8 @@ vcmodel_reml = deepcopy(vcmodel)
            9  -3.846631e+03
           10  -3.846630e+03
     
-      0
+      0.726373 seconds (388.90 k allocations: 82.673 MiB, 13.22% gc time)
+
 
 The output of `fit_reml!` contains
 
@@ -325,7 +315,7 @@ logl
 
 
 
-    -3844.3777179025096
+    -3844.3777179025055
 
 
 
@@ -333,20 +323,13 @@ logl
 
 
 ```julia
-fieldnames(vcmodel_reml)
+fieldnames(typeof(vcmodel_reml))
 ```
 
 
 
 
-    7-element Array{Symbol,1}:
-     :B    
-     :Σ    
-     :A    
-     :sense
-     :b    
-     :lb   
-     :ub   
+    (:B, :Σ, :A, :sense, :b, :lb, :ub)
 
 
 
@@ -358,11 +341,11 @@ vcmodel_reml
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632], ([0.380594 -0.305485; -0.305485 4.51994], [1.84285 0.261963; 0.261963 2.17842]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
+    VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632], ([0.380594 -0.305485; -0.305485 4.51994], [1.84285 0.261963; 0.261963 2.17842]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)
 
 
 
-* standard errors of the estimated varianec component parameters
+* standard errors of the estimated variance component parameters
 
 
 ```julia
@@ -409,8 +392,8 @@ Bse
 
 
     2×2 Array{Float64,2}:
-     0.0425909  0.0487744
-     0.043091   0.0492444
+     0.0425881  0.0484485
+     0.0430919  0.0493475
 
 
 
@@ -425,10 +408,10 @@ Bcov
 
 
     4×4 Array{Float64,2}:
-      0.00181398   -1.98331e-5    0.000237127  -2.55589e-6 
-     -1.98331e-5    0.00185683   -2.55589e-6    0.000243624
-      0.000237127  -2.55589e-6    0.00237894   -2.6426e-5  
-     -2.55589e-6    0.000243624  -2.6426e-5     0.00242501 
+      0.00181375   -1.96783e-5    0.000239868  -4.34611e-6 
+     -1.96783e-5    0.00185691   -4.34611e-6    0.000242745
+      0.000239868  -4.34611e-6    0.00234726   -5.73082e-6 
+     -4.34611e-6    0.000242745  -5.73082e-6    0.00243518 
 
 
 
@@ -441,18 +424,13 @@ In general the optimization algorithm needs to invert the $nd$ by $nd$ overall c
 
 ```julia
 vcdatarot = TwoVarCompVariateRotate(vcdata)
-fieldnames(vcdatarot)
+fieldnames(typeof(vcdatarot))
 ```
 
 
 
 
-    5-element Array{Symbol,1}:
-     :Yrot    
-     :Xrot    
-     :eigval  
-     :eigvec  
-     :logdetV2
+    (:Yrot, :Xrot, :eigval, :eigvec, :logdetV2)
 
 
 
@@ -480,7 +458,7 @@ vcmodel_mm = deepcopy(vcmodel)
            9  -3.844374e+03
           10  -3.844373e+03
     
-      0.018754 seconds (9.15 k allocations: 680.172 KiB)
+      0.055578 seconds (21.91 k allocations: 1.394 MiB)
 
 
 
@@ -520,7 +498,7 @@ vcmodel_ipopt = deepcopy(vcmodel)
 @time mle_fs!(vcmodel_ipopt, vcdatarot; solver=:Ipopt, maxiter=1000, verbose=true);
 ```
 
-    This is Ipopt version 3.12.4, running with linear solver mumps.
+    This is Ipopt version 3.12.10, running with linear solver mumps.
     NOTE: Other linear solvers might be more efficient (see Ipopt documentation).
     
     Number of nonzeros in equality constraint Jacobian...:        0
@@ -551,16 +529,16 @@ vcmodel_ipopt = deepcopy(vcmodel)
     iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
       50  3.8443732e+03 0.00e+00 6.76e-06 -11.0 4.08e-07    -  1.00e+00 1.00e+00f  1 MaxSA
       55  3.8443732e+03 0.00e+00 1.83e-06 -11.0 1.11e-07    -  1.00e+00 1.00e+00f  1 MaxSA
-      60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00f  1 MaxSA
+      60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00h  1 MaxSA
     
     Number of Iterations....: 63
     
                                        (scaled)                 (unscaled)
-    Objective...............:   3.4496886481728075e+02    3.8443731733053696e+03
-    Dual infeasibility......:   2.2693631692678575e-07    2.5290047242499938e-06
+    Objective...............:   3.4496886481728791e+02    3.8443731733053728e+03
+    Dual infeasibility......:   2.2693631660531264e-07    2.5290047206674095e-06
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   2.2693631692678575e-07    2.5290047242499938e-06
+    Overall NLP error.......:   2.2693631660531264e-07    2.5290047206674095e-06
     
     
     Number of objective function evaluations             = 64
@@ -570,11 +548,12 @@ vcmodel_ipopt = deepcopy(vcmodel)
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.020
-    Total CPU secs in NLP function evaluations           =      0.256
+    Total CPU secs in IPOPT (w/o function evaluations)   =      1.739
+    Total CPU secs in NLP function evaluations           =      0.293
     
     EXIT: Solved To Acceptable Level.
-      
+      2.745554 seconds (4.30 M allocations: 210.935 MiB, 2.63% gc time)
+
 
 
 ```julia
@@ -621,6 +600,7 @@ vcmodel_knitro.Σ
 
 ## Starting point
 
+
 Here are a few strategies for successful optimization. 
 
 * For $d>1$ (multivariate response), initialize $B, \Sigma$ from univariate estimates.  
@@ -628,6 +608,8 @@ Here are a few strategies for successful optimization.
 * When there are only $m=2$ variance components, pre-compute `TwoVarCompVariateRotate` and use it for optimization.
 
 ## Constrained estimation of `B`
+
+
 
 Many applications invoke constraints on the mean parameters `B`. For demonstration, we enforce `B[1,1]=B[1,2]` and all entries of `B` are within [0, 2].
 
@@ -646,7 +628,7 @@ vcmodel_constr
 
 
 
-    VarianceComponentModels.VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), [1.0 0.0 -1.0 0.0], '=', 0.0, 0.0, 2.0)
+    VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), [1.0 0.0 -1.0 0.0], '=', 0.0, 0.0, 2.0)
 
 
 
@@ -674,25 +656,18 @@ We first try the MM algorithm.
            9  -3.844650e+03
           10  -3.844650e+03
     
-      0.031954 seconds (10.70 k allocations: 781.828 KiB)
+      0.185885 seconds (179.51 k allocations: 9.295 MiB)
 
 
 
 ```julia
-fieldnames(vcmodel_constr)
+fieldnames(typeof(vcmodel_constr))
 ```
 
 
 
 
-    7-element Array{Symbol,1}:
-     :B    
-     :Σ    
-     :A    
-     :sense
-     :b    
-     :lb   
-     :ub   
+    (:B, :Σ, :A, :sense, :b, :lb, :ub)
 
 
 
@@ -737,7 +712,7 @@ vcmodel_constr
 @time mle_fs!(vcmodel_constr, vcdatarot; solver=:Ipopt, maxiter=1000, verbose=true);
 ```
 
-    This is Ipopt version 3.12.4, running with linear solver mumps.
+    This is Ipopt version 3.12.10, running with linear solver mumps.
     NOTE: Other linear solvers might be more efficient (see Ipopt documentation).
     
     Number of nonzeros in equality constraint Jacobian...:        0
@@ -773,11 +748,11 @@ vcmodel_constr
     Number of Iterations....: 63
     
                                        (scaled)                 (unscaled)
-    Objective...............:   3.4484507551949008e+02    3.8446498170293403e+03
-    Dual infeasibility......:   2.2694405349430929e-07    2.5301808715939735e-06
+    Objective...............:   3.4484507551949685e+02    3.8446498170293398e+03
+    Dual infeasibility......:   2.2694405475622814e-07    2.5301808856629548e-06
     Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
     Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
-    Overall NLP error.......:   2.2694405349430929e-07    2.5301808715939735e-06
+    Overall NLP error.......:   2.2694405475622814e-07    2.5301808856629548e-06
     
     
     Number of objective function evaluations             = 64
@@ -787,11 +762,12 @@ vcmodel_constr
     Number of equality constraint Jacobian evaluations   = 0
     Number of inequality constraint Jacobian evaluations = 0
     Number of Lagrangian Hessian evaluations             = 63
-    Total CPU secs in IPOPT (w/o function evaluations)   =      0.016
-    Total CPU secs in NLP function evaluations           =      0.417
+    Total CPU secs in IPOPT (w/o function evaluations)   =      0.028
+    Total CPU secs in NLP function evaluations           =      0.634
     
     EXIT: Solved To Acceptable Level.
-      
+      0.760983 seconds (102.63 k allocations: 8.135 MiB)
+
 
 
 ```julia

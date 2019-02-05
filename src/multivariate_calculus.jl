@@ -1,5 +1,5 @@
 # module MultivariateCalculus
-
+using SparseArrays
 export vech, trilind, triuind,
   commutation, spcommutation,
   duplication, spduplication,
@@ -16,7 +16,7 @@ function vech(a::Union{Number, AbstractVecOrMat})
   ooffset, aoffset = 1, 1
   for j = 1:n
     len = m - j + 1 # no. elements to copy in column j
-    copy!(out, ooffset, a, aoffset, len)
+    copyto!(out, ooffset, a, aoffset, len)
     ooffset += m - j + 1
     aoffset += m + 1
   end
@@ -34,7 +34,7 @@ Create the `mn x mn` commutation matrix `K`, defined by
 function commutation(t::Type, m::Integer, n::Integer)
   ((m < 0) || (n < 0)) && throw(ArgumentError("invalid Array dimensions"))
   mn = m * n
-  reshape(kron(vec(eye(t, m)), eye(t, n)), mn, mn)
+  reshape(kron(vec(Matrix{t}(I, m, m)), Matrix{t}(I, n, n)), mn, mn)
 end
 commutation(m::Integer, n::Integer) = commutation(Float64, m, n)
 commutation(t::Type, m::Integer) = commutation(t, m, m)
@@ -50,7 +50,7 @@ Create the sparse `mn`-by-`mn` commutation matrix `K`, defined by
 function spcommutation(t::Type, m::Integer, n::Integer)
   ((m < 0) || (n < 0)) && throw(ArgumentError("invalid Array dimensions"))
   mn = m * n
-  reshape(kron(vec(speye(t, m)), speye(t, n)), mn, mn)
+  reshape(kron(vec(sparse(t(1)I, m, m)), sparse(t(1)I, n, n)), mn, mn)
 end
 spcommutation(m::Integer, n::Integer) = spcommutation(Float64, m, n)
 spcommutation(t::Type, m::Integer) = spcommutation(t, m, m)
@@ -63,13 +63,13 @@ spcommutation(M::AbstractMatrix) = spcommutation(eltype(M), size(M, 1), size(M, 
 Linear indices of the lower triangular part of an `m x n` array.
 """
 function trilind(m::Integer, n::Integer, k::Integer)
-  find(tril(trues(m, n), k))
+  (LinearIndices(tril(trues(m, n), k)))[findall(tril(trues(m, n), k))]
 end
 function trilind(m::Integer, n::Integer)
-  find(tril(trues(m, n)))
+  (LinearIndices(tril(trues(m, n))))[findall(tril(trues(m, n)))]
 end
 function trilind(m::Integer)
-  find(tril(trues(m, m)))
+  (LinearIndices(tril(trues(m, m))))[findall(tril(trues(m, m)))]
 end
 trilind(M::AbstractArray) = trilind(size(M, 1), size(M, 2))
 trilind(M::AbstractArray, k::Integer) = trilind(size(M, 1), size(M, 2), k)
@@ -80,13 +80,13 @@ trilind(M::AbstractArray, k::Integer) = trilind(size(M, 1), size(M, 2), k)
 Linear indices of the upper triangular part of an `m x n` array.
 """
 function triuind(m::Integer, n::Integer, k::Integer)
-  find(triu(trues(m, n), k))
+  (LinearIndices(triu(trues(m, n), k)))[findall(triu(trues(m, n), k))]
 end
 function triuind(m::Integer, n::Integer)
-  find(triu(trues(m, n)))
+  (LinearIndices(triu(trues(m, n))))[findall(triu(trues(m, n)))]
 end
 function triuind(m::Integer)
-  find(triu(trues(m, m)))
+  (LinearIndices(triu(trues(m, m))))[findall(triu(trues(m, m)))]
 end
 triuind(M::AbstractArray) = triuind(size(M, 1), size(M, 2))
 triuind(M::AbstractArray, k::Integer) = triuind(size(M, 1), size(M, 2), k)
@@ -100,12 +100,12 @@ Create the sparse `n^2 x n(n+1)/2` duplication matrix, defined by
 function spduplication(t::Type, n::Integer)
   imatrix = zeros(typeof(n), n, n)
   imatrix[trilind(n, n)] = 1:binomial(n + 1, 2)
-  imatrix = imatrix + tril(imatrix, -1).'
+  imatrix = imatrix + copy(transpose(tril(imatrix, -1)))
   sparse(1:n^2, vec(imatrix), one(t))
 end
 spduplication(n::Integer) = spduplication(Float64, n)
 spduplication(M::AbstractMatrix) = spduplication(eltype(M), size(M, 1))
-duplication(t::Type, n::Integer) = full(spduplication(t, n))
+duplication(t::Type, n::Integer) = Matrix(spduplication(t, n))
 duplication(n::Integer) = duplication(Float64, n)
 duplication(M::AbstractMatrix) = duplication(eltype(M), size(M, 1))
 
@@ -118,8 +118,8 @@ Compute the gradient `d / d vec(X)` from a vector of derivatives `dM` where
 function kron_gradient!(g::VecOrMat{T}, dM::VecOrMat{T},
   Y::Matrix{T}, n::Integer, q::Integer) where {T <: Real}
   p, r = size(Y)
-  A_mul_B!(g, kron(speye(n * q), vec(Y)'),
-    (kron(speye(q), spcommutation(n, r), speye(p)) * dM))
+  mul!(g, kron(sparse(I, n * q, n * q), vec(Y)'),
+    (kron(sparse(I, q, q), spcommutation(n, r), sparse(I, p, p)) * dM))
 end
 function kron_gradient(dM::VecOrMat{T}, Y::Matrix{T},
   n::Integer, q::Integer) where {T <: Real}
@@ -141,8 +141,8 @@ Compute the gradient `d / d vech(L)` from a vector of derivatives `dM` where
 function chol_gradient!(g::AbstractVecOrMat{T},
   dM::AbstractVecOrMat{T}, L::AbstractMatrix{T}) where {T <: Real}
   n = size(L, 1)
-  At_mul_B!(g, spduplication(n),
-    kron(L', speye(n)) * (dM + spcommutation(n) * dM))
+  mul!(g, transpose(spduplication(n)), 
+    kron(L', sparse(1.0I, n, n)) * (dM + spcommutation(n) * dM))
 end
 function chol_gradient(dM::AbstractVecOrMat{T}, L::AbstractMatrix{T}) where {T <: Real}
   n = size(L, 1)
