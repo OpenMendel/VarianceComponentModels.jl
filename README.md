@@ -15,7 +15,7 @@ https://github.com/JuliaLang/julia repository.
 The package has not yet been registered and must be installed using the repository location.
 Start julia and use the `]` key to switch to the package manager REPL
 ```julia
-(v0.7) pkg> add https://github.com/OpenMendel/VarianceComponentModels.jl.git#Julia-0.7
+(v1.2) pkg> add https://github.com/OpenMendel/VarianceComponentModels.jl
 ```
 Use the backspace key to return to the Julia REPL.
 
@@ -23,7 +23,7 @@ Use the backspace key to return to the Julia REPL.
 
 If you use [OpenMendel](https://openmendel.github.io) analysis packages in your research, please cite the following reference in the resulting publications:
 
-*Lange K, Papp JC, Sinsheimer JS, Sripracha R, Zhou H, Sobel EM (2013) Mendel: The Swiss army knife of genetic analysis programs. Bioinformatics 29:1568-1570.*
+*Zhou, H., Sinsheimer, J., German, C., Ji, S., Bates, D., Chu, B. B., Keys, K., Kim, J., Ko, S., Mosher, G., Papp, J., Sobel, E., Zhai, J., Zhou, J., and Lange, K. (2020). OPENMENDEL: a cooperative programming project for statistical genetics, Human Genetics, 139(1):61-71.*
 
 <!--- ## Contributing
 We welcome contributions to this Open Source project. To contribute, follow this procedure ... --->
