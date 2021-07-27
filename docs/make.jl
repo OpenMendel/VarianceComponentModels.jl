@@ -3,7 +3,7 @@ using Documenter, VarianceComponentModels
 ENV["DOCUMENTER_DEBUG"] = "true"
 
 makedocs(
-    format = :html,
+    format = Documenter.HTML(),
     sitename = "VarianceComponentModels.jl",
     modules = [VarianceComponentModels], 
     pages = Any[
@@ -19,7 +19,7 @@ makedocs(
 deploydocs(
     repo   = "github.com/OpenMendel/VarianceComponentModels.jl.git",
     target = "build",
-    osname = "linux",
-    julia = "1.0",
+#    osname = "linux",
+#    julia = "1.0",
     deps = nothing,
     make = nothing)
