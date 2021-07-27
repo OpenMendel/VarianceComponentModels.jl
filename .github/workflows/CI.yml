@@ -95,8 +95,8 @@ jobs:
       - run: |
           julia --project=docs -e '
             using Documenter: doctest
-            using TraitSimulation
-            doctest(TraitSimulation)'
+            using VarianceComponentModels
+            doctest(VarianceComponentModels)'
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
