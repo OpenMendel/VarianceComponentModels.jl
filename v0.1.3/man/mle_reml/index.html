@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>MLE and REML · VarianceComponentModels.jl</title><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../../">VarianceComponentModels.jl</a></span></div><form class="docs-search" action="../../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><span class="tocitem">Manual</span><ul><li class="is-active"><a class="tocitem" href>MLE and REML</a><ul class="internal"><li><a class="tocitem" href="#Demo-data"><span>Demo data</span></a></li><li><a class="tocitem" href="#Maximum-likelihood-estimation-(MLE)"><span>Maximum likelihood estimation (MLE)</span></a></li><li><a class="tocitem" href="#Restricted-maximum-likelihood-estimation-(REML)"><span>Restricted maximum likelihood estimation (REML)</span></a></li><li><a class="tocitem" href="#Optimization-algorithms"><span>Optimization algorithms</span></a></li><li><a class="tocitem" href="#Starting-point"><span>Starting point</span></a></li><li><a class="tocitem" href="#Constrained-estimation-of-B"><span>Constrained estimation of <code>B</code></span></a></li></ul></li><li><a class="tocitem" href="../heritability/">Heritability Analysis</a></li></ul></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Manual</a></li><li class="is-active"><a href>MLE and REML</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>MLE and REML</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/OpenMendel/VarianceComponentModels.jl/blob/master/docs/src/man/mle_reml.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="MLE-and-REML"><a class="docs-heading-anchor" href="#MLE-and-REML">MLE and REML</a><a id="MLE-and-REML-1"></a><a class="docs-heading-anchor-permalink" href="#MLE-and-REML" title="Permalink"></a></h1><p>Machine information</p><pre><code class="language-julia hljs">versioninfo()</code></pre><pre><code class="nohighlight hljs">Julia Version 1.1.0
+Commit 80516ca202 (2019-01-21 21:24 UTC)
+Platform Info:
+  OS: macOS (x86_64-apple-darwin14.5.0)
+  CPU: Intel(R) Core(TM) i5-6267U CPU @ 2.90GHz
+  WORD_SIZE: 64
+  LIBM: libopenlibm
+  LLVM: libLLVM-6.0.1 (ORCJIT, skylake)</code></pre><h2 id="Demo-data"><a class="docs-heading-anchor" href="#Demo-data">Demo data</a><a id="Demo-data-1"></a><a class="docs-heading-anchor-permalink" href="#Demo-data" title="Permalink"></a></h2><p>For demonstration, we generate a random data set.</p><pre><code class="language-julia hljs"># generate data from a d-variate response variane component model
+using Random, LinearAlgebra
+Random.seed!(123)
+n = 1000   # no. observations
+d = 2      # dimension of responses
+m = 2      # no. variance components
+p = 2      # no. covariates
+# n-by-p design matrix
+X = randn(n, p)
+# p-by-d mean component regression coefficient
+B = ones(p, d)  
+# a tuple of m covariance matrices
+V = ntuple(x -&gt; zeros(n, n), m) 
+for i = 1:m-1
+  Vi = randn(n, 50)
+  copyto!(V[i], Vi * Vi&#39;)
+end
+copyto!(V[m], Matrix(I, n, n)) # last covarianec matrix is idendity
+# a tuple of m d-by-d variance component parameters
+Σ = ntuple(x -&gt; zeros(d, d), m) 
+for i in 1:m
+  Σi = randn(d, d)
+  copyto!(Σ[i], Σi&#39; * Σi)
+end
+# form overall nd-by-nd covariance matrix Ω
+Ω = zeros(n * d, n * d)
+for i = 1:m
+  Ω += kron(Σ[i], V[i])
+end
+Ωchol = cholesky(Ω)
+# n-by-d responses
+Y = X * B + reshape(Ωchol.L * randn(n*d), n, d);</code></pre><h2 id="Maximum-likelihood-estimation-(MLE)"><a class="docs-heading-anchor" href="#Maximum-likelihood-estimation-(MLE)">Maximum likelihood estimation (MLE)</a><a id="Maximum-likelihood-estimation-(MLE)-1"></a><a class="docs-heading-anchor-permalink" href="#Maximum-likelihood-estimation-(MLE)" title="Permalink"></a></h2><p>To find the MLE of parameters <span>$(B,\Sigma_1,\ldots,\Sigma_m)$</span>, we take 3 steps:  </p><p><strong>Step 1 (Construct data)</strong>. Construct an instance of <code>VarianceComponentVariate</code>, which consists fields  </p><ul><li><code>Y</code>: <span>$n$</span>-by-<span>$d$</span> responses  </li><li><code>X</code>: <span>$n$</span>-by-<span>$p$</span> covariate matrix  </li><li><code>V=(V[1],...,V[m])</code>: a tuple of <span>$n$</span>-by-<span>$n$</span> covariance matrices. The last covariance matrix must be positive definite and usually is the identity matrix. </li></ul><pre><code class="language-julia hljs">using VarianceComponentModels
+vcdata = VarianceComponentVariate(Y, X, V)
+fieldnames(typeof(vcdata))</code></pre><pre><code class="nohighlight hljs">(:Y, :X, :V)</code></pre><p>In the absence of covariates <span>$X$</span>, we can simply initialize by <code>vcdata = VarianceComponentVariate(Y, V)</code>.</p><p><strong>Step 2 (Construct a model)</strong>. Construct an instance of <code>VarianceComponentModel</code>, which consists of fields  </p><ul><li><code>B</code>: <span>$n$</span>-by-<span>$p$</span> mean regression coefficients  </li><li><code>Σ=(Σ[1],...,Σ[m])</code>: variane component parameters respectively. </li></ul><p>When constructed from a <code>VarianceComponentVariate</code> instance, the mean parameters <span>$B$</span> are initialized to be zero and the tuple of variance component parameters <span>$\Sigma$</span> to be <code>(eye(d),...,eye(d))</code>.</p><pre><code class="language-julia hljs">vcmodel = VarianceComponentModel(vcdata)
+fieldnames(typeof(vcmodel))</code></pre><pre><code class="nohighlight hljs">(:B, :Σ, :A, :sense, :b, :lb, :ub)</code></pre><pre><code class="language-julia hljs">vcmodel</code></pre><pre><code class="nohighlight hljs">VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)</code></pre><p>The remaining fields <code>A</code>, <code>sense</code>, <code>b</code>, <code>lb</code>, <code>ub</code> specify (optional) constraints on the mean parameters <code>B</code>:</p><p class="math-container">\[A * \text{vec}(B) \,\, =(\text{or } \ge \text{or } \le) \,\, b\]</p><p class="math-container">\[lb \le \text{vec}(B) \le ub\]</p><p><code>A</code> is an constraint matrix with <span>$pd$</span> columns, <code>sense</code> is a vector of charaters taking values <code>&#39;&lt;&#39;</code>, <code>&#39;=&#39;</code> or <code>&#39;&gt;&#39;</code>, and <code>lb</code> and <code>ub</code> are the lower and upper bounds for <code>vec(B)</code>. By default, <code>A</code>, <code>sense</code>, <code>b</code> are empty, <code>lb</code> is <code>-Inf</code>, and <code>ub</code> is <code>Inf</code>. If any constraits are non-trivial, final estimates of <code>B</code> are enforced to satisfy them.</p><p>When a better initial guess is available, we can initialize by calling <code>vcmodel=VarianceComponentModel(B0, Σ0)</code> directly.</p><p><strong>Step 3 (Fit model)</strong>. Call optmization routine <code>fit_mle!</code>. The keywork <code>algo</code> dictates the optimization algorithm: <code>:MM</code> (minorization-maximization algorithm) or <code>:FS</code> (Fisher scoring algorithm).</p><pre><code class="language-julia hljs">vcmodel_mle = deepcopy(vcmodel)
+@time logl, vcmodel_mle, Σse, Σcov, Bse, Bcov = fit_mle!(vcmodel_mle, vcdata; algo = :MM);</code></pre><pre><code class="nohighlight hljs">     MM Algorithm
+  Iter      Objective  
+--------  -------------
+       0  -6.253551e+03
+
+******************************************************************************
+This program contains Ipopt, a library for large-scale nonlinear optimization.
+ Ipopt is released as open source code under the Eclipse Public License (EPL).
+         For more information visit http://projects.coin-or.org/Ipopt
+******************************************************************************
+
+       1  -3.881454e+03
+       2  -3.853179e+03
+       3  -3.846525e+03
+       4  -3.844906e+03
+       5  -3.844506e+03
+       6  -3.844406e+03
+       7  -3.844381e+03
+       8  -3.844375e+03
+       9  -3.844374e+03
+      10  -3.844373e+03
+
+  5.031460 seconds (11.29 M allocations: 568.015 MiB, 4.78% gc time)</code></pre><p>The output of <code>fit_mle!</code> contains  </p><ul><li>final log-likelihood  </li></ul><pre><code class="language-julia hljs">logl</code></pre><pre><code class="nohighlight hljs">-3844.3731814180887</code></pre><ul><li>fitted model</li></ul><pre><code class="language-julia hljs">fieldnames(typeof(vcmodel_mle))</code></pre><pre><code class="nohighlight hljs">(:B, :Σ, :A, :sense, :b, :lb, :ub)</code></pre><pre><code class="language-julia hljs">vcmodel_mle</code></pre><pre><code class="nohighlight hljs">VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955346 1.01632], ([0.380637 -0.305465; -0.305465 4.51938], [1.84009 0.265569; 0.265569 2.17275]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)</code></pre><ul><li>standard errors of the estimated varianec component parameters</li></ul><pre><code class="language-julia hljs">Σse</code></pre><pre><code class="nohighlight hljs">([0.0765136 0.263047; 0.263047 0.904332], [0.0844292 0.0917441; 0.0917441 0.0996927])</code></pre><ul><li>covariance matrix of the variance component parameters estimates</li></ul><pre><code class="language-julia hljs">Σcov</code></pre><pre><code class="nohighlight hljs">8×8 Array{Float64,2}:
+  0.00585433  -0.00467019  -0.00467019  …  -1.07903e-6   -1.557e-7   
+ -0.00467019   0.0691937    0.00372555     -1.557e-7     -1.27444e-6 
+ -0.00467019   0.00372555   0.0691937      -8.83212e-6   -1.27444e-6 
+  0.00372555  -0.055198    -0.055198       -1.27444e-6   -1.04316e-5 
+ -7.4779e-6   -1.07903e-6  -1.07903e-6      0.00102878    0.000148477
+ -1.07903e-6  -8.83212e-6  -1.557e-7    …   0.000148477   0.00121477 
+ -1.07903e-6  -1.557e-7    -8.83212e-6      0.00841698    0.00121477 
+ -1.557e-7    -1.27444e-6  -1.27444e-6      0.00121477    0.00993864</code></pre><ul><li>standard errors of the estimated mean parameters</li></ul><pre><code class="language-julia hljs">Bse</code></pre><pre><code class="nohighlight hljs">2×2 Array{Float64,2}:
+ 0.0425562  0.0483834
+ 0.0430596  0.0492809</code></pre><ul><li>covariance matrix of the mean parameter estimates</li></ul><pre><code class="language-julia hljs">Bcov</code></pre><pre><code class="nohighlight hljs">4×4 Array{Float64,2}:
+  0.00181103   -1.96485e-5    0.000243441  -4.38252e-6 
+ -1.96485e-5    0.00185413   -4.38252e-6    0.000246407
+  0.000243441  -4.38252e-6    0.00234096   -5.73331e-6 
+ -4.38252e-6    0.000246407  -5.73331e-6    0.00242861</code></pre><h2 id="Restricted-maximum-likelihood-estimation-(REML)"><a class="docs-heading-anchor" href="#Restricted-maximum-likelihood-estimation-(REML)">Restricted maximum likelihood estimation (REML)</a><a id="Restricted-maximum-likelihood-estimation-(REML)-1"></a><a class="docs-heading-anchor-permalink" href="#Restricted-maximum-likelihood-estimation-(REML)" title="Permalink"></a></h2><p><a href="https://en.wikipedia.org/wiki/Restricted_maximum_likelihood">REML (restricted maximum likelihood estimation)</a> is a popular alternative to the MLE. To find the REML of a variane component model, we replace the above step 3 by  </p><p><strong>Step 3</strong>. Call optmization routine <code>fit_reml!</code>.</p><pre><code class="language-julia hljs">vcmodel_reml = deepcopy(vcmodel)
+@time logl, vcmodel_reml, Σse, Σcov, Bse, Bcov = fit_reml!(vcmodel_reml, vcdata; algo = :MM);</code></pre><pre><code class="nohighlight hljs">     MM Algorithm
+  Iter      Objective  
+--------  -------------
+       0  -4.215053e+03
+       1  -3.925799e+03
+       2  -3.865114e+03
+       3  -3.851105e+03
+       4  -3.847732e+03
+       5  -3.846903e+03
+       6  -3.846698e+03
+       7  -3.846647e+03
+       8  -3.846634e+03
+       9  -3.846631e+03
+      10  -3.846630e+03
+
+  0.726373 seconds (388.90 k allocations: 82.673 MiB, 13.22% gc time)</code></pre><p>The output of <code>fit_reml!</code> contains</p><ul><li>the final log-likelihood at REML estimate</li></ul><pre><code class="language-julia hljs">logl</code></pre><pre><code class="nohighlight hljs">-3844.3777179025055</code></pre><ul><li>REML estimates</li></ul><pre><code class="language-julia hljs">fieldnames(typeof(vcmodel_reml))</code></pre><pre><code class="nohighlight hljs">(:B, :Σ, :A, :sense, :b, :lb, :ub)</code></pre><pre><code class="language-julia hljs">vcmodel_reml</code></pre><pre><code class="nohighlight hljs">VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([1.092 1.04727; 0.955345 1.01632], ([0.380594 -0.305485; -0.305485 4.51994], [1.84285 0.261963; 0.261963 2.17842]), Array{Float64}(0,4), Char[], Float64[], -Inf, Inf)</code></pre><ul><li>standard errors of the estimated variance component parameters</li></ul><pre><code class="language-julia hljs">Σse</code></pre><pre><code class="nohighlight hljs">([0.0765055 0.26305; 0.26305 0.904446], [0.0845559 0.0919325; 0.0919325 0.0999526])</code></pre><ul><li>covariance matrix of the variance component parameters estimates</li></ul><pre><code class="language-julia hljs">Σcov</code></pre><pre><code class="nohighlight hljs">8×8 Array{Float64,2}:
+  0.0058531   -0.00467005  -0.00467005  …  -1.06597e-6   -1.51499e-7 
+ -0.00467005   0.0691951    0.00372613     -1.51499e-7   -1.26041e-6 
+ -0.00467005   0.00372613   0.0691951      -8.86843e-6   -1.26041e-6 
+  0.00372613  -0.0552092   -0.0552092      -1.26041e-6   -1.0486e-5  
+ -7.50035e-6  -1.06597e-6  -1.06597e-6      0.00101633    0.000144472
+ -1.06597e-6  -8.86843e-6  -1.51499e-7  …   0.000144472   0.0012014  
+ -1.06597e-6  -1.51499e-7  -8.86843e-6      0.00845158    0.0012014  
+ -1.51499e-7  -1.26041e-6  -1.26041e-6      0.0012014     0.00999052</code></pre><ul><li>standard errors of the estimated mean parameters</li></ul><pre><code class="language-julia hljs">Bse</code></pre><pre><code class="nohighlight hljs">2×2 Array{Float64,2}:
+ 0.0425881  0.0484485
+ 0.0430919  0.0493475</code></pre><ul><li>covariance matrix of the mean parameter estimates</li></ul><pre><code class="language-julia hljs">Bcov</code></pre><pre><code class="nohighlight hljs">4×4 Array{Float64,2}:
+  0.00181375   -1.96783e-5    0.000239868  -4.34611e-6 
+ -1.96783e-5    0.00185691   -4.34611e-6    0.000242745
+  0.000239868  -4.34611e-6    0.00234726   -5.73082e-6 
+ -4.34611e-6    0.000242745  -5.73082e-6    0.00243518</code></pre><h2 id="Optimization-algorithms"><a class="docs-heading-anchor" href="#Optimization-algorithms">Optimization algorithms</a><a id="Optimization-algorithms-1"></a><a class="docs-heading-anchor-permalink" href="#Optimization-algorithms" title="Permalink"></a></h2><p>Finding the MLE or REML of variance component models is a non-trivial nonlinear optimization problem. The main complications are the non-convexity of objective function and the positive semi-definiteness constraint of variane component parameters <span>$\Sigma_1,\ldots,\Sigma_m$</span>. In specific applications, users should try different algorithms with different starting points in order to find a better solution. Here are some tips for efficient computation. </p><p>In general the optimization algorithm needs to invert the <span>$nd$</span> by <span>$nd$</span> overall covariance matrix <span>$\Omega = \Sigma_1 \otimes V_1 + \cdots + \Sigma_m \otimes V_m$</span> in each iteration. Inverting a matrix is an expensive operation with <span>$O(n^3 d^3)$</span> floating operations. When there are only <strong>two</strong> varianec components (<span>$m=2$</span>), this tedious task can be avoided by taking one (generalized) eigendecomposion of <span>$(V_1, V_2)$</span> and rotating data <span>$(Y, X)$</span> by the eigen-vectors. </p><pre><code class="language-julia hljs">vcdatarot = TwoVarCompVariateRotate(vcdata)
+fieldnames(typeof(vcdatarot))</code></pre><pre><code class="nohighlight hljs">(:Yrot, :Xrot, :eigval, :eigvec, :logdetV2)</code></pre><p>Two optimization algorithms are implemented: <a href="https://books.google.com/books?id=QYqeYTftPNwC&amp;lpg=PP1&amp;pg=PA142#v=onepage&amp;q&amp;f=false">Fisher scoring</a> (<code>mle_fs!</code>) and the <a href="http://arxiv.org/abs/1509.07426">minorization-maximization (MM) algorithm</a> (<code>mle_mm!</code>). Both take the rotated data as input. These two functions give finer control of the optimization algorithms. Generally speaking, MM algorithm is more stable while Fisher scoring (if it converges) yields more accurate answer.</p><pre><code class="language-julia hljs">vcmodel_mm = deepcopy(vcmodel)
+@time mle_mm!(vcmodel_mm, vcdatarot; maxiter=10000, funtol=1e-8, verbose = true);</code></pre><pre><code class="nohighlight hljs">     MM Algorithm
+  Iter      Objective  
+--------  -------------
+       0  -6.253551e+03
+       1  -3.881454e+03
+       2  -3.853179e+03
+       3  -3.846525e+03
+       4  -3.844906e+03
+       5  -3.844506e+03
+       6  -3.844406e+03
+       7  -3.844381e+03
+       8  -3.844375e+03
+       9  -3.844374e+03
+      10  -3.844373e+03
+
+  0.055578 seconds (21.91 k allocations: 1.394 MiB)</code></pre><pre><code class="language-julia hljs"># MM estimates
+vcmodel_mm.B</code></pre><pre><code class="nohighlight hljs">2×2 Array{Float64,2}:
+ 1.092     1.04727
+ 0.955346  1.01632</code></pre><pre><code class="language-julia hljs"># MM estimates
+vcmodel_mm.Σ</code></pre><pre><code class="nohighlight hljs">([0.380637 -0.305465; -0.305465 4.51938], [1.84009 0.265569; 0.265569 2.17275])</code></pre><p>Fisher scoring (<code>mle_fs!</code>) uses either <a href="https://github.com/JuliaOpt/Ipopt.jl">Ipopt.jl</a> (keyword <code>solver=:Ipopt</code>) or <a href="https://github.com/JuliaOpt/KNITRO.jl">KNITRO.jl</a> (keyword <code>solver=:Knitro</code>) as the backend solver. Ipopt is open source and installation of <a href="https://github.com/JuliaOpt/Ipopt.jl">Ipopt.jl</a> package alone is sufficient.</p><pre><code class="language-julia hljs"># Fisher scoring using Ipopt
+vcmodel_ipopt = deepcopy(vcmodel)
+@time mle_fs!(vcmodel_ipopt, vcdatarot; solver=:Ipopt, maxiter=1000, verbose=true);</code></pre><pre><code class="nohighlight hljs">This is Ipopt version 3.12.10, running with linear solver mumps.
+NOTE: Other linear solvers might be more efficient (see Ipopt documentation).
+
+Number of nonzeros in equality constraint Jacobian...:        0
+Number of nonzeros in inequality constraint Jacobian.:        0
+Number of nonzeros in Lagrangian Hessian.............:       21
+
+Total number of variables............................:        6
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:        0
+                     variables with only upper bounds:        0
+Total number of equality constraints.................:        0
+Total number of inequality constraints...............:        0
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:        0
+
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+   0  4.2109423e+03 0.00e+00 1.00e+02   0.0 0.00e+00    -  0.00e+00 0.00e+00   0 
+   5  3.8445586e+03 0.00e+00 7.87e-01 -11.0 4.94e-02    -  1.00e+00 1.00e+00f  1 MaxS
+  10  3.8443870e+03 0.00e+00 2.25e-01 -11.0 1.38e-02    -  1.00e+00 1.00e+00f  1 MaxS
+  15  3.8443742e+03 0.00e+00 6.23e-02 -11.0 3.78e-03    -  1.00e+00 1.00e+00f  1 MaxS
+  20  3.8443733e+03 0.00e+00 1.70e-02 -11.0 1.03e-03    -  1.00e+00 1.00e+00f  1 MaxS
+  25  3.8443732e+03 0.00e+00 4.61e-03 -11.0 2.79e-04    -  1.00e+00 1.00e+00f  1 MaxS
+  30  3.8443732e+03 0.00e+00 1.25e-03 -11.0 7.56e-05    -  1.00e+00 1.00e+00f  1 MaxS
+  35  3.8443732e+03 0.00e+00 3.39e-04 -11.0 2.05e-05    -  1.00e+00 1.00e+00f  1 MaxS
+  40  3.8443732e+03 0.00e+00 9.19e-05 -11.0 5.55e-06    -  1.00e+00 1.00e+00f  1 MaxS
+  45  3.8443732e+03 0.00e+00 2.49e-05 -11.0 1.51e-06    -  1.00e+00 1.00e+00f  1 MaxS
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  50  3.8443732e+03 0.00e+00 6.76e-06 -11.0 4.08e-07    -  1.00e+00 1.00e+00f  1 MaxSA
+  55  3.8443732e+03 0.00e+00 1.83e-06 -11.0 1.11e-07    -  1.00e+00 1.00e+00f  1 MaxSA
+  60  3.8443732e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00h  1 MaxSA
+
+Number of Iterations....: 63
+
+                                   (scaled)                 (unscaled)
+Objective...............:   3.4496886481728791e+02    3.8443731733053728e+03
+Dual infeasibility......:   2.2693631660531264e-07    2.5290047206674095e-06
+Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
+Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
+Overall NLP error.......:   2.2693631660531264e-07    2.5290047206674095e-06
+
+
+Number of objective function evaluations             = 64
+Number of objective gradient evaluations             = 64
+Number of equality constraint evaluations            = 0
+Number of inequality constraint evaluations          = 0
+Number of equality constraint Jacobian evaluations   = 0
+Number of inequality constraint Jacobian evaluations = 0
+Number of Lagrangian Hessian evaluations             = 63
+Total CPU secs in IPOPT (w/o function evaluations)   =      1.739
+Total CPU secs in NLP function evaluations           =      0.293
+
+EXIT: Solved To Acceptable Level.
+  2.745554 seconds (4.30 M allocations: 210.935 MiB, 2.63% gc time)</code></pre><pre><code class="language-julia hljs"># Ipopt estimates
+vcmodel_ipopt.B</code></pre><pre><code class="nohighlight hljs">2×2 Array{Float64,2}:
+ 1.092     1.04727
+ 0.955346  1.01632</code></pre><pre><code class="language-julia hljs"># Ipopt estimates
+vcmodel_ipopt.Σ</code></pre><pre><code class="nohighlight hljs">([0.380552 -0.305594; -0.305594 4.52106], [1.84008 0.265385; 0.265385 2.17287])</code></pre><p>Knitro is a commercial software and users need to follow instructions at <a href="https://github.com/JuliaOpt/KNITRO.jl">KNITRO.jl</a> for proper functioning. Following code invokes Knitro as the backend optimization solver.</p><pre><code class="language-julia hljs">using KNITRO
+
+# Fisher scoring using Knitro
+vcmodel_knitro = deepcopy(vcmodel)
+@time mle_fs!(vcmodel_knitro, vcdatarot; solver=:Knitro, maxiter=1000, verbose=true);
+
+# Knitro estimates
+vcmodel_knitro.B
+
+# Knitro estimates
+vcmodel_knitro.Σ</code></pre><h2 id="Starting-point"><a class="docs-heading-anchor" href="#Starting-point">Starting point</a><a id="Starting-point-1"></a><a class="docs-heading-anchor-permalink" href="#Starting-point" title="Permalink"></a></h2><p>Here are a few strategies for successful optimization. </p><ul><li>For <span>$d&gt;1$</span> (multivariate response), initialize <span>$B, \Sigma$</span> from univariate estimates.  </li><li>Use REML estimate as starting point for MLE.  </li><li>When there are only <span>$m=2$</span> variance components, pre-compute <code>TwoVarCompVariateRotate</code> and use it for optimization.</li></ul><h2 id="Constrained-estimation-of-B"><a class="docs-heading-anchor" href="#Constrained-estimation-of-B">Constrained estimation of <code>B</code></a><a id="Constrained-estimation-of-B-1"></a><a class="docs-heading-anchor-permalink" href="#Constrained-estimation-of-B" title="Permalink"></a></h2><p>Many applications invoke constraints on the mean parameters <code>B</code>. For demonstration, we enforce <code>B[1,1]=B[1,2]</code> and all entries of <code>B</code> are within [0, 2].</p><pre><code class="language-julia hljs"># set up constraints on B
+vcmodel_constr = deepcopy(vcmodel)
+vcmodel_constr.A = [1.0 0.0 -1.0 0.0]
+vcmodel_constr.sense = &#39;=&#39;
+vcmodel_constr.b = 0.0
+vcmodel_constr.lb = 0.0
+vcmodel_constr.ub = 2.0
+vcmodel_constr</code></pre><pre><code class="nohighlight hljs">VarianceComponentModel{Float64,2,Array{Float64,2},Array{Float64,2}}([0.0 0.0; 0.0 0.0], ([1.0 0.0; 0.0 1.0], [1.0 0.0; 0.0 1.0]), [1.0 0.0 -1.0 0.0], &#39;=&#39;, 0.0, 0.0, 2.0)</code></pre><p>We first try the MM algorithm.</p><pre><code class="language-julia hljs"># MM algorithm for constrained estimation of B
+@time mle_mm!(vcmodel_constr, vcdatarot; maxiter=10000, funtol=1e-8, verbose = true);</code></pre><pre><code class="nohighlight hljs">     MM Algorithm
+  Iter      Objective  
+--------  -------------
+       0  -6.253551e+03
+       1  -3.881820e+03
+       2  -3.853477e+03
+       3  -3.846807e+03
+       4  -3.845184e+03
+       5  -3.844783e+03
+       6  -3.844683e+03
+       7  -3.844658e+03
+       8  -3.844652e+03
+       9  -3.844650e+03
+      10  -3.844650e+03
+
+  0.185885 seconds (179.51 k allocations: 9.295 MiB)</code></pre><pre><code class="language-julia hljs">fieldnames(typeof(vcmodel_constr))</code></pre><pre><code class="nohighlight hljs">(:B, :Σ, :A, :sense, :b, :lb, :ub)</code></pre><pre><code class="language-julia hljs">vcmodel_constr.B</code></pre><pre><code class="nohighlight hljs">2×2 Array{Float64,2}:
+ 1.07177   1.07177
+ 0.955683  1.01591</code></pre><pre><code class="language-julia hljs">vcmodel_constr.Σ</code></pre><pre><code class="nohighlight hljs">([0.380624 -0.305498; -0.305498 4.51948], [1.84051 0.265065; 0.265065 2.17336])</code></pre><p>Now let&#39;s try Fisher scoring.</p><pre><code class="language-julia hljs"># Fisher scoring using Ipopt for constrained estimation of B
+vcmodel_constr = deepcopy(vcmodel)
+vcmodel_constr.A = [1.0 0.0 -1.0 0.0]
+vcmodel_constr.sense = &#39;=&#39;
+vcmodel_constr.b = 0.0
+vcmodel_constr.lb = 0.0
+vcmodel_constr.ub = 2.0
+vcmodel_constr
+@time mle_fs!(vcmodel_constr, vcdatarot; solver=:Ipopt, maxiter=1000, verbose=true);</code></pre><pre><code class="nohighlight hljs">This is Ipopt version 3.12.10, running with linear solver mumps.
+NOTE: Other linear solvers might be more efficient (see Ipopt documentation).
+
+Number of nonzeros in equality constraint Jacobian...:        0
+Number of nonzeros in inequality constraint Jacobian.:        0
+Number of nonzeros in Lagrangian Hessian.............:       21
+
+Total number of variables............................:        6
+                     variables with only lower bounds:        0
+                variables with lower and upper bounds:        0
+                     variables with only upper bounds:        0
+Total number of equality constraints.................:        0
+Total number of inequality constraints...............:        0
+        inequality constraints with only lower bounds:        0
+   inequality constraints with lower and upper bounds:        0
+        inequality constraints with only upper bounds:        0
+
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+   0  4.2114270e+03 0.00e+00 1.00e+02   0.0 0.00e+00    -  0.00e+00 0.00e+00   0 
+   5  3.8448353e+03 0.00e+00 7.87e-01 -11.0 4.94e-02    -  1.00e+00 1.00e+00f  1 MaxS
+  10  3.8446636e+03 0.00e+00 2.25e-01 -11.0 1.38e-02    -  1.00e+00 1.00e+00f  1 MaxS
+  15  3.8446509e+03 0.00e+00 6.23e-02 -11.0 3.78e-03    -  1.00e+00 1.00e+00f  1 MaxS
+  20  3.8446499e+03 0.00e+00 1.70e-02 -11.0 1.03e-03    -  1.00e+00 1.00e+00f  1 MaxS
+  25  3.8446498e+03 0.00e+00 4.61e-03 -11.0 2.79e-04    -  1.00e+00 1.00e+00f  1 MaxS
+  30  3.8446498e+03 0.00e+00 1.25e-03 -11.0 7.56e-05    -  1.00e+00 1.00e+00f  1 MaxS
+  35  3.8446498e+03 0.00e+00 3.39e-04 -11.0 2.05e-05    -  1.00e+00 1.00e+00f  1 MaxS
+  40  3.8446498e+03 0.00e+00 9.19e-05 -11.0 5.56e-06    -  1.00e+00 1.00e+00f  1 MaxS
+  45  3.8446498e+03 0.00e+00 2.49e-05 -11.0 1.51e-06    -  1.00e+00 1.00e+00f  1 MaxS
+iter    objective    inf_pr   inf_du lg(mu)  ||d||  lg(rg) alpha_du alpha_pr  ls
+  50  3.8446498e+03 0.00e+00 6.76e-06 -11.0 4.08e-07    -  1.00e+00 1.00e+00f  1 MaxSA
+  55  3.8446498e+03 0.00e+00 1.83e-06 -11.0 1.11e-07    -  1.00e+00 1.00e+00f  1 MaxSA
+  60  3.8446498e+03 0.00e+00 4.97e-07 -11.0 3.00e-08    -  1.00e+00 1.00e+00f  1 MaxSA
+
+Number of Iterations....: 63
+
+                                   (scaled)                 (unscaled)
+Objective...............:   3.4484507551949685e+02    3.8446498170293398e+03
+Dual infeasibility......:   2.2694405475622814e-07    2.5301808856629548e-06
+Constraint violation....:   0.0000000000000000e+00    0.0000000000000000e+00
+Complementarity.........:   0.0000000000000000e+00    0.0000000000000000e+00
+Overall NLP error.......:   2.2694405475622814e-07    2.5301808856629548e-06
+
+
+Number of objective function evaluations             = 64
+Number of objective gradient evaluations             = 64
+Number of equality constraint evaluations            = 0
+Number of inequality constraint evaluations          = 0
+Number of equality constraint Jacobian evaluations   = 0
+Number of inequality constraint Jacobian evaluations = 0
+Number of Lagrangian Hessian evaluations             = 63
+Total CPU secs in IPOPT (w/o function evaluations)   =      0.028
+Total CPU secs in NLP function evaluations           =      0.634
+
+EXIT: Solved To Acceptable Level.
+  0.760983 seconds (102.63 k allocations: 8.135 MiB)</code></pre><pre><code class="language-julia hljs">vcmodel_constr.B</code></pre><pre><code class="nohighlight hljs">2×2 Array{Float64,2}:
+ 1.07177   1.07177
+ 0.955683  1.01591</code></pre><pre><code class="language-julia hljs">vcmodel_constr.Σ</code></pre><pre><code class="nohighlight hljs">([0.380539 -0.305626; -0.305626 4.52116], [1.8405 0.264881; 0.264881 2.17348])</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../../">« Home</a><a class="docs-footer-nextpage" href="../heritability/">Heritability Analysis »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.10 on <span class="colophon-date" title="Sunday 5 December 2021 23:29">Sunday 5 December 2021</span>. Using Julia version 1.6.4.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
